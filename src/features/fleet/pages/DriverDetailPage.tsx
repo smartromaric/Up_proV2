@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Tabs } from "@/shared/ui/Tabs";
-import { Timeline, type TimelineItem } from "@/shared/ui/Timeline";
+import { Timeline } from "@/shared/ui/Timeline";
+import { driverTimelineToItems } from "@/shared/lib/driverTimeline";
 import { KycDocumentCard } from "@/shared/ui/KycDocumentCard";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { Button } from "@/shared/ui/Button";
@@ -13,7 +14,7 @@ import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getTripStatusLabel } from "@/shared/lib/tripLabels";
-import type { DriverTimelineEvent } from "@/shared/types";
+import type { TripMatchingOutcome } from "@/shared/types";
 import type { DriverTripRow, DriverWalletTransaction } from "../api/driverDetail.service";
 import {
   useDriverDetail,
@@ -25,21 +26,6 @@ import {
   useActivateDriver,
 } from "../api/driverDetail.queries";
 import { notificationService } from "@/core/http/notificationService";
-
-function timelineVariant(
-  type: DriverTimelineEvent["type"]
-): TimelineItem["variant"] {
-  switch (type) {
-    case "approved":
-      return "success";
-    case "kyc":
-      return "warning";
-    case "suspended":
-      return "muted";
-    default:
-      return "default";
-  }
-}
 
 interface DriverDetailPageProps {
   driverId: string;
@@ -90,13 +76,7 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
   const isPending = driver.account_status === "pending";
   const isSuspended = driver.account_status === "suspended";
   const canSuspend = driver.account_status === "approved";
-  const timelineItems: TimelineItem[] = driver.timeline.map((e) => ({
-    id: e.id,
-    label: e.label,
-    description: e.description,
-    at: e.at,
-    variant: timelineVariant(e.type),
-  }));
+  const timelineItems = driverTimelineToItems(driver.timeline);
 
   const tabs = [
     { id: "kyc", label: "KYC & documents" },
@@ -104,18 +84,29 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
     { id: "activity", label: "Activité" },
   ];
 
+  const offerOutcomeLabel: Record<TripMatchingOutcome, string> = {
+    declined: "Proposition refusée",
+    no_response: "Sans réponse",
+    accepted: "Acceptée",
+  };
+
   const tripColumns: Column<DriverTripRow>[] = [
     {
       id: "ref",
       header: "Réf.",
-      cell: (t) => (
-        <Link
-          href={`/admin/ops/trips/${t.id}`}
-          className="font-medium text-foreground hover:text-teal"
-        >
-          {t.ref}
-        </Link>
-      ),
+      cell: (t) => {
+        const tripId = t.id.startsWith("offer-")
+          ? t.id.replace(/^offer-(\d+)-.*/, "$1")
+          : t.id;
+        return (
+          <Link
+            href={`/admin/ops/trips/${tripId}`}
+            className="font-medium text-foreground hover:text-teal"
+          >
+            {t.ref}
+          </Link>
+        );
+      },
       exportValue: (t) => t.ref,
     },
     {
@@ -138,8 +129,18 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
     {
       id: "status",
       header: "Statut",
-      cell: (t) => <StatusPill status={t.status} />,
-      exportValue: (t) => getTripStatusLabel(t.status),
+      cell: (t) =>
+        t.offer_outcome && t.offer_outcome !== "accepted" ? (
+          <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600">
+            {offerOutcomeLabel[t.offer_outcome]}
+          </span>
+        ) : (
+          <StatusPill status={t.status} />
+        ),
+      exportValue: (t) =>
+        t.offer_outcome && t.offer_outcome !== "accepted"
+          ? offerOutcomeLabel[t.offer_outcome]
+          : getTripStatusLabel(t.status),
     },
     {
       id: "date",

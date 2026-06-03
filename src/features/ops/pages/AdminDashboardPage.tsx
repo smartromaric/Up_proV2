@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { useAdminDashboard } from "../api/dashboard.queries";
 import { HeroKpi } from "../components/HeroKpi";
 import { ChartFlux } from "../components/ChartFlux";
 import { RecentTripsTable } from "../components/RecentTripsTable";
+import { AdminNetworkActivityPanel } from "../components/AdminNetworkActivityPanel";
+import { AdminDashboardFranchiseSelect } from "../components/AdminDashboardFranchiseSelect";
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
@@ -23,9 +27,16 @@ function DashboardSkeleton() {
 }
 
 export function AdminDashboardPage() {
-  const { data, isLoading, isError } = useAdminDashboard();
+  const [franchiseId, setFranchiseId] = useState<number | null>(null);
+  const { data, isLoading, isError, isFetching } = useAdminDashboard(franchiseId);
 
-  if (isLoading) return <DashboardSkeleton />;
+  const scopeLabel =
+    franchiseId === null
+      ? "Toutes les franchises"
+      : data?.franchise_options.find((f) => f.id === franchiseId)?.name ??
+        "Franchise";
+
+  if (isLoading && !data) return <DashboardSkeleton />;
   if (isError || !data) {
     return (
       <p className="text-sm text-red-600">
@@ -38,10 +49,28 @@ export function AdminDashboardPage() {
     <div className="animate-fade-up">
       <PageHeader
         title="Tableau de bord"
-        breadcrumb={["Admin", "Opérations"]}
+        breadcrumb={["Admin", "Opérations", scopeLabel]}
+        actions={
+          <AdminDashboardFranchiseSelect
+            options={data.franchise_options}
+            value={franchiseId}
+            onChange={setFranchiseId}
+            disabled={isFetching}
+          />
+        }
       />
 
-      <div className="animate-stagger space-y-5">
+      {franchiseId !== null && (
+        <p className="mb-4 text-sm text-muted">
+          Chiffres filtrés pour{" "}
+          <span className="font-medium text-foreground">{scopeLabel}</span>.
+          Sélectionnez « Toutes les franchises » pour la vue globale.
+        </p>
+      )}
+
+      <div
+        className={`animate-stagger space-y-5 ${isFetching ? "opacity-70 transition-opacity" : ""}`}
+      >
         <HeroKpi
           amount={data.net_profit_today_fcfa}
           trendPct={data.net_profit_trend_pct}
@@ -58,11 +87,10 @@ export function AdminDashboardPage() {
               value={String(data.trips_completed_today)}
               hint={`${data.trips_cancelled_today} annulées`}
             />
-            <KpiCard
-              index={1}
-              label="Zone active"
-              value={data.active_zone.name}
-              hint={`${data.active_zone.drivers_online} chauffeurs en ligne · ${data.active_zone.trips_24h} courses / 24h`}
+            <AdminNetworkActivityPanel
+              activeZone={data.active_zone}
+              franchiseActivity={data.franchise_activity ?? []}
+              scopedToFranchise={franchiseId !== null}
             />
           </div>
         </div>
@@ -71,7 +99,8 @@ export function AdminDashboardPage() {
           <KpiCard
             index={0}
             label="Chauffeurs approuvés"
-            value={data.drivers_approved.toLocaleString("fr-CI")}
+            value={`${data.drivers_approved.toLocaleString("fr-CI")} / ${data.drivers_total.toLocaleString("fr-CI")}`}
+            hint="approuvés · total plateforme"
           />
           <KpiCard
             index={1}

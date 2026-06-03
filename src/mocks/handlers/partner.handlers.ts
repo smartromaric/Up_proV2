@@ -15,6 +15,8 @@ import {
   buildPartnerFleetLiveMap,
   getLiveMapCatalogDrivers,
 } from "../lib/liveMapBuilder";
+import { matchingDriversForTrip } from "../lib/tripMatching";
+import type { TripTimelineEvent } from "@/shared/types";
 import driverTripsSeed from "../data/driver-trips.json";
 import driverWalletTxSeed from "../data/driver-wallet-transactions.json";
 import bookingsListPartner from "../data/bookings-list-partner.json";
@@ -71,18 +73,16 @@ const PARTNER_BOOKINGS = [
   ...TRIPS_CATALOG.filter((t) => t.client_name.includes("Express") || t.ref.startsWith("TR-884")).slice(0, 40),
 ];
 
-function bookingTimeline(status: TripStatus, createdAt: string) {
+function bookingTimeline(
+  status: TripStatus,
+  createdAt: string,
+  booking?: { id: string; ref: string; driver_name?: string }
+) {
   const base = new Date(createdAt);
   const at = (mins: number) =>
     new Date(base.getTime() + mins * 60_000).toISOString();
 
-  const events: {
-    id: string;
-    type: TripStatus | "matching";
-    label: string;
-    description?: string;
-    at: string;
-  }[] = [
+  const events: TripTimelineEvent[] = [
     {
       id: "t-requested",
       type: "requested",
@@ -93,11 +93,18 @@ function bookingTimeline(status: TripStatus, createdAt: string) {
   ];
 
   if (["matching", "assigned", "arrived", "in_progress", "completed"].includes(status)) {
+    const matchingDrivers = booking
+      ? matchingDriversForTrip(booking.id, booking.ref)
+      : undefined;
     events.push({
       id: "t-matching",
       type: "matching",
       label: "Recherche chauffeur",
+      description: matchingDrivers
+        ? `${matchingDrivers.length} chauffeur${matchingDrivers.length > 1 ? "s" : ""} contacté${matchingDrivers.length > 1 ? "s" : ""}`
+        : undefined,
       at: at(1),
+      matching_drivers: matchingDrivers,
     });
   }
   if (["assigned", "arrived", "in_progress", "completed"].includes(status)) {
@@ -105,6 +112,9 @@ function bookingTimeline(status: TripStatus, createdAt: string) {
       id: "t-assigned",
       type: "assigned",
       label: "Chauffeur assigné",
+      description: booking?.driver_name
+        ? `${booking.driver_name} a accepté la course`
+        : undefined,
       at: at(4),
     });
   }
@@ -152,7 +162,11 @@ function bookingDetailById(id: string) {
     from_lng: fromLng,
     to_lat: toLat,
     to_lng: toLng,
-    timeline: bookingTimeline(base.status as TripStatus, base.created_at),
+    timeline: bookingTimeline(base.status as TripStatus, base.created_at, {
+      id: base.id,
+      ref: base.ref,
+      driver_name: base.driver_name,
+    }),
     estimated_arrival_at:
       base.status === "in_progress"
         ? new Date(Date.now() + 12 * 60_000).toISOString()

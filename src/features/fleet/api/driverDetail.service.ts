@@ -1,5 +1,10 @@
 import { apiClient, apiWithNotify } from "@/core/http/apiClient";
-import type { DriverDetail, Paginated, TripStatus } from "@/shared/types";
+import type {
+  DriverDetail,
+  Paginated,
+  TripMatchingOutcome,
+  TripStatus,
+} from "@/shared/types";
 
 export interface DriverTripRow {
   id: string;
@@ -9,6 +14,8 @@ export interface DriverTripRow {
   status: TripStatus;
   amount_fcfa: number;
   created_at: string;
+  /** Course proposée mais non acceptée (historique matching) */
+  offer_outcome?: TripMatchingOutcome;
 }
 
 export interface DriverWalletTransaction {

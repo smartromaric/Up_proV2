@@ -54,12 +54,24 @@ export interface Trip {
   created_at: string;
 }
 
+export type TripMatchingOutcome = "declined" | "no_response" | "accepted";
+
+export interface TripMatchingDriver {
+  driver_id: number;
+  driver_name: string;
+  outcome: TripMatchingOutcome;
+  /** Raison affichée si refus ou pas de réponse */
+  reason?: string;
+}
+
 export interface TripTimelineEvent {
   id: string;
   type: TripStatus | "matching";
   label: string;
   description?: string;
   at: string;
+  /** Chauffeurs contactés pendant la recherche (détail par nom + issue) */
+  matching_drivers?: TripMatchingDriver[];
 }
 
 export interface TripDetail extends Trip {
@@ -251,10 +263,19 @@ export interface KycDocument {
 
 export interface DriverTimelineEvent {
   id: string;
-  type: "registered" | "kyc" | "approved" | "suspended" | "trip";
+  type:
+    | "registered"
+    | "kyc"
+    | "approved"
+    | "suspended"
+    | "trip"
+    | "trip_offer_declined"
+    | "trip_offer_accepted";
   label: string;
   description?: string;
   at: string;
+  trip_id?: string;
+  trip_ref?: string;
 }
 
 export interface DriverDetail extends Driver {
@@ -591,15 +612,43 @@ export interface DispatchRules {
   updated_at: string;
 }
 
+export interface DashboardAdminFranchiseOption {
+  id: number;
+  name: string;
+  city: string;
+}
+
 export interface DashboardAdminKpi {
+  selected_franchise_id: number | null;
+  franchise_options: DashboardAdminFranchiseOption[];
   net_profit_today_fcfa: number;
   net_profit_trend_pct: number;
   trips_completed_today: number;
   trips_cancelled_today: number;
   drivers_approved: number;
+  drivers_total: number;
   drivers_pending_kyc: number;
   users_registered: number;
   chart_flux: { day: string; revenue: number; commission: number }[];
   recent_trips: Trip[];
-  active_zone: { name: string; trips_24h: number; drivers_online: number };
+  active_zone: {
+    franchise_id: number;
+    franchise_name: string;
+    partner_id: number;
+    partner_name: string;
+    zone_id: number;
+    zone_name: string;
+    city: string;
+    trips_24h: number;
+    drivers_online: number;
+  };
+  franchise_activity: {
+    franchise_id: number;
+    franchise_name: string;
+    city: string;
+    drivers_online: number;
+    trips_24h: number;
+    top_partner_name: string;
+    top_zone_name: string;
+  }[];
 }

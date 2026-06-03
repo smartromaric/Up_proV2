@@ -1,0 +1,65 @@
+{
+  "id": 102,
+  "first_name": "Traoré",
+  "last_name": "Aminata",
+  "phone": "+225 05 98 76 54 32",
+  "email": "traore.aminata@email.ci",
+  "rating": 4.91,
+  "zone": "Plateau",
+  "owner_name": "Cocody Express",
+  "owner_id": 12,
+  "vehicle_label": "Suzuki Dzire · CD-881-CI",
+  "account_status": "approved",
+  "availability": "on_trip",
+  "registered_at": "2024-05-02T10:00:00Z",
+  "approved_at": "2024-05-05T16:30:00Z",
+  "stats": {
+    "trips_total": 892,
+    "trips_completed": 856,
+    "trips_cancelled": 36,
+    "acceptance_rate_pct": 96.1,
+    "wallet_balance_fcfa": 38400
+  },
+  "timeline": [
+    {
+      "id": "t-offer-accept-88419",
+      "type": "trip_offer_accepted",
+      "label": "Course acceptée",
+      "description": "Plateau, Immeuble SCIAM → Plateau, Zone 4",
+      "trip_id": "2",
+      "trip_ref": "TR-88419",
+      "at": "2026-06-02T14:22:00Z"
+    },
+    {
+      "id": "t1",
+      "type": "approved",
+      "label": "Compte approuvé",
+      "description": "KYC validé par l'équipe Côte d'Ivoire",
+      "at": "2024-05-05T16:30:00Z"
+    },
+    {
+      "id": "t2",
+      "type": "registered",
+      "label": "Inscription",
+      "at": "2024-05-02T10:00:00Z"
+    }
+  ],
+  "kyc_documents": [
+    {
+      "id": "doc-cni",
+      "type": "cni",
+      "label": "Carte nationale d'identité",
+      "status": "approved",
+      "uploaded_at": "2024-05-03T11:00:00Z",
+      "reviewed_at": "2024-05-05T12:00:00Z"
+    },
+    {
+      "id": "doc-permis",
+      "type": "license",
+      "label": "Permis de conduire",
+      "status": "approved",
+      "uploaded_at": "2024-05-03T11:05:00Z",
+      "reviewed_at": "2024-05-05T12:05:00Z"
+    }
+  ]
+}

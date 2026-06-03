@@ -1,12 +1,19 @@
 import { http, HttpResponse } from "msw";
 import driverDetail from "../data/driver-detail.json";
+import driverDetail102 from "../data/driver-detail-102.json";
+import driverDetail104 from "../data/driver-detail-104.json";
 import driverDetailPending from "../data/driver-detail-pending.json";
 import kycQueue from "../data/kyc-queue.json";
 import fleetClientsList from "../data/fleet-clients-list.json";
 import fleetClientDetail from "../data/fleet-client-detail.json";
 import driverTripsSeed from "../data/driver-trips.json";
 import driverWalletTxSeed from "../data/driver-wallet-transactions.json";
-import type { DriverDetail, Paginated, TripStatus } from "@/shared/types";
+import type {
+  DriverDetail,
+  Paginated,
+  TripMatchingOutcome,
+  TripStatus,
+} from "@/shared/types";
 import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 
 const accountOverrides: Record<string, DriverDetail["account_status"]> = {};
@@ -20,6 +27,7 @@ type DriverTripRow = {
   status: TripStatus;
   amount_fcfa: number;
   created_at: string;
+  offer_outcome?: TripMatchingOutcome;
 };
 
 type WalletTxRow = {
@@ -40,11 +48,17 @@ const driverWalletState = driverWalletTxSeed as Record<
   Paginated<WalletTxRow>
 >;
 
+const DRIVER_DETAILS: Record<string, DriverDetail> = {
+  "101": driverDetail as DriverDetail,
+  "102": driverDetail102 as DriverDetail,
+  "104": driverDetail104 as DriverDetail,
+  "103": driverDetailPending as unknown as DriverDetail,
+};
+
 function getDriver(id: string): DriverDetail {
   const base =
-    id === "103"
-      ? ({ ...driverDetailPending, id: 103 } as unknown as DriverDetail)
-      : ({ ...driverDetail, id: Number(id) || driverDetail.id } as DriverDetail);
+    DRIVER_DETAILS[id] ??
+    ({ ...driverDetail, id: Number(id) || driverDetail.id } as DriverDetail);
   if (accountOverrides[id]) {
     return { ...base, account_status: accountOverrides[id] };
   }

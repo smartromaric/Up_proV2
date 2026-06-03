@@ -5,24 +5,14 @@ import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { ServicePill } from "@/shared/ui/ServicePill";
-import { Timeline, type TimelineItem } from "@/shared/ui/Timeline";
+import { Timeline } from "@/shared/ui/Timeline";
+import { tripTimelineToItems } from "@/shared/lib/tripTimeline";
 import { Button } from "@/shared/ui/Button";
 import { TripRoutePreview } from "../components/TripRoutePreview";
 import { TripReassignModal } from "../components/TripReassignModal";
 import { useTripDetail } from "../api/tripDetail.queries";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getPaymentLabel } from "@/shared/lib/paymentLabels";
-import type { TripTimelineEvent } from "@/shared/types";
-
-function tripTimelineVariant(
-  type: TripTimelineEvent["type"]
-): TimelineItem["variant"] {
-  if (type === "completed" || type === "in_progress") return "success";
-  if (type === "cancelled") return "muted";
-  if (type === "matching" || type === "requested") return "warning";
-  return "default";
-}
-
 interface TripDetailPageProps {
   tripId: string;
 }
@@ -46,13 +36,7 @@ export function TripDetailPage({ tripId }: TripDetailPageProps) {
     );
   }
 
-  const timelineItems: TimelineItem[] = trip.timeline.map((e) => ({
-    id: e.id,
-    label: e.label,
-    description: e.description,
-    at: e.at,
-    variant: tripTimelineVariant(e.type),
-  }));
+  const timelineItems = tripTimelineToItems(trip.timeline);
 
   const canCancel = ["requested", "matching", "assigned", "in_progress"].includes(
     trip.status

@@ -5,23 +5,14 @@ import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { ServicePill } from "@/shared/ui/ServicePill";
-import { Timeline, type TimelineItem } from "@/shared/ui/Timeline";
+import { Timeline } from "@/shared/ui/Timeline";
+import { tripTimelineToItems } from "@/shared/lib/tripTimeline";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmModal } from "@/shared/ui/ConfirmModal";
 import { TripRoutePreview } from "@/features/ops/components/TripRoutePreview";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getPaymentLabel } from "@/shared/lib/paymentLabels";
-import type { TripTimelineEvent } from "@/shared/types";
 import { usePartnerBookingDetail, useCancelPartnerBooking } from "../api/bookings.queries";
-
-function timelineVariant(
-  type: TripTimelineEvent["type"]
-): TimelineItem["variant"] {
-  if (type === "completed" || type === "in_progress") return "success";
-  if (type === "cancelled") return "muted";
-  if (type === "matching" || type === "requested") return "warning";
-  return "default";
-}
 
 interface PartnerBookingDetailPageProps {
   bookingId: string;
@@ -47,13 +38,9 @@ export function PartnerBookingDetailPage({ bookingId }: PartnerBookingDetailPage
     );
   }
 
-  const timelineItems: TimelineItem[] = booking.timeline.map((e) => ({
-    id: e.id,
-    label: e.label,
-    description: e.description,
-    at: e.at,
-    variant: timelineVariant(e.type),
-  }));
+  const timelineItems = tripTimelineToItems(booking.timeline, {
+    driverLinkBase: "/partner/drivers",
+  });
 
   const canCancel = ["requested", "matching", "assigned"].includes(booking.status);
 

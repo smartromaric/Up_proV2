@@ -46,8 +46,33 @@
       "id": "e4",
       "type": "matching",
       "label": "Recherche chauffeur",
-      "description": "3 chauffeurs contactés",
-      "at": "2026-06-02T14:21:00Z"
+      "description": "4 chauffeurs contactés · 2 refus · 1 sans réponse",
+      "at": "2026-06-02T14:21:00Z",
+      "matching_drivers": [
+        {
+          "driver_id": 101,
+          "driver_name": "Kouassi Jean",
+          "outcome": "declined",
+          "reason": "Déjà en course à proximité"
+        },
+        {
+          "driver_id": 104,
+          "driver_name": "Bamba Serge",
+          "outcome": "declined",
+          "reason": "Hors zone habituelle"
+        },
+        {
+          "driver_id": 106,
+          "driver_name": "Ouattara Issa",
+          "outcome": "no_response",
+          "reason": "Pas de réponse sous 45 s"
+        },
+        {
+          "driver_id": 102,
+          "driver_name": "Traoré Aminata",
+          "outcome": "accepted"
+        }
+      ]
     },
     {
       "id": "e5",
