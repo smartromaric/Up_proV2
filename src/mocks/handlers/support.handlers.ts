@@ -1,12 +1,32 @@
 import { http, HttpResponse } from "msw";
 import adminSupportTickets from "../data/admin-support-tickets.json";
 import adminDisputeDetail from "../data/admin-dispute-detail.json";
+import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 
 let disputeState = { ...adminDisputeDetail };
 
 export const supportHandlers = [
-  http.get("*/api/v2/admin/support/tickets", () => {
-    return HttpResponse.json(adminSupportTickets);
+  http.get("*/api/v2/admin/support/tickets", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = adminSupportTickets.data.filter((t) =>
+      matchesSearch(
+        query.search,
+        t.id,
+        t.subject,
+        t.reporter_name,
+        t.franchise_name,
+        t.category
+      )
+    );
+    if (query.status) {
+      return HttpResponse.json(
+        paginatedList(
+          list.filter((t) => t.status === query.status),
+          query
+        )
+      );
+    }
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/admin/support/disputes/:id", ({ params }) => {

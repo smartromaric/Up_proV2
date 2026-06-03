@@ -4,11 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notificationService } from "@/core/http/notificationService";
 import { partnersKeys } from "./partners.keys";
 import { partnersService, type PartnerCreatePayload } from "./partners.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function usePartnersList() {
+export function usePartnersList(params?: ListParams) {
   return useQuery({
-    queryKey: partnersKeys.list(),
-    queryFn: () => partnersService.listAdmin(),
+    queryKey: partnersKeys.list(params),
+    queryFn: () => partnersService.listAdmin(params),
   });
 }
 

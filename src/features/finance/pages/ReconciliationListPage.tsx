@@ -1,13 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { FilterChips } from "@/shared/ui/FilterChips";
 import { formatFCFA } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { ReconciliationRow } from "../api/commissions.service";
 import { useReconciliationList } from "../api/commissions.queries";
 
+const STATUS_FILTERS = [
+  { value: "all" as const, label: "Tous" },
+  { value: "matched" as const, label: "Rapprochés" },
+  { value: "discrepancy" as const, label: "Écarts" },
+  { value: "pending" as const, label: "En cours" },
+];
+
 export function ReconciliationListPage() {
-  const { data, isLoading, isError } = useReconciliationList();
+  const [statusFilter, setStatusFilter] = useState<ReconciliationRow["status"] | "all">(
+    "all"
+  );
+
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useReconciliationList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<ReconciliationRow>[] = [
     {
@@ -93,13 +126,35 @@ export function ReconciliationListPage() {
   return (
     <div className="animate-fade-up">
       <PageHeader title="Réconciliation" breadcrumb={["Admin", "Finance"]} />
+
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Période, franchise…"
+        totalLabel={meta ? `${meta.total} lignes` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <FilterChips
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
+      </TableFiltersBar>
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(r) => r.id}
         isLoading={isLoading}
         exportFileName="reconciliation"
         emptyTitle="Aucune ligne de réconciliation"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

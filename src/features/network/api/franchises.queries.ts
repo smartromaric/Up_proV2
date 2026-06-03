@@ -7,11 +7,12 @@ import {
   franchisesService,
   type FranchiseCreatePayload,
 } from "./franchises.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function useFranchisesList() {
+export function useFranchisesList(params?: ListParams) {
   return useQuery({
-    queryKey: franchisesKeys.list(),
-    queryFn: () => franchisesService.listAdmin(),
+    queryKey: franchisesKeys.list(params),
+    queryFn: () => franchisesService.listAdmin(params),
   });
 }
 

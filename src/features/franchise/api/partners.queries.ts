@@ -2,17 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { franchisePartnersService } from "./partners.service";
+import type { ListParams } from "@/shared/types/listParams";
 
 export const franchisePartnersKeys = {
   all: ["franchise", "partners"] as const,
-  list: () => [...franchisePartnersKeys.all, "list"] as const,
+  list: (filters?: ListParams) => [...franchisePartnersKeys.all, "list", filters] as const,
   detail: (id: string) => [...franchisePartnersKeys.all, "detail", id] as const,
 };
 
-export function useFranchisePartnersList() {
+export function useFranchisePartnersList(params?: ListParams) {
   return useQuery({
-    queryKey: franchisePartnersKeys.list(),
-    queryFn: () => franchisePartnersService.list(),
+    queryKey: franchisePartnersKeys.list(params),
+    queryFn: () => franchisePartnersService.list(params),
   });
 }
 

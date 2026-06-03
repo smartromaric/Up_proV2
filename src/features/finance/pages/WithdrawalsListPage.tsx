@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { Button } from "@/shared/ui/Button";
@@ -11,18 +12,23 @@ import { ConfirmModal } from "@/shared/ui/ConfirmModal";
 import { WithdrawalStatusPill } from "@/shared/ui/TransactionStatusPill";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { WITHDRAWAL_METHOD_LABELS } from "@/shared/lib/financeLabels";
-
-const WITHDRAWAL_STATUS_LABELS = {
-  pending: "En attente",
-  approved: "Approuvé",
-  rejected: "Rejeté",
-} as const;
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { Withdrawal, WithdrawalStatus } from "@/shared/types";
 import {
   useWithdrawalsList,
   useApproveWithdrawal,
   useRejectWithdrawal,
 } from "../api/withdrawals.queries";
+
+const WITHDRAWAL_STATUS_LABELS = {
+  pending: "En attente",
+  approved: "Approuvé",
+  rejected: "Rejeté",
+} as const;
 
 const STATUS_FILTERS: { value: WithdrawalStatus | "all"; label: string }[] = [
   { value: "all", label: "Tous" },
@@ -38,15 +44,23 @@ export function WithdrawalsListPage() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
 
-  const { data, isLoading, isError } = useWithdrawalsList();
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useWithdrawalsList(table.listParams);
   const approve = useApproveWithdrawal();
   const reject = useRejectWithdrawal();
 
-  const rows = useMemo(() => {
-    const list = data?.data ?? [];
-    if (statusFilter === "all") return list;
-    return list.filter((w) => w.status === statusFilter);
-  }, [data?.data, statusFilter]);
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Withdrawal>[] = [
     {
@@ -154,7 +168,7 @@ export function WithdrawalsListPage() {
     );
   }
 
-  const pendingWithdrawal = data?.data.find((w) => w.id === confirmId);
+  const pendingWithdrawal = rows.find((w) => w.id === confirmId);
 
   return (
     <div className="animate-fade-up">
@@ -174,13 +188,20 @@ export function WithdrawalsListPage() {
         </div>
       )}
 
-      <div className="mb-4">
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Réf., bénéficiaire, franchise…"
+        totalLabel={meta ? `${meta.total} retraits au total` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
         <FilterChips
           options={STATUS_FILTERS}
           value={statusFilter}
           onChange={setStatusFilter}
         />
-      </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -189,9 +210,12 @@ export function WithdrawalsListPage() {
         isLoading={isLoading}
         exportFileName="retraits"
         emptyTitle="Aucun retrait"
-        footer={
-          data?.meta ? <span>{data.meta.total} retraits au total</span> : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
 
       <ConfirmModal

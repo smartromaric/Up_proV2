@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated, TripStatus } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface FleetClient {
   id: number;
@@ -35,7 +36,10 @@ export interface FleetClientDetail extends FleetClient {
 }
 
 export const clientsService = {
-  list: () => apiClient.get<Paginated<FleetClient>>("/admin/fleet/clients"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<FleetClient>>(
+      `/admin/fleet/clients${buildListQuery(params)}`
+    ),
   get: (id: string) => apiClient.get<FleetClientDetail>(`/admin/fleet/clients/${id}`),
   suspend: (id: string) =>
     apiClient.post<{ ok: boolean; message: string }>(`/admin/fleet/clients/${id}/suspend`),

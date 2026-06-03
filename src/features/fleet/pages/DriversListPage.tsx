@@ -1,37 +1,86 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { BulkActionBar } from "@/shared/ui/BulkActionBar";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { AccountStatusPill, AvailabilityPill } from "@/shared/ui/DriverPills";
 import { notificationService } from "@/core/http/notificationService";
+import { driverBulkStatusMessage } from "@/shared/lib/bulkLabels";
 import {
   getDriverAccountStatusLabel,
   getDriverAvailabilityLabel,
 } from "@/shared/lib/driverLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { Driver } from "@/shared/types";
 import { useDriversList } from "../api/drivers.queries";
 
-export function DriversListPage() {
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<string | number>>(new Set());
-  const { data, isLoading, isError } = useDriversList({ search: search || undefined });
+const ZONE_OPTIONS = [
+  { value: "all" as const, label: "Toutes les zones" },
+  { value: "Cocody", label: "Cocody" },
+  { value: "Yopougon", label: "Yopougon" },
+  { value: "Plateau", label: "Plateau" },
+  { value: "Marcory", label: "Marcory" },
+  { value: "Treichville", label: "Treichville" },
+  { value: "Adjamé", label: "Adjamé" },
+];
 
-  const rows = useMemo(() => {
-    const list = data?.data ?? [];
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (d) =>
-        `${d.first_name} ${d.last_name}`.toLowerCase().includes(q) ||
-        d.phone.includes(q) ||
-        d.zone.toLowerCase().includes(q) ||
-        (d.owner_name?.toLowerCase().includes(q) ?? false)
-    );
-  }, [data?.data, search]);
+const ACCOUNT_OPTIONS = [
+  { value: "all" as const, label: "Tous les comptes" },
+  { value: "approved", label: "Approuvé" },
+  { value: "pending", label: "En attente" },
+  { value: "suspended", label: "Suspendu" },
+];
+
+const AVAILABILITY_OPTIONS = [
+  { value: "all" as const, label: "Toutes dispo." },
+  { value: "online", label: "En ligne" },
+  { value: "offline", label: "Hors ligne" },
+  { value: "on_trip", label: "En course" },
+  { value: "paused", label: "Pause" },
+];
+
+export function DriversListPage() {
+  const [zoneFilter, setZoneFilter] = useState<(typeof ZONE_OPTIONS)[number]["value"]>("all");
+  const [accountFilter, setAccountFilter] =
+    useState<(typeof ACCOUNT_OPTIONS)[number]["value"]>("all");
+  const [availabilityFilter, setAvailabilityFilter] =
+    useState<(typeof AVAILABILITY_OPTIONS)[number]["value"]>("all");
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
+
+  const table = useServerTableState(
+    [zoneFilter, accountFilter, availabilityFilter],
+    {
+      zone: zoneFilter !== "all" ? zoneFilter : undefined,
+      account_status: accountFilter !== "all" ? accountFilter : undefined,
+      availability: availabilityFilter !== "all" ? availabilityFilter : undefined,
+    }
+  );
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: zoneFilter, defaultValue: "all", reset: () => setZoneFilter("all") },
+      { value: accountFilter, defaultValue: "all", reset: () => setAccountFilter("all") },
+      {
+        value: availabilityFilter,
+        defaultValue: "all",
+        reset: () => setAvailabilityFilter("all"),
+      },
+    ],
+  });
+
+  const { data, isLoading, isError } = useDriversList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Driver>[] = [
     {
@@ -99,23 +148,39 @@ export function DriversListPage() {
 
   return (
     <div className="animate-fade-up pb-24">
-      <PageHeader
-        title="Chauffeurs"
-        breadcrumb={["Admin", "Flotte"]}
-      />
+      <PageHeader title="Chauffeurs" breadcrumb={["Admin", "Flotte"]} />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Nom, téléphone, zone, partenaire…"
-        />
-        {data?.meta && (
-          <span className="text-sm text-muted">
-            {data.meta.total.toLocaleString("fr-CI")} chauffeurs au total
-          </span>
-        )}
-      </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, téléphone, zone, partenaire…"
+        totalLabel={
+          meta ? `${meta.total.toLocaleString("fr-CI")} chauffeurs au total` : undefined
+        }
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <div className="flex flex-wrap gap-3">
+          <SelectFilter
+            label="Zone"
+            value={zoneFilter}
+            onChange={setZoneFilter}
+            options={ZONE_OPTIONS}
+          />
+          <SelectFilter
+            label="Compte"
+            value={accountFilter}
+            onChange={setAccountFilter}
+            options={ACCOUNT_OPTIONS}
+          />
+          <SelectFilter
+            label="Disponibilité"
+            value={availabilityFilter}
+            onChange={setAvailabilityFilter}
+            options={AVAILABILITY_OPTIONS}
+          />
+        </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -128,16 +193,12 @@ export function DriversListPage() {
         selectable
         selectedKeys={selected}
         onSelectionChange={setSelected}
-        footer={
-          data?.meta ? (
-            <>
-              <span>
-                Page {data.meta.current_page} / {data.meta.last_page}
-              </span>
-              <span>{data.meta.per_page} par page</span>
-            </>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
 
       <BulkActionBar
@@ -147,9 +208,10 @@ export function DriversListPage() {
           {
             label: "Mettre en ligne",
             onClick: () => {
-              notificationService.info(
-                `${selected.size} chauffeur(s) — action mock`
+              notificationService.success(
+                driverBulkStatusMessage(selected.size, "online")
               );
+              setSelected(new Set());
             },
           },
           {
@@ -157,8 +219,9 @@ export function DriversListPage() {
             variant: "secondary",
             onClick: () => {
               notificationService.warning(
-                `${selected.size} chauffeur(s) — action mock`
+                driverBulkStatusMessage(selected.size, "offline")
               );
+              setSelected(new Set());
             },
           },
         ]}

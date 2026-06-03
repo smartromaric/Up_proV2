@@ -3,6 +3,7 @@ import marketingPromosSeed from "../data/marketing-promos.json";
 import marketingCampaignsSeed from "../data/marketing-campaigns.json";
 import marketingBannersSeed from "../data/marketing-banners.json";
 import type { Paginated } from "@/shared/types";
+import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 import type {
   MarketingPromo,
   MarketingCampaign,
@@ -25,8 +26,13 @@ let bannersState: Paginated<MarketingBanner> = {
 };
 
 export const marketingHandlers = [
-  http.get("*/api/v2/admin/marketing/promos", () => {
-    return HttpResponse.json(promosState);
+  http.get("*/api/v2/admin/marketing/promos", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = promosState.data.filter((p) =>
+      matchesSearch(query.search, p.code, p.label)
+    );
+    if (query.status) list = list.filter((p) => p.status === query.status);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.post("*/api/v2/admin/marketing/promos", async ({ request }) => {
@@ -54,8 +60,13 @@ export const marketingHandlers = [
     return HttpResponse.json(promo, { status: 201 });
   }),
 
-  http.get("*/api/v2/admin/marketing/campaigns", () => {
-    return HttpResponse.json(campaignsState);
+  http.get("*/api/v2/admin/marketing/campaigns", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = campaignsState.data.filter((c) =>
+      matchesSearch(query.search, c.name, c.audience, c.channel)
+    );
+    if (query.status) list = list.filter((c) => c.status === query.status);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.post("*/api/v2/admin/marketing/campaigns", async ({ request }) => {
@@ -82,8 +93,13 @@ export const marketingHandlers = [
     return HttpResponse.json(campaign, { status: 201 });
   }),
 
-  http.get("*/api/v2/admin/marketing/banners", () => {
-    return HttpResponse.json(bannersState);
+  http.get("*/api/v2/admin/marketing/banners", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = bannersState.data.filter((b) =>
+      matchesSearch(query.search, b.title, b.placement)
+    );
+    if (query.status) list = list.filter((b) => b.status === query.status);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.post("*/api/v2/admin/marketing/banners", async ({ request }) => {

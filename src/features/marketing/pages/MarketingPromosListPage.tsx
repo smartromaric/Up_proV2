@@ -1,15 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { FilterChips } from "@/shared/ui/FilterChips";
 import { formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { MarketingPromo } from "../api/marketing.service";
 import { useMarketingPromos } from "../api/marketing.queries";
 
+const STATUS_FILTERS = [
+  { value: "all" as const, label: "Tous" },
+  { value: "active" as const, label: "Actifs" },
+  { value: "draft" as const, label: "Brouillons" },
+  { value: "expired" as const, label: "Expirés" },
+];
+
 export function MarketingPromosListPage() {
-  const { data, isLoading, isError } = useMarketingPromos();
+  const [statusFilter, setStatusFilter] = useState<MarketingPromo["status"] | "all">("all");
+
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useMarketingPromos(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<MarketingPromo>[] = [
     {
@@ -80,13 +111,35 @@ export function MarketingPromosListPage() {
           </Link>
         }
       />
+
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Code, libellé, zone…"
+        totalLabel={meta ? `${meta.total} codes promo` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <FilterChips
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
+      </TableFiltersBar>
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(p) => p.id}
         isLoading={isLoading}
         exportFileName="promos-marketing"
         emptyTitle="Aucun code promo"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

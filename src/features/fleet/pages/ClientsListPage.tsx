@@ -1,12 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { FleetClient } from "../api/clients.service";
 import { useClientsList } from "../api/clients.queries";
 
@@ -16,23 +22,33 @@ const TYPE_FILTERS = [
   { value: "b2b" as const, label: "B2B" },
 ];
 
-export function ClientsListPage() {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<FleetClient["type"] | "all">("all");
-  const { data, isLoading, isError } = useClientsList();
+const STATUS_OPTIONS = [
+  { value: "all" as const, label: "Tous les statuts" },
+  { value: "active" as const, label: "Actif" },
+  { value: "suspended" as const, label: "Suspendu" },
+];
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (typeFilter !== "all") list = list.filter((c) => c.type === typeFilter);
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (c) =>
-        c.full_name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        (c.email?.toLowerCase().includes(q) ?? false)
-    );
-  }, [data?.data, search, typeFilter]);
+export function ClientsListPage() {
+  const [typeFilter, setTypeFilter] = useState<FleetClient["type"] | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<FleetClient["status"] | "all">("all");
+
+  const table = useServerTableState([typeFilter, statusFilter], {
+    type: typeFilter !== "all" ? typeFilter : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: typeFilter, defaultValue: "all", reset: () => setTypeFilter("all") },
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useClientsList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<FleetClient>[] = [
     {
@@ -105,20 +121,28 @@ export function ClientsListPage() {
     <div className="animate-fade-up">
       <PageHeader title="Clients" breadcrumb={["Admin", "Flotte"]} />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Rechercher un client…"
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Rechercher un client…"
+        totalLabel={meta ? `${meta.total} clients` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <FilterChips
+            options={TYPE_FILTERS}
+            value={typeFilter}
+            onChange={setTypeFilter}
+          />
+          <SelectFilter
+            label="Statut"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={STATUS_OPTIONS}
           />
         </div>
-        <FilterChips
-          options={TYPE_FILTERS}
-          value={typeFilter}
-          onChange={setTypeFilter}
-        />
-      </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -127,6 +151,12 @@ export function ClientsListPage() {
         isLoading={isLoading}
         exportFileName="clients"
         emptyTitle="Aucun client"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

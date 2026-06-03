@@ -1,9 +1,12 @@
 import { apiClient, apiWithNotify } from "@/core/http/apiClient";
 import type { WithdrawalsResponse } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export const withdrawalsService = {
-  listAdmin: () =>
-    apiClient.get<WithdrawalsResponse>("/admin/finance/withdrawals"),
+  listAdmin: (params?: ListParams) =>
+    apiClient.get<WithdrawalsResponse>(
+      `/admin/finance/withdrawals${buildListQuery(params)}`
+    ),
 
   approve: (id: string) =>
     apiWithNotify.post(

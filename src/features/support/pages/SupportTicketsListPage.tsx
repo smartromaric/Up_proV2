@@ -1,12 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
-import { SearchInput } from "@/shared/ui/SearchInput";
 import { formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { AdminSupportTicket } from "../api/tickets.service";
 import { useSupportTicketsList } from "../api/tickets.queries";
 
@@ -30,24 +35,25 @@ const PRIORITY_LABELS: Record<AdminSupportTicket["priority"], string> = {
 };
 
 export function SupportTicketsListPage() {
-  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     AdminSupportTicket["status"] | "all"
   >("all");
-  const { data, isLoading, isError } = useSupportTicketsList();
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (statusFilter !== "all") list = list.filter((t) => t.status === statusFilter);
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (t) =>
-        t.subject.toLowerCase().includes(q) ||
-        t.id.toLowerCase().includes(q) ||
-        t.reporter_name.toLowerCase().includes(q)
-    );
-  }, [data?.data, search, statusFilter]);
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useSupportTicketsList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<AdminSupportTicket>[] = [
     {
@@ -144,20 +150,20 @@ export function SupportTicketsListPage() {
     <div className="animate-fade-up">
       <PageHeader title="Tickets support" breadcrumb={["Admin", "Support"]} />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Rechercher un ticket…"
-          />
-        </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Rechercher un ticket…"
+        totalLabel={meta ? `${meta.total} tickets` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
         <FilterChips
           options={STATUS_FILTERS}
           value={statusFilter}
           onChange={setStatusFilter}
         />
-      </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -166,6 +172,12 @@ export function SupportTicketsListPage() {
         isLoading={isLoading}
         exportFileName="tickets-support"
         emptyTitle="Aucun ticket"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

@@ -25,8 +25,26 @@ async function createHeaders(
     headers.Authorization = `Bearer ${token}`;
   }
 
+  const { user } = useAuthStore.getState();
+  if (user && !isAuthRequest) {
+    headers["X-Scope"] = user.scope;
+    if (user.franchise_id != null) {
+      headers["X-Franchise-Id"] = String(user.franchise_id);
+    }
+    if (user.owner_id != null) {
+      headers["X-Owner-Id"] = String(user.owner_id);
+    }
+  }
+
   return headers;
 }
+
+const LOGIN_BY_ROLE: Record<string, string> = {
+  admin: "/admin/login",
+  partner: "/partner/login",
+  franchise: "/franchise/login",
+  dispatch: "/dispatch/login",
+};
 
 export async function fetchClient(
   endpoint: string,
@@ -48,9 +66,10 @@ export async function fetchClient(
     const response = await fetch(url, { ...options, headers });
 
     if (response.status === 401 && !isAuthRequest) {
+      const role = useAuthStore.getState().user?.role;
       useAuthStore.getState().clearSession();
       if (typeof window !== "undefined") {
-        window.location.href = "/admin/login";
+        window.location.href = LOGIN_BY_ROLE[role ?? "admin"] ?? "/login";
       }
       throw new AuthError("Session expirée. Veuillez vous reconnecter.");
     }

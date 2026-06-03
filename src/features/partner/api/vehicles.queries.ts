@@ -9,17 +9,18 @@ import type { CreateDriverPayload } from "./drivers.service";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
 import type { VehiclePieceFile } from "../components/VehicleCreatePiecesSection";
 import { partnerDriversKeys } from "./drivers.queries";
+import type { ListParams } from "@/shared/types/listParams";
 
 export const partnerVehiclesKeys = {
   all: ["partner", "vehicles"] as const,
-  list: () => [...partnerVehiclesKeys.all, "list"] as const,
+  list: (filters?: ListParams) => [...partnerVehiclesKeys.all, "list", filters] as const,
   detail: (id: string) => [...partnerVehiclesKeys.all, "detail", id] as const,
 };
 
-export function usePartnerVehiclesList() {
+export function usePartnerVehiclesList(params?: ListParams) {
   return useQuery({
-    queryKey: partnerVehiclesKeys.list(),
-    queryFn: () => partnerVehiclesService.list(),
+    queryKey: partnerVehiclesKeys.list(params),
+    queryFn: () => partnerVehiclesService.list(params),
   });
 }
 

@@ -6,6 +6,12 @@ import {
   settingsExtendedService,
   type GeneralSettings,
 } from "./settingsExtended.service";
+import type { ListParams } from "@/shared/types/listParams";
+
+export const settingsAuditKeys = {
+  all: ["settings", "audit"] as const,
+  list: (filters?: ListParams) => [...settingsAuditKeys.all, "list", filters] as const,
+};
 
 export function useIntegrationsList() {
   return useQuery({
@@ -26,10 +32,10 @@ export function useToggleIntegration() {
   });
 }
 
-export function useAuditLog() {
+export function useAuditLog(params?: ListParams) {
   return useQuery({
-    queryKey: ["settings", "audit"],
-    queryFn: () => settingsExtendedService.auditLog(),
+    queryKey: settingsAuditKeys.list(params),
+    queryFn: () => settingsExtendedService.auditLog(params),
   });
 }
 

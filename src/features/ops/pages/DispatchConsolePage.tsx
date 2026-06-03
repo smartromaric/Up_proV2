@@ -14,7 +14,13 @@ import { usePermission } from "@/core/auth/usePermission";
 import { formatFCFA } from "@/shared/lib/format";
 import type { DispatchDriverCandidate, DispatchQueueItem } from "@/shared/types";
 import { useAssignDriver, useDispatchConsole } from "../api/dispatch.queries";
+import {
+  useDispatchPortalAssign,
+  useDispatchPortalConsole,
+} from "@/features/dispatch/api/dispatchPortal.queries";
 import { DispatchMapPreview } from "../components/DispatchMapPreview";
+
+export type DispatchConsoleVariant = "admin" | "dispatch";
 
 function QueueCard({
   item,
@@ -90,10 +96,26 @@ function CandidateRow({
   );
 }
 
-export function DispatchConsolePage() {
-  const { data, isLoading, isError, dataUpdatedAt } = useDispatchConsole();
-  const assignMutation = useAssignDriver();
+export function DispatchConsolePage({
+  variant = "admin",
+}: {
+  variant?: DispatchConsoleVariant;
+}) {
+  const isDispatchPortal = variant === "dispatch";
+  const adminQuery = useDispatchConsole();
+  const portalQuery = useDispatchPortalConsole();
+  const activeQuery = isDispatchPortal ? portalQuery : adminQuery;
+  const { data, isLoading, isError, dataUpdatedAt } = activeQuery;
+  const adminAssign = useAssignDriver();
+  const portalAssign = useDispatchPortalAssign();
+  const assignMutation = isDispatchPortal ? portalAssign : adminAssign;
   const canAssign = usePermission("ops.dispatch.assign");
+  const breadcrumb = isDispatchPortal
+    ? ["Dispatch", "Console"]
+    : ["Admin", "Opérations"];
+  const tripsHref = isDispatchPortal ? "/dispatch/console" : "/admin/ops/trips";
+  const tripDetailHref = (id: string) =>
+    isDispatchPortal ? "/dispatch/console" : `/admin/ops/trips/${id}`;
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
@@ -140,7 +162,7 @@ export function DispatchConsolePage() {
     <div className="animate-fade-up">
       <PageHeader
         title="Console dispatch"
-        breadcrumb={["Admin", "Opérations"]}
+        breadcrumb={breadcrumb}
         actions={
           <span className="text-xs text-muted">
             MAJ {updated} · refresh 15s
@@ -167,9 +189,16 @@ export function DispatchConsolePage() {
             description="Les courses en statut « matching » ou « demandée » apparaîtront ici."
           />
           <p className="text-center">
-            <Link href="/admin/ops/trips" className="text-sm text-teal hover:underline">
-              Voir toutes les courses
-            </Link>
+            {!isDispatchPortal && (
+              <Link href={tripsHref} className="text-sm text-teal hover:underline">
+                Voir toutes les courses
+              </Link>
+            )}
+            {isDispatchPortal && (
+              <Link href="/dispatch/book" className="text-sm text-teal hover:underline">
+                Réserver une course →
+              </Link>
+            )}
           </p>
         </div>
       ) : (
@@ -218,12 +247,14 @@ export function DispatchConsolePage() {
                     {selected.zone_name && (
                       <span className="text-xs text-muted">{selected.zone_name}</span>
                     )}
-                    <Link
-                      href={`/admin/ops/trips/${selected.trip.id}`}
-                      className="text-xs text-teal hover:underline"
-                    >
-                      Fiche course →
-                    </Link>
+                    {!isDispatchPortal && (
+                      <Link
+                        href={tripDetailHref(selected.trip.id)}
+                        className="text-xs text-teal hover:underline"
+                      >
+                        Fiche course →
+                      </Link>
+                    )}
                   </div>
                 </div>
 

@@ -1,18 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { AccountStatusPill, AvailabilityPill } from "@/shared/ui/DriverPills";
 import { Button } from "@/shared/ui/Button";
 import { BulkActionBar } from "@/shared/ui/BulkActionBar";
 import { notificationService } from "@/core/http/notificationService";
+import { driverBulkStatusMessage } from "@/shared/lib/bulkLabels";
 import {
   getDriverAccountStatusLabel,
   getDriverAvailabilityLabel,
 } from "@/shared/lib/driverLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { Driver } from "@/shared/types";
 import { usePartnerDriversList } from "../api/drivers.queries";
 
@@ -21,24 +27,20 @@ interface PartnerDriversListPageProps {
 }
 
 export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPageProps) {
-  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
-  const { data, isLoading, isError } = usePartnerDriversList();
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (pendingOnly) {
-      list = list.filter((d) => d.account_status === "pending");
-    }
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (d) =>
-        `${d.first_name} ${d.last_name}`.toLowerCase().includes(q) ||
-        d.phone.includes(q) ||
-        d.zone.toLowerCase().includes(q)
-    );
-  }, [data?.data, search, pendingOnly]);
+  const table = useServerTableState([], {
+    ...(pendingOnly ? { account_status: "pending" } : {}),
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+  });
+
+  const { data, isLoading, isError } = usePartnerDriversList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Driver>[] = [
     {
@@ -101,13 +103,18 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
         }
       />
 
-      <div className="mb-4">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Nom, téléphone, zone…"
-        />
-      </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, téléphone, zone…"
+        totalLabel={
+          meta
+            ? `${meta.total} chauffeur${meta.total > 1 ? "s" : ""} dans votre flotte`
+            : undefined
+        }
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      />
 
       <DataTable
         columns={columns}
@@ -121,11 +128,12 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
         selectable={!pendingOnly}
         selectedKeys={selected}
         onSelectionChange={setSelected}
-        footer={
-          data?.meta ? (
-            <span>{data.meta.total} chauffeurs dans votre flotte</span>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
 
       {!pendingOnly && (
@@ -135,8 +143,12 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
           actions={[
             {
               label: "Mettre en ligne",
-              onClick: () =>
-                notificationService.info(`${selected.size} chauffeur(s) — mock`),
+              onClick: () => {
+                notificationService.success(
+                  driverBulkStatusMessage(selected.size, "online")
+                );
+                setSelected(new Set());
+              },
             },
           ]}
         />

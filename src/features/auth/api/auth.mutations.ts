@@ -11,6 +11,7 @@ const REDIRECT: Record<LoginPayload["portal"], string> = {
   admin: "/admin/dashboard",
   partner: "/partner/dashboard",
   franchise: "/franchise/dashboard",
+  dispatch: "/dispatch/console",
 };
 
 export function useLoginMutation(portal: LoginPayload["portal"]) {

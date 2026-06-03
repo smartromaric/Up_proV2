@@ -1,13 +1,22 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { HeroKpi } from "@/features/ops/components/HeroKpi";
 import { KpiCard } from "@/shared/ui/KpiCard";
+import { Button } from "@/shared/ui/Button";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
-import { useFranchiseFinance } from "../api/finance.queries";
+import {
+  useFranchiseDriverRechargeStats,
+  useFranchiseFinance,
+} from "../api/finance.queries";
+import { FranchiseDriverRechargeModal } from "../components/FranchiseDriverRechargeModal";
 
 export function FranchiseFinancePage() {
+  const [rechargeOpen, setRechargeOpen] = useState(false);
   const { data, isLoading, isError } = useFranchiseFinance();
+  const { data: rechargeStats } = useFranchiseDriverRechargeStats();
 
   if (isLoading) {
     return <div className="h-64 animate-pulse rounded-card bg-border" />;
@@ -17,14 +26,34 @@ export function FranchiseFinancePage() {
     return <p className="text-sm text-red-600">Impossible de charger la finance.</p>;
   }
 
+  const available = data.available_fcfa ?? 0;
+
   return (
     <div className="animate-fade-up">
-      <PageHeader title="Finance locale" breadcrumb={["Franchise", "Finance"]} />
+      <PageHeader
+        title="Finance locale"
+        breadcrumb={["Franchise", "Finance"]}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link href="/franchise/finance/driver-transfers">
+              <Button variant="secondary">Historique recharges</Button>
+            </Link>
+            <Button
+              variant="primary"
+              disabled={available <= 0}
+              onClick={() => setRechargeOpen(true)}
+            >
+              Recharger un chauffeur
+            </Button>
+          </div>
+        }
+      />
 
       <div className="animate-stagger space-y-6">
         <HeroKpi amount={data.balance_fcfa} trendPct={0} label="Solde territoire" />
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Disponible recharges" value={formatFCFA(available)} />
           <KpiCard
             label="Commissions du mois"
             value={formatFCFA(data.commission_month_fcfa)}
@@ -33,6 +62,13 @@ export function FranchiseFinancePage() {
             label="Paiements en attente"
             value={formatFCFA(data.payouts_pending_fcfa)}
           />
+          {rechargeStats ? (
+            <KpiCard
+              label="Recharges chauffeurs (total)"
+              value={formatFCFA(rechargeStats.total_spent_fcfa)}
+              hint={`${rechargeStats.transfers_count} transfert(s)`}
+            />
+          ) : null}
         </div>
 
         <div className="rounded-card border border-border bg-surface shadow-card overflow-hidden">
@@ -62,6 +98,12 @@ export function FranchiseFinancePage() {
           </ul>
         </div>
       </div>
+
+      <FranchiseDriverRechargeModal
+        open={rechargeOpen}
+        availableFcfa={available}
+        onClose={() => setRechargeOpen(false)}
+      />
     </div>
   );
 }

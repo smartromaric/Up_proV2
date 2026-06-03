@@ -16,6 +16,7 @@ import type {
   PricingRule,
   Paginated,
 } from "@/shared/types";
+import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 
 interface DispatcherListResponse {
   data: DispatcherAccount[];
@@ -105,8 +106,23 @@ function nextId(): number {
 }
 
 export const settingsHandlers = [
-  http.get("*/api/v2/admin/dispatchers", () => {
-    return HttpResponse.json(dispatchersState);
+  http.get("*/api/v2/admin/dispatchers", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = dispatchersState.data.filter((d) =>
+      matchesSearch(
+        query.search,
+        d.name,
+        d.email,
+        d.phone,
+        d.franchise_name,
+        ...(d.zone_names ?? [])
+      )
+    );
+    if (query.status) list = list.filter((d) => d.status === query.status);
+    if (query.zone_id != null) {
+      list = list.filter((d) => d.zone_ids.includes(query.zone_id!));
+    }
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/admin/dispatchers/:id", ({ params }) => {
@@ -216,8 +232,12 @@ export const settingsHandlers = [
     return HttpResponse.json(rulesState);
   }),
 
-  http.get("*/api/v2/admin/settings/roles", () => {
-    return HttpResponse.json(rolesState);
+  http.get("*/api/v2/admin/settings/roles", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = rolesState.data.filter((r) =>
+      matchesSearch(query.search, r.name, r.slug, r.description)
+    );
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/admin/settings/roles/:id", ({ params }) => {
@@ -282,8 +302,14 @@ export const settingsHandlers = [
     return HttpResponse.json(updated);
   }),
 
-  http.get("*/api/v2/admin/settings/pricing", () => {
-    return HttpResponse.json(pricingState);
+  http.get("*/api/v2/admin/settings/pricing", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = pricingState.data.filter((p) =>
+      matchesSearch(query.search, p.zone_name, p.service, String(p.id))
+    );
+    if (query.status) list = list.filter((p) => p.status === query.status);
+    if (query.zone) list = list.filter((p) => p.zone_name === query.zone);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/admin/settings/pricing/:id", ({ params }) => {
@@ -405,8 +431,18 @@ export const settingsHandlers = [
     return HttpResponse.json(updated);
   }),
 
-  http.get("*/api/v2/admin/settings/audit", () => {
-    return HttpResponse.json(settingsAuditSeed);
+  http.get("*/api/v2/admin/settings/audit", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = settingsAuditSeed.data.filter((e) =>
+      matchesSearch(
+        query.search,
+        e.actor_email,
+        e.action,
+        e.resource,
+        e.detail
+      )
+    );
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/admin/settings/general", () => {

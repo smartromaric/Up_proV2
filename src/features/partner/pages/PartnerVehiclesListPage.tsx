@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
 import { VehicleApprovalPill } from "@/shared/ui/VehicleApprovalPill";
 import { Button } from "@/shared/ui/Button";
@@ -13,6 +13,11 @@ import {
   getVehicleApprovalLabel,
   getVehicleCategoryLabel,
 } from "@/shared/lib/vehicleLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { Vehicle, VehicleApprovalStatus } from "@/shared/types";
 import { usePartnerVehiclesList } from "../api/vehicles.queries";
 
@@ -29,30 +34,37 @@ interface PartnerVehiclesListPageProps {
 }
 
 export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPageProps) {
-  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<VehicleApprovalStatus | "all">(
     pendingOnly ? "pending" : "all"
   );
-  const { data, isLoading, isError } = usePartnerVehiclesList();
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (pendingOnly) {
-      list = list.filter(
-        (v) => v.approval_status === "pending" || v.approval_status === "draft"
-      );
-    } else if (statusFilter !== "all") {
-      list = list.filter((v) => v.approval_status === statusFilter);
-    }
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (v) =>
-        v.label.toLowerCase().includes(q) ||
-        v.plate.toLowerCase().includes(q) ||
-        (v.driver_name?.toLowerCase().includes(q) ?? false)
-    );
-  }, [data?.data, search, statusFilter, pendingOnly]);
+  const table = useServerTableState([statusFilter, pendingOnly], {
+    status: pendingOnly
+      ? "pending"
+      : statusFilter !== "all"
+        ? statusFilter
+        : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    ...(!pendingOnly
+      ? {
+          fields: [
+            {
+              value: statusFilter,
+              defaultValue: "all",
+              reset: () => setStatusFilter("all"),
+            },
+          ],
+        }
+      : {}),
+  });
+
+  const { data, isLoading, isError } = usePartnerVehiclesList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Vehicle>[] = [
     {
@@ -126,23 +138,22 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
         </div>
       )}
 
-      {!pendingOnly && (
-        <div className="mb-4">
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Marque, plaque, chauffeur…"
+        totalLabel={meta ? `${meta.total} véhicules enregistrés` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        {!pendingOnly && (
           <FilterChips
             options={STATUS_FILTERS}
             value={statusFilter}
             onChange={setStatusFilter}
           />
-        </div>
-      )}
-
-      <div className="mb-4">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Marque, plaque, chauffeur…"
-        />
-      </div>
+        )}
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -158,11 +169,12 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
             ? "Tous vos véhicules sont à jour."
             : "Ajoutez un véhicule puis téléversez la carte grise."
         }
-        footer={
-          data?.meta ? (
-            <span>{data.meta.total} véhicules enregistrés</span>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

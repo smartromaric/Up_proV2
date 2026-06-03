@@ -5,11 +5,12 @@ const PUBLIC_PATHS: Record<string, string[]> = {
   admin: ["/admin/login"],
   partner: ["/partner/login"],
   franchise: ["/franchise/login"],
+  dispatch: ["/dispatch/login"],
 };
 
 function guardPortal(
   request: NextRequest,
-  prefix: "/admin" | "/partner" | "/franchise",
+  prefix: "/admin" | "/partner" | "/franchise" | "/dispatch",
   loginPath: string
 ) {
   const { pathname } = request.nextUrl;
@@ -34,10 +35,16 @@ export function middleware(request: NextRequest) {
     guardPortal(request, "/admin", "/admin/login") ??
     guardPortal(request, "/partner", "/partner/login") ??
     guardPortal(request, "/franchise", "/franchise/login") ??
+    guardPortal(request, "/dispatch", "/dispatch/login") ??
     NextResponse.next()
   );
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/partner/:path*", "/franchise/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/partner/:path*",
+    "/franchise/:path*",
+    "/dispatch/:path*",
+  ],
 };

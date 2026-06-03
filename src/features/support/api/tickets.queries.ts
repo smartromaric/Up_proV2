@@ -2,10 +2,16 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supportTicketsService } from "./tickets.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function useSupportTicketsList() {
+export const supportTicketsKeys = {
+  all: ["support", "tickets"] as const,
+  list: (filters?: ListParams) => [...supportTicketsKeys.all, "list", filters] as const,
+};
+
+export function useSupportTicketsList(params?: ListParams) {
   return useQuery({
-    queryKey: ["support", "tickets"],
-    queryFn: () => supportTicketsService.list(),
+    queryKey: supportTicketsKeys.list(params),
+    queryFn: () => supportTicketsService.list(params),
   });
 }

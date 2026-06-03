@@ -8,11 +8,20 @@ import {
   type MarketingCampaign,
   type MarketingPromo,
 } from "./marketing.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function useMarketingPromos() {
+export const marketingKeys = {
+  all: ["marketing"] as const,
+  promos: (filters?: ListParams) => [...marketingKeys.all, "promos", filters] as const,
+  campaigns: (filters?: ListParams) =>
+    [...marketingKeys.all, "campaigns", filters] as const,
+  banners: (filters?: ListParams) => [...marketingKeys.all, "banners", filters] as const,
+};
+
+export function useMarketingPromos(params?: ListParams) {
   return useQuery({
-    queryKey: ["marketing", "promos"],
-    queryFn: () => marketingService.promos(),
+    queryKey: marketingKeys.promos(params),
+    queryFn: () => marketingService.promos(params),
   });
 }
 
@@ -22,16 +31,16 @@ export function useCreateMarketingPromo() {
     mutationFn: (payload: Omit<MarketingPromo, "id" | "uses_count">) =>
       marketingService.createPromo(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketing", "promos"] });
+      void qc.invalidateQueries({ queryKey: [...marketingKeys.all, "promos"] });
       notificationService.success("Code promo créé");
     },
   });
 }
 
-export function useMarketingCampaigns() {
+export function useMarketingCampaigns(params?: ListParams) {
   return useQuery({
-    queryKey: ["marketing", "campaigns"],
-    queryFn: () => marketingService.campaigns(),
+    queryKey: marketingKeys.campaigns(params),
+    queryFn: () => marketingService.campaigns(params),
   });
 }
 
@@ -41,16 +50,16 @@ export function useCreateMarketingCampaign() {
     mutationFn: (payload: Omit<MarketingCampaign, "id" | "sent_count" | "open_rate_pct">) =>
       marketingService.createCampaign(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketing", "campaigns"] });
+      void qc.invalidateQueries({ queryKey: [...marketingKeys.all, "campaigns"] });
       notificationService.success("Campagne créée");
     },
   });
 }
 
-export function useMarketingBanners() {
+export function useMarketingBanners(params?: ListParams) {
   return useQuery({
-    queryKey: ["marketing", "banners"],
-    queryFn: () => marketingService.banners(),
+    queryKey: marketingKeys.banners(params),
+    queryFn: () => marketingService.banners(params),
   });
 }
 
@@ -60,7 +69,7 @@ export function useCreateMarketingBanner() {
     mutationFn: (payload: Omit<MarketingBanner, "id" | "impressions" | "clicks">) =>
       marketingService.createBanner(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["marketing", "banners"] });
+      void qc.invalidateQueries({ queryKey: [...marketingKeys.all, "banners"] });
       notificationService.success("Bannière créée");
     },
   });

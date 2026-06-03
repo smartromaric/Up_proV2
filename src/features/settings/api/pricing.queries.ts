@@ -12,16 +12,13 @@ import { notificationService } from "@/core/http/notificationService";
 
 
 
-export function usePricingList() {
+import type { ListParams } from "@/shared/types/listParams";
 
+export function usePricingList(params?: ListParams) {
   return useQuery({
-
-    queryKey: pricingKeys.list(),
-
-    queryFn: () => pricingService.list(),
-
+    queryKey: pricingKeys.list(params),
+    queryFn: () => pricingService.list(params),
   });
-
 }
 
 

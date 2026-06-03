@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface FranchisePromo {
   id: number;
@@ -25,10 +26,15 @@ export interface FranchiseSupportTicket {
 }
 
 export const franchisePromosService = {
-  list: () => apiClient.get<Paginated<FranchisePromo>>("/franchise/promos"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<FranchisePromo>>(
+      `/franchise/promos${buildListQuery(params)}`
+    ),
 };
 
 export const franchiseSupportService = {
-  list: () =>
-    apiClient.get<Paginated<FranchiseSupportTicket>>("/franchise/support"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<FranchiseSupportTicket>>(
+      `/franchise/support${buildListQuery(params)}`
+    ),
 };

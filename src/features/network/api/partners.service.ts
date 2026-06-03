@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated, Partner } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export type PartnerCreatePayload = {
   name: string;
@@ -12,7 +13,10 @@ export type PartnerCreatePayload = {
 };
 
 export const partnersService = {
-  listAdmin: () => apiClient.get<Paginated<Partner>>("/admin/network/partners"),
+  listAdmin: (params?: ListParams) =>
+    apiClient.get<Paginated<Partner>>(
+      `/admin/network/partners${buildListQuery(params)}`
+    ),
 
   create: (payload: PartnerCreatePayload) =>
     apiClient.post<Partner>("/admin/network/partners", payload),

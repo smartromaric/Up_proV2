@@ -67,6 +67,13 @@ npm run dev
 - Récurrentes : http://localhost:3000/partner/bookings/recurring
 - Rapports : http://localhost:3000/partner/reports
 
+### Portail Dispatch
+
+- Login : http://localhost:3000/dispatch/login — `aya.kone@upjunoo.ci` / `demo`
+- Console : http://localhost:3000/dispatch/console
+- Réserver course : http://localhost:3000/dispatch/book
+- Carte live : http://localhost:3000/dispatch/map
+
 ### Portail Franchise
 
 - Login : http://localhost:3000/franchise/login — `franchise@abidjansud.ci` / `demo`

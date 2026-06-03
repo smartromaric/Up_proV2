@@ -1,34 +1,55 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { FilterChips } from "@/shared/ui/FilterChips";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { Button } from "@/shared/ui/Button";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
-import { getTripStatusLabel } from "@/shared/lib/tripLabels";
+import { getTripStatusLabel, STATUS_FILTER_OPTIONS } from "@/shared/lib/tripLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
+import type { TripStatus } from "@/shared/types";
 import type { PartnerBooking } from "../api/bookings.service";
 import { usePartnerBookingsList } from "../api/bookings.queries";
 
-export function PartnerBookingsListPage() {
-  const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = usePartnerBookingsList();
+const SERVICE_OPTIONS = [
+  { value: "all" as const, label: "Tous services" },
+  { value: "taxi" as const, label: "Taxi" },
+  { value: "delivery" as const, label: "Livraison" },
+  { value: "rental" as const, label: "Location" },
+  { value: "freight" as const, label: "Fret" },
+];
 
-  const rows = useMemo(() => {
-    const list = data?.data ?? [];
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (b) =>
-        b.ref.toLowerCase().includes(q) ||
-        b.client_name.toLowerCase().includes(q) ||
-        b.from_label.toLowerCase().includes(q) ||
-        b.to_label.toLowerCase().includes(q) ||
-        (b.driver_name?.toLowerCase().includes(q) ?? false)
-    );
-  }, [data?.data, search]);
+export function PartnerBookingsListPage() {
+  const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
+  const [serviceFilter, setServiceFilter] =
+    useState<(typeof SERVICE_OPTIONS)[number]["value"]>("all");
+
+  const table = useServerTableState([statusFilter, serviceFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    service: serviceFilter !== "all" ? serviceFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+      { value: serviceFilter, defaultValue: "all", reset: () => setServiceFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = usePartnerBookingsList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<PartnerBooking>[] = [
     {
@@ -112,13 +133,28 @@ export function PartnerBookingsListPage() {
         }
       />
 
-      <div className="mb-4">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Réf., client, adresse, chauffeur…"
-        />
-      </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Réf., client, adresse, chauffeur…"
+        totalLabel={meta ? `${meta.total} réservations enregistrées` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <FilterChips
+            options={STATUS_FILTER_OPTIONS}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
+          <SelectFilter
+            label="Service"
+            value={serviceFilter}
+            onChange={setServiceFilter}
+            options={SERVICE_OPTIONS}
+          />
+        </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -128,11 +164,12 @@ export function PartnerBookingsListPage() {
         exportFileName="reservations-partenaire"
         emptyTitle="Aucune réservation"
         emptyDescription="Créez une course manuelle pour votre flotte."
-        footer={
-          data?.meta ? (
-            <span>{data.meta.total} réservations enregistrées</span>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

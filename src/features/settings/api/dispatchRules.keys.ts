@@ -1,4 +1,7 @@
+import type { ScopeQueryKey } from "@/core/auth/scopeQueryKey";
+
 export const dispatchRulesKeys = {
-  all: ["dispatch-rules"] as const,
-  detail: () => [...dispatchRulesKeys.all, "detail"] as const,
+  all: (scope?: ScopeQueryKey) => ["dispatch-rules", scope] as const,
+  detail: (scope?: ScopeQueryKey) =>
+    [...dispatchRulesKeys.all(scope), "detail"] as const,
 };

@@ -3,11 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { withdrawalsKeys } from "./withdrawals.keys";
 import { withdrawalsService } from "./withdrawals.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function useWithdrawalsList() {
+export function useWithdrawalsList(params?: ListParams) {
   return useQuery({
-    queryKey: withdrawalsKeys.list(),
-    queryFn: () => withdrawalsService.listAdmin(),
+    queryKey: withdrawalsKeys.list(params),
+    queryFn: () => withdrawalsService.listAdmin(params),
   });
 }
 

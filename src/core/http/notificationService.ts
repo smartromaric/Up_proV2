@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { AppError } from "./errorHandler";
 
@@ -14,6 +15,14 @@ export interface NotificationOptions {
     | "bottom-left";
 }
 
+const baseToastStyle: CSSProperties = {
+  borderRadius: "8px",
+  padding: "12px 16px",
+  fontSize: "14px",
+  fontWeight: "500",
+  boxShadow: "0 4px 14px rgba(26, 46, 53, 0.12)",
+};
+
 class NotificationService {
   private defaultDuration = 5000;
   private defaultPosition = "top-center" as const;
@@ -23,12 +32,13 @@ class NotificationService {
       duration: options?.duration ?? this.defaultDuration,
       position: options?.position ?? this.defaultPosition,
       style: {
+        ...baseToastStyle,
         background: "#0ab39c",
         color: "#fff",
-        borderRadius: "8px",
-        padding: "12px 16px",
-        fontSize: "14px",
-        fontWeight: "500",
+      },
+      iconTheme: {
+        primary: "#fff",
+        secondary: "#0ab39c",
       },
     });
   }
@@ -37,6 +47,16 @@ class NotificationService {
     return toast.error(message, {
       duration: options?.duration ?? this.defaultDuration,
       position: options?.position ?? this.defaultPosition,
+      style: {
+        ...baseToastStyle,
+        background: "#fef2f2",
+        color: "#991b1b",
+        border: "1px solid #fecaca",
+      },
+      iconTheme: {
+        primary: "#991b1b",
+        secondary: "#fef2f2",
+      },
     });
   }
 
@@ -44,7 +64,13 @@ class NotificationService {
     return toast(message, {
       duration: options?.duration ?? this.defaultDuration,
       position: options?.position ?? this.defaultPosition,
-      icon: "⚠️",
+      style: {
+        ...baseToastStyle,
+        background: "#fffbeb",
+        color: "#92400e",
+        border: "1px solid #fde68a",
+      },
+      icon: null,
     });
   }
 
@@ -52,7 +78,13 @@ class NotificationService {
     return toast(message, {
       duration: options?.duration ?? this.defaultDuration,
       position: options?.position ?? this.defaultPosition,
-      icon: "ℹ️",
+      style: {
+        ...baseToastStyle,
+        background: "#ffffff",
+        color: "#1a2e35",
+        border: "1px solid rgba(10, 179, 156, 0.35)",
+      },
+      icon: null,
     });
   }
 

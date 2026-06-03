@@ -1,18 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
 import { Button } from "@/shared/ui/Button";
 import { usePermission } from "@/core/auth/usePermission";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { DispatcherAccount, DispatcherStatus } from "@/shared/types";
 import { useDispatchersList } from "../api/dispatchers.queries";
 import { lastLoginLabel } from "../lib/lastLoginLabel";
 import { useZonesList } from "@/features/network/api/zones.queries";
+
+const STATUS_OPTIONS = [
+  { value: "all" as const, label: "Tous les statuts" },
+  { value: "active" as const, label: "Actif" },
+  { value: "suspended" as const, label: "Suspendu" },
+];
 
 const STATUS_LABELS: Record<DispatcherStatus, string> = {
   active: "Actif",
@@ -21,32 +33,38 @@ const STATUS_LABELS: Record<DispatcherStatus, string> = {
 
 export function DispatchersListPage() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [zoneFilter, setZoneFilter] = useState<number | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<DispatcherStatus | "all">("all");
+  const [zoneFilter, setZoneFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] =
+    useState<(typeof STATUS_OPTIONS)[number]["value"]>("all");
   const canCreate = usePermission("settings.dispatchers.create");
 
-  const { data, isLoading, isError } = useDispatchersList();
-  const { data: zonesData } = useZonesList();
+  const { data: zonesData } = useZonesList({ per_page: 100 });
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (statusFilter !== "all") {
-      list = list.filter((d) => d.status === statusFilter);
-    }
-    if (zoneFilter !== "all") {
-      list = list.filter((d) => d.zone_ids.includes(zoneFilter));
-    }
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (d) =>
-        d.name.toLowerCase().includes(q) ||
-        d.email.toLowerCase().includes(q) ||
-        (d.franchise_name ?? "").toLowerCase().includes(q) ||
-        (d.zone_names ?? []).some((z) => z.toLowerCase().includes(q))
-    );
-  }, [data?.data, search, statusFilter, zoneFilter]);
+  const table = useServerTableState([zoneFilter, statusFilter], {
+    zone_id: zoneFilter !== "all" ? Number(zoneFilter) : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: zoneFilter, defaultValue: "all", reset: () => setZoneFilter("all") },
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useDispatchersList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
+
+  const zoneOptions = [
+    { value: "all" as const, label: "Toutes les zones" },
+    ...(zonesData?.data ?? []).map((z) => ({
+      value: String(z.id),
+      label: z.name,
+    })),
+  ];
 
   const columns: Column<DispatcherAccount>[] = [
     {
@@ -141,40 +159,31 @@ export function DispatchersListPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Nom, email, zone…"
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, email, zone…"
+        totalLabel={
+          meta ? `${meta.total.toLocaleString("fr-CI")} comptes dispatch` : undefined
+        }
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <div className="flex flex-wrap gap-3">
+          <SelectFilter
+            label="Zone"
+            value={zoneFilter}
+            onChange={setZoneFilter}
+            options={zoneOptions}
+          />
+          <SelectFilter
+            label="Statut"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={STATUS_OPTIONS}
           />
         </div>
-        <select
-          value={zoneFilter === "all" ? "all" : String(zoneFilter)}
-          onChange={(e) =>
-            setZoneFilter(e.target.value === "all" ? "all" : Number(e.target.value))
-          }
-          className="rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
-        >
-          <option value="all">Toutes les zones</option>
-          {(zonesData?.data ?? []).map((z) => (
-            <option key={z.id} value={z.id}>
-              {z.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as DispatcherStatus | "all")
-          }
-          className="rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
-        >
-          <option value="all">Tous les statuts</option>
-          <option value="active">Actif</option>
-          <option value="suspended">Suspendu</option>
-        </select>
-      </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -183,9 +192,12 @@ export function DispatchersListPage() {
         isLoading={isLoading}
         exportFileName="dispatchers"
         emptyTitle="Aucun dispatcher"
-        footer={
-          data?.meta ? <span>{data.meta.total} comptes dispatch</span> : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

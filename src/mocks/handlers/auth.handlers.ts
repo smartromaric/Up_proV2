@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import authSession from "../data/auth-session.json";
 import authPartner from "../data/auth-partner.json";
 import authFranchise from "../data/auth-franchise.json";
+import authDispatch from "../data/auth-dispatch.json";
 
 export const authHandlers = [
   http.post("*/api/v2/auth/login", async ({ request }) => {
@@ -14,6 +15,9 @@ export const authHandlers = [
     }
     if (body?.portal === "franchise") {
       return HttpResponse.json(authFranchise);
+    }
+    if (body?.portal === "dispatch") {
+      return HttpResponse.json(authDispatch);
     }
     return HttpResponse.json(
       { message: "Identifiants invalides" },
@@ -28,6 +32,9 @@ export const authHandlers = [
     }
     if (auth?.includes("mock-jwt-franchise")) {
       return HttpResponse.json(authFranchise.user);
+    }
+    if (auth?.includes("mock-jwt-dispatch")) {
+      return HttpResponse.json(authDispatch.user);
     }
     return HttpResponse.json(authSession.user);
   }),

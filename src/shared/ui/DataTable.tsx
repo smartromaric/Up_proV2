@@ -23,6 +23,15 @@ export type DataTablePagination =
 
 export type DataTableRowHeight = "default" | "compact";
 
+export interface DataTableServerPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  lastPage: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+}
+
 interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
@@ -36,6 +45,8 @@ interface DataTableProps<T> {
   footer?: ReactNode;
   /** Pagination client (recommandé au-delà de ~50 lignes) */
   pagination?: DataTablePagination;
+  /** Pagination serveur — `data` = page courante uniquement */
+  serverPagination?: DataTableServerPagination;
   /** Hauteur max du corps du tableau avec défilement */
   maxHeight?: string;
   /** Nom de fichier sans extension pour export CSV / Excel */
@@ -81,11 +92,13 @@ export function DataTable<T>({
   onSelectionChange,
   footer,
   pagination = true,
+  serverPagination,
   maxHeight = "520px",
   exportFileName,
   rowHeight = "default",
 }: DataTableProps<T>) {
-  const paginationEnabled = pagination !== false;
+  const serverMode = Boolean(serverPagination);
+  const paginationEnabled = !serverMode && pagination !== false;
   const pageSizeOptions =
     pagination !== false && typeof pagination === "object" && pagination.pageSizeOptions
       ? pagination.pageSizeOptions
@@ -103,21 +116,26 @@ export function DataTable<T>({
   const colCount = columns.length + (selectable ? 1 : 0);
   const hasExport = Boolean(exportFileName) && columns.some((c) => c.exportValue);
 
-  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+  const activePage = serverMode ? serverPagination!.page : page;
+  const activePageSize = serverMode ? serverPagination!.pageSize : pageSize;
+  const totalItems = serverMode ? serverPagination!.total : data.length;
+  const totalPages = serverMode
+    ? serverPagination!.lastPage
+    : Math.max(1, Math.ceil(data.length / pageSize));
 
   useEffect(() => {
-    setPage(1);
-  }, [data.length, pageSize]);
+    if (!serverMode) setPage(1);
+  }, [data.length, pageSize, serverMode]);
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    if (!serverMode && page > totalPages) setPage(totalPages);
+  }, [page, totalPages, serverMode]);
 
   const visibleData = useMemo(() => {
-    if (!paginationEnabled) return data;
+    if (serverMode || !paginationEnabled) return data;
     const start = (page - 1) * pageSize;
     return data.slice(start, start + pageSize);
-  }, [data, page, pageSize, paginationEnabled]);
+  }, [data, page, pageSize, paginationEnabled, serverMode]);
 
   const allSelected =
     data.length > 0 && data.every((row) => selectedKeys?.has(rowKey(row)));
@@ -164,12 +182,15 @@ export function DataTable<T>({
     }
   };
 
-  const rangeStart = data.length === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, data.length);
+  const rangeStart =
+    totalItems === 0 ? 0 : (activePage - 1) * activePageSize + 1;
+  const rangeEnd = serverMode
+    ? Math.min(activePage * activePageSize, totalItems)
+    : Math.min(activePage * activePageSize, data.length);
 
   return (
     <div className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
-      {(hasExport || paginationEnabled) && (
+      {(hasExport || paginationEnabled || serverMode) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
           {hasExport ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -197,13 +218,20 @@ export function DataTable<T>({
             <span />
           )}
 
-          {paginationEnabled && (
+          {(paginationEnabled || serverMode) && (
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
               <label className="flex items-center gap-2">
                 Lignes / page
                 <select
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  value={activePageSize}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    if (serverMode) {
+                      serverPagination?.onPageSizeChange?.(next);
+                    } else {
+                      setPageSize(next);
+                    }
+                  }}
                   className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-[#212529]"
                 >
                   {pageSizeOptions.map((n) => (
@@ -289,32 +317,44 @@ export function DataTable<T>({
         </table>
       </div>
 
-      {(footer || paginationEnabled) && (
+      {(footer || paginationEnabled || serverMode) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm text-muted sm:px-6">
           <div>{footer}</div>
-          {paginationEnabled && data.length > 0 && (
+          {(paginationEnabled || serverMode) && totalItems > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs tabular-nums">
-                {rangeStart}–{rangeEnd} sur {data.length}
+                {rangeStart}–{rangeEnd} sur {totalItems.toLocaleString("fr-CI")}
               </span>
               <Button
                 type="button"
                 variant="secondary"
                 className="!px-2 !py-1 !text-xs"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={activePage <= 1}
+                onClick={() => {
+                  if (serverMode) {
+                    serverPagination?.onPageChange(activePage - 1);
+                  } else {
+                    setPage((p) => Math.max(1, p - 1));
+                  }
+                }}
               >
                 Préc.
               </Button>
               <span className="text-xs tabular-nums">
-                {page} / {totalPages}
+                {activePage} / {totalPages}
               </span>
               <Button
                 type="button"
                 variant="secondary"
                 className="!px-2 !py-1 !text-xs"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={activePage >= totalPages}
+                onClick={() => {
+                  if (serverMode) {
+                    serverPagination?.onPageChange(activePage + 1);
+                  } else {
+                    setPage((p) => Math.min(totalPages, p + 1));
+                  }
+                }}
               >
                 Suiv.
               </Button>

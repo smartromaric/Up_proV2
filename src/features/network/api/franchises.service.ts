@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Franchise, Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export type FranchiseCreatePayload = {
   name: string;
@@ -10,7 +11,10 @@ export type FranchiseCreatePayload = {
 };
 
 export const franchisesService = {
-  listAdmin: () => apiClient.get<Paginated<Franchise>>("/admin/network/franchises"),
+  listAdmin: (params?: ListParams) =>
+    apiClient.get<Paginated<Franchise>>(
+      `/admin/network/franchises${buildListQuery(params)}`
+    ),
 
   create: (payload: FranchiseCreatePayload) =>
     apiClient.post<Franchise>("/admin/network/franchises", payload),

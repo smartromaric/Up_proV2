@@ -10,7 +10,7 @@ const LOGIN_BY_PORTAL: Record<PortalRole, string> = {
   admin: "/admin/login",
   partner: "/partner/login",
   franchise: "/franchise/login",
-  dispatch: "/admin/login",
+  dispatch: "/dispatch/login",
 };
 
 interface AuthGuardProps {
@@ -31,7 +31,7 @@ export function AuthGuard({ portal, children }: AuthGuardProps) {
       router.replace(LOGIN_BY_PORTAL[portal]);
       return;
     }
-    if (user.role !== portal && portal !== "admin") {
+    if (user.role !== portal) {
       router.replace(LOGIN_BY_PORTAL[user.role] ?? "/login");
     }
   }, [token, user, portal, router]);

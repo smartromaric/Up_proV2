@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface PlatformWallet {
   id: string;
@@ -13,5 +14,8 @@ export interface PlatformWallet {
 }
 
 export const walletsService = {
-  list: () => apiClient.get<Paginated<PlatformWallet>>("/admin/finance/wallets"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<PlatformWallet>>(
+      `/admin/finance/wallets${buildListQuery(params)}`
+    ),
 };

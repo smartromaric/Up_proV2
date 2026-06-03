@@ -10,6 +10,9 @@ export interface User {
   scope: Scope;
   franchise_id?: number;
   owner_id?: number;
+  /** Comptes dispatch — zones autorisées */
+  zone_ids?: number[];
+  zone_names?: string[];
   permissions: string[];
 }
 
@@ -476,6 +479,42 @@ export interface PartnerWallet {
     direction: "credit" | "debit";
     created_at: string;
   }[];
+}
+
+/** Transfert partenaire → solde app mobile chauffeur */
+export type PartnerDriverTransferStatus = "completed" | "pending" | "failed";
+
+export interface PartnerDriverTransfer {
+  id: string;
+  ref: string;
+  driver_id: number;
+  driver_name: string;
+  driver_phone: string;
+  amount_fcfa: number;
+  status: PartnerDriverTransferStatus;
+  /** Crédité sur le wallet mobile chauffeur */
+  mobile_wallet_credited: boolean;
+  note?: string;
+  created_at: string;
+}
+
+export interface PartnerDriverRechargeStats {
+  total_spent_fcfa: number;
+  transfers_count: number;
+  month_spent_fcfa: number;
+  month_transfers_count: number;
+  last_transfer_at?: string;
+}
+
+/** Recharge chauffeur — vue plateforme (admin) */
+export interface PlatformDriverTransfer extends PartnerDriverTransfer {
+  owner_name: string;
+  source: "partner" | "franchise";
+}
+
+export interface PlatformDriverRechargeStats extends PartnerDriverRechargeStats {
+  partners_count: number;
+  franchises_count: number;
 }
 
 export type DispatcherStatus = "active" | "suspended";

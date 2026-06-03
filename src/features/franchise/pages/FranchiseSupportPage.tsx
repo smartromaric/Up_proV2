@@ -1,8 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { FilterChips } from "@/shared/ui/FilterChips";
 import { formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { FranchiseSupportTicket } from "../api/promos.service";
 import { useFranchiseSupportTickets } from "../api/promos.queries";
 
@@ -18,8 +26,33 @@ const STATUS_LABELS: Record<FranchiseSupportTicket["status"], string> = {
   resolved: "Résolu",
 };
 
+const STATUS_FILTERS = [
+  { value: "all" as const, label: "Tous" },
+  { value: "open" as const, label: "Ouverts" },
+  { value: "in_progress" as const, label: "En cours" },
+  { value: "resolved" as const, label: "Résolus" },
+];
+
 export function FranchiseSupportPage() {
-  const { data, isLoading, isError } = useFranchiseSupportTickets();
+  const [statusFilter, setStatusFilter] = useState<
+    FranchiseSupportTicket["status"] | "all"
+  >("all");
+
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useFranchiseSupportTickets(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<FranchiseSupportTicket>[] = [
     {
@@ -99,13 +132,34 @@ export function FranchiseSupportPage() {
         breadcrumb={["Franchise", "Support"]}
       />
 
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Ticket, sujet, partenaire…"
+        totalLabel={meta ? `${meta.total} tickets` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <FilterChips
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
+      </TableFiltersBar>
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(t) => t.id}
         isLoading={isLoading}
         exportFileName="tickets-support"
         emptyTitle="Aucun ticket ouvert"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

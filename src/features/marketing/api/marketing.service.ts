@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface MarketingPromo {
   id: number;
@@ -37,15 +38,22 @@ export interface MarketingBanner {
 }
 
 export const marketingService = {
-  promos: () => apiClient.get<Paginated<MarketingPromo>>("/admin/marketing/promos"),
+  promos: (params?: ListParams) =>
+    apiClient.get<Paginated<MarketingPromo>>(
+      `/admin/marketing/promos${buildListQuery(params)}`
+    ),
   createPromo: (payload: Omit<MarketingPromo, "id" | "uses_count">) =>
     apiClient.post<MarketingPromo>("/admin/marketing/promos", payload),
-  campaigns: () =>
-    apiClient.get<Paginated<MarketingCampaign>>("/admin/marketing/campaigns"),
+  campaigns: (params?: ListParams) =>
+    apiClient.get<Paginated<MarketingCampaign>>(
+      `/admin/marketing/campaigns${buildListQuery(params)}`
+    ),
   createCampaign: (payload: Omit<MarketingCampaign, "id" | "sent_count" | "open_rate_pct">) =>
     apiClient.post<MarketingCampaign>("/admin/marketing/campaigns", payload),
-  banners: () =>
-    apiClient.get<Paginated<MarketingBanner>>("/admin/marketing/banners"),
+  banners: (params?: ListParams) =>
+    apiClient.get<Paginated<MarketingBanner>>(
+      `/admin/marketing/banners${buildListQuery(params)}`
+    ),
   createBanner: (payload: Omit<MarketingBanner, "id" | "impressions" | "clicks">) =>
     apiClient.post<MarketingBanner>("/admin/marketing/banners", payload),
 };

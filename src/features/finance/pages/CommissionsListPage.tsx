@@ -1,13 +1,43 @@
 "use client";
 
+import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { FilterChips } from "@/shared/ui/FilterChips";
 import { formatFCFA } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { CommissionRow } from "../api/commissions.service";
 import { useCommissionsList } from "../api/commissions.queries";
 
+const STATUS_FILTERS = [
+  { value: "all" as const, label: "Tous" },
+  { value: "paid" as const, label: "Versées" },
+  { value: "pending" as const, label: "En attente" },
+];
+
 export function CommissionsListPage() {
-  const { data, isLoading, isError } = useCommissionsList();
+  const [statusFilter, setStatusFilter] = useState<CommissionRow["status"] | "all">("all");
+
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useCommissionsList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<CommissionRow>[] = [
     {
@@ -77,13 +107,35 @@ export function CommissionsListPage() {
   return (
     <div className="animate-fade-up">
       <PageHeader title="Commissions" breadcrumb={["Admin", "Finance"]} />
+
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Franchise, zone, période…"
+        totalLabel={meta ? `${meta.total} commissions` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <FilterChips
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
+      </TableFiltersBar>
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(c) => c.id}
         isLoading={isLoading}
         exportFileName="commissions"
         emptyTitle="Aucune commission"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

@@ -4,10 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmModal } from "@/shared/ui/ConfirmModal";
 import { formatDateTime } from "@/shared/lib/format";
 import { usePermission } from "@/core/auth/usePermission";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { KycQueueItem } from "@/shared/types";
 import {
   useApproveFranchiseDriverKyc,
@@ -30,12 +36,21 @@ function WaitingBadge({ hours }: { hours: number }) {
 
 export function FranchiseKycModerationPage() {
   const canModerate = usePermission("fleet.kyc.approve");
-  const { data, isLoading, isError } = useFranchiseKycQueue();
+  const table = useServerTableState();
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+  });
+
+  const { data, isLoading, isError } = useFranchiseKycQueue(table.listParams);
   const [approveId, setApproveId] = useState<number | null>(null);
   const [rejectId, setRejectId] = useState<number | null>(null);
 
   const approveMutation = useApproveFranchiseDriverKyc();
   const rejectMutation = useRejectFranchiseDriverKyc();
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<KycQueueItem>[] = [
     {
@@ -137,21 +152,36 @@ export function FranchiseKycModerationPage() {
         title="Modération KYC"
         breadcrumb={["Franchise", "Territoire"]}
         actions={
-          data?.meta ? (
+          meta ? (
             <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-800">
-              {data.meta.total} dossier{data.meta.total > 1 ? "s" : ""} en attente
+              {meta.total} dossier{meta.total > 1 ? "s" : ""} en attente
             </span>
           ) : undefined
         }
       />
 
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, téléphone, partenaire, zone…"
+        totalLabel={meta ? `${meta.total} dossiers en attente` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      />
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(r) => r.driver_id}
         isLoading={isLoading}
         exportFileName="moderation-kyc-franchise"
         emptyTitle="Aucun dossier en attente"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
 
       <ConfirmModal

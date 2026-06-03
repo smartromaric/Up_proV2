@@ -6,17 +6,18 @@ import {
   partnerBookingsService,
   type CreateBookingPayload,
 } from "./bookings.service";
+import type { ListParams } from "@/shared/types/listParams";
 
 export const partnerBookingsKeys = {
   all: ["partner", "bookings"] as const,
-  list: () => [...partnerBookingsKeys.all, "list"] as const,
+  list: (filters?: ListParams) => [...partnerBookingsKeys.all, "list", filters] as const,
   detail: (id: string) => [...partnerBookingsKeys.all, "detail", id] as const,
 };
 
-export function usePartnerBookingsList() {
+export function usePartnerBookingsList(params?: ListParams) {
   return useQuery({
-    queryKey: partnerBookingsKeys.list(),
-    queryFn: () => partnerBookingsService.list(),
+    queryKey: partnerBookingsKeys.list(params),
+    queryFn: () => partnerBookingsService.list(params),
   });
 }
 

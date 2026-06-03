@@ -1,19 +1,10 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Driver, Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
-export interface DriversListParams {
-  page?: number;
-  search?: string;
-}
+export type DriversListParams = ListParams;
 
 export const driversService = {
-  listAdmin: (params?: DriversListParams) => {
-    const qs = new URLSearchParams();
-    if (params?.page) qs.set("page", String(params.page));
-    if (params?.search) qs.set("search", params.search);
-    const query = qs.toString();
-    return apiClient.get<Paginated<Driver>>(
-      `/admin/drivers${query ? `?${query}` : ""}`
-    );
-  },
+  listAdmin: (params?: DriversListParams) =>
+    apiClient.get<Paginated<Driver>>(`/admin/drivers${buildListQuery(params)}`),
 };

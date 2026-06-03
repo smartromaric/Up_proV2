@@ -1,36 +1,55 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
 import { Button } from "@/shared/ui/Button";
 import { formatFCFA } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { Franchise } from "@/shared/types";
+import { useFranchisesList } from "../api/franchises.queries";
 
 const ENTITY_STATUS_LABELS = {
   active: "Actif",
   pending: "En attente",
   suspended: "Suspendu",
 } as const;
-import { useFranchisesList } from "../api/franchises.queries";
+
+const STATUS_OPTIONS = [
+  { value: "all" as const, label: "Tous les statuts" },
+  { value: "active" as const, label: "Actif" },
+  { value: "pending" as const, label: "En attente" },
+  { value: "suspended" as const, label: "Suspendu" },
+];
 
 export function FranchisesListPage() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useFranchisesList();
+  const [statusFilter, setStatusFilter] = useState<Franchise["status"] | "all">("all");
 
-  const rows = useMemo(() => {
-    const list = data?.data ?? [];
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (f) => f.name.toLowerCase().includes(q) || f.city.toLowerCase().includes(q)
-    );
-  }, [data?.data, search]);
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useFranchisesList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Franchise>[] = [
     {
@@ -101,13 +120,21 @@ export function FranchisesListPage() {
         }
       />
 
-      <div className="mb-4">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Nom, ville…"
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, ville…"
+        totalLabel={meta ? `${meta.total} franchises` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <SelectFilter
+          label="Statut"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={STATUS_OPTIONS}
         />
-      </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -116,11 +143,12 @@ export function FranchisesListPage() {
         isLoading={isLoading}
         exportFileName="franchises"
         emptyTitle="Aucune franchise"
-        footer={
-          data?.meta ? (
-            <span>{data.meta.total} franchises</span>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

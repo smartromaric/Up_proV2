@@ -1,0 +1,35 @@
+{
+  "stats": {
+    "total_spent_fcfa": 890000,
+    "transfers_count": 31,
+    "month_spent_fcfa": 195000,
+    "month_transfers_count": 8,
+    "last_transfer_at": "2026-05-31T11:00:00Z"
+  },
+  "data": [
+    {
+      "id": "DT-F-120",
+      "ref": "DT-F-120",
+      "driver_id": 110,
+      "driver_name": "Traoré Aminata",
+      "driver_phone": "+225 07 55 44 33 22",
+      "amount_fcfa": 30000,
+      "status": "completed",
+      "mobile_wallet_credited": true,
+      "note": "Avance territoire",
+      "created_at": "2026-05-31T11:00:00Z"
+    },
+    {
+      "id": "DT-F-118",
+      "ref": "DT-F-118",
+      "driver_id": 101,
+      "driver_name": "Kouassi Jean",
+      "driver_phone": "+225 07 12 34 56 78",
+      "amount_fcfa": 20000,
+      "status": "completed",
+      "mobile_wallet_credited": true,
+      "created_at": "2026-05-28T08:30:00Z"
+    }
+  ],
+  "meta": { "total": 31, "per_page": 25, "current_page": 1, "last_page": 2 }
+}

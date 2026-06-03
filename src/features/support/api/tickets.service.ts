@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface AdminSupportTicket {
   id: string;
@@ -15,6 +16,8 @@ export interface AdminSupportTicket {
 }
 
 export const supportTicketsService = {
-  list: () =>
-    apiClient.get<Paginated<AdminSupportTicket>>("/admin/support/tickets"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<AdminSupportTicket>>(
+      `/admin/support/tickets${buildListQuery(params)}`
+    ),
 };

@@ -13,6 +13,7 @@ import {
   nextZoneId,
   franchiseName,
 } from "./network-state";
+import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 
 type StoredPolygon = NonNullable<(typeof zoneDetail)["polygon_geojson"]>;
 const zonePolygonsStore: Record<number, StoredPolygon> = {};
@@ -54,8 +55,13 @@ function polygonForZone(id: number): StoredPolygon | undefined {
 }
 
 export const networkHandlers = [
-  http.get("*/api/v2/admin/network/franchises", () => {
-    return HttpResponse.json(franchisesState);
+  http.get("*/api/v2/admin/network/franchises", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = franchisesState.data.filter((f) =>
+      matchesSearch(query.search, f.name, f.city)
+    );
+    if (query.status) list = list.filter((f) => f.status === query.status);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.post("*/api/v2/admin/network/franchises", async ({ request }) => {
@@ -100,8 +106,20 @@ export const networkHandlers = [
     });
   }),
 
-  http.get("*/api/v2/admin/network/partners", () => {
-    return HttpResponse.json(partnersState);
+  http.get("*/api/v2/admin/network/partners", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = partnersState.data.filter((p) =>
+      matchesSearch(
+        query.search,
+        p.name,
+        p.franchise_name,
+        p.city,
+        p.contact_email,
+        p.contact_phone
+      )
+    );
+    if (query.status) list = list.filter((p) => p.status === query.status);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.post("*/api/v2/admin/network/partners", async ({ request }) => {
@@ -150,8 +168,13 @@ export const networkHandlers = [
     });
   }),
 
-  http.get("*/api/v2/admin/network/zones", () => {
-    return HttpResponse.json(zonesState);
+  http.get("*/api/v2/admin/network/zones", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = zonesState.data.filter((z) =>
+      matchesSearch(query.search, z.name, z.city, z.franchise_name, z.type)
+    );
+    if (query.type) list = list.filter((z) => z.type === query.type);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/admin/network/zones/map-overview", () => {

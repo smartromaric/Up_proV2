@@ -3,8 +3,14 @@
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { Button } from "@/shared/ui/Button";
 import { formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { KycQueueItem } from "@/shared/types";
 import { useKycQueue } from "../api/kyc.queries";
 
@@ -22,7 +28,16 @@ function WaitingBadge({ hours }: { hours: number }) {
 }
 
 export function KycQueuePage() {
-  const { data, isLoading, isError } = useKycQueue();
+  const table = useServerTableState();
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+  });
+
+  const { data, isLoading, isError } = useKycQueue(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<KycQueueItem>[] = [
     {
@@ -113,22 +128,37 @@ export function KycQueuePage() {
         title="File KYC"
         breadcrumb={["Admin", "Flotte"]}
         actions={
-          data?.meta && (
+          meta ? (
             <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-800">
-              {data.meta.total} dossier{data.meta.total > 1 ? "s" : ""} en attente
+              {meta.total} dossier{meta.total > 1 ? "s" : ""} en attente
             </span>
-          )
+          ) : undefined
         }
+      />
+
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, téléphone, zone, partenaire…"
+        totalLabel={meta ? `${meta.total} dossiers en attente` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
       />
 
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(r) => r.driver_id}
         isLoading={isLoading}
         exportFileName="file-kyc"
         emptyTitle="File vide"
         emptyDescription="Aucun dossier KYC en attente de validation."
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

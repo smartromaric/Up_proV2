@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface PartnerShift {
   id: number;
@@ -34,14 +35,22 @@ export interface PartnerReport {
 }
 
 export const partnerShiftsService = {
-  list: () => apiClient.get<Paginated<PartnerShift>>("/partner/shifts"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<PartnerShift>>(
+      `/partner/shifts${buildListQuery(params)}`
+    ),
 };
 
 export const partnerRecurringService = {
-  list: () =>
-    apiClient.get<Paginated<RecurringBooking>>("/partner/bookings/recurring"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<RecurringBooking>>(
+      `/partner/bookings/recurring${buildListQuery(params)}`
+    ),
 };
 
 export const partnerReportsService = {
-  list: () => apiClient.get<Paginated<PartnerReport>>("/partner/reports"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<PartnerReport>>(
+      `/partner/reports${buildListQuery(params)}`
+    ),
 };

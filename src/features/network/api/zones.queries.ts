@@ -4,11 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notificationService } from "@/core/http/notificationService";
 import { zonesKeys } from "./zones.keys";
 import { zonesService, type ZoneCreatePayload } from "./zones.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function useZonesList() {
+export function useZonesList(params?: ListParams) {
   return useQuery({
-    queryKey: zonesKeys.list(),
-    queryFn: () => zonesService.listAdmin(),
+    queryKey: zonesKeys.list(params),
+    queryFn: () => zonesService.listAdmin(params),
   });
 }
 

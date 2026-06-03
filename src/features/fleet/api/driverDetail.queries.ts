@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useScopeQueryKey } from "@/core/auth/scopeQueryKey";
 import { driverDetailKeys } from "./driverDetail.keys";
 import { driverDetailService } from "./driverDetail.service";
 import { driversKeys } from "./drivers.keys";
@@ -32,11 +33,12 @@ export function useDriverWalletTransactions(id: string, enabled = true) {
 
 export function useApproveDriverKyc(id: string) {
   const qc = useQueryClient();
+  const scopeKey = useScopeQueryKey();
   return useMutation({
     mutationFn: () => driverDetailService.approveKyc(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: driverDetailKeys.detail(id) });
-      void qc.invalidateQueries({ queryKey: driversKeys.all });
+      void qc.invalidateQueries({ queryKey: driversKeys.all(scopeKey) });
       notificationService.success("Compte chauffeur approuvé");
     },
   });
@@ -55,11 +57,12 @@ export function useRejectDriverKyc(id: string) {
 
 export function useSuspendDriver(id: string) {
   const qc = useQueryClient();
+  const scopeKey = useScopeQueryKey();
   return useMutation({
     mutationFn: () => driverDetailService.suspend(id),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: driverDetailKeys.detail(id) });
-      void qc.invalidateQueries({ queryKey: driversKeys.all });
+      void qc.invalidateQueries({ queryKey: driversKeys.all(scopeKey) });
       notificationService.success(data.message);
     },
   });
@@ -67,11 +70,12 @@ export function useSuspendDriver(id: string) {
 
 export function useActivateDriver(id: string) {
   const qc = useQueryClient();
+  const scopeKey = useScopeQueryKey();
   return useMutation({
     mutationFn: () => driverDetailService.activate(id),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: driverDetailKeys.detail(id) });
-      void qc.invalidateQueries({ queryKey: driversKeys.all });
+      void qc.invalidateQueries({ queryKey: driversKeys.all(scopeKey) });
       notificationService.success(data.message);
     },
   });

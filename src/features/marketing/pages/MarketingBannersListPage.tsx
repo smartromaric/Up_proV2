@@ -1,15 +1,48 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { FilterChips } from "@/shared/ui/FilterChips";
 import { formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { MarketingBanner } from "../api/marketing.service";
 import { useMarketingBanners } from "../api/marketing.queries";
 
+const STATUS_FILTERS = [
+  { value: "all" as const, label: "Tous" },
+  { value: "active" as const, label: "Actifs" },
+  { value: "draft" as const, label: "Brouillons" },
+  { value: "archived" as const, label: "Archivés" },
+];
+
 export function MarketingBannersListPage() {
-  const { data, isLoading, isError } = useMarketingBanners();
+  const [statusFilter, setStatusFilter] = useState<MarketingBanner["status"] | "all">(
+    "all"
+  );
+
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useMarketingBanners(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<MarketingBanner>[] = [
     {
@@ -90,13 +123,35 @@ export function MarketingBannersListPage() {
           </Link>
         }
       />
+
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Titre, emplacement, lien…"
+        totalLabel={meta ? `${meta.total} bannières` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <FilterChips
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
+      </TableFiltersBar>
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(b) => b.id}
         isLoading={isLoading}
         exportFileName="bannieres-marketing"
         emptyTitle="Aucune bannière"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

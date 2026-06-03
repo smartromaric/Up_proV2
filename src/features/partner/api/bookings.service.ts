@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated, TripStatus, TripTimelineEvent } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface CreateBookingPayload {
   from_label: string;
@@ -52,7 +53,10 @@ export interface BookingCreated extends PartnerBooking {
 }
 
 export const partnerBookingsService = {
-  list: () => apiClient.get<Paginated<PartnerBooking>>("/partner/bookings"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<PartnerBooking>>(
+      `/partner/bookings${buildListQuery(params)}`
+    ),
 
   getById: (id: string) => apiClient.get<PartnerBookingDetail>(`/partner/bookings/${id}`),
 

@@ -1,7 +1,8 @@
+import type { ScopeQueryKey } from "@/core/auth/scopeQueryKey";
 import type { DriversListParams } from "./drivers.service";
 
 export const driversKeys = {
-  all: ["fleet", "drivers"] as const,
-  list: (filters?: DriversListParams) =>
-    [...driversKeys.all, "list", filters] as const,
+  all: (scope?: ScopeQueryKey) => ["fleet", "drivers", scope] as const,
+  list: (filters?: DriversListParams, scope?: ScopeQueryKey) =>
+    [...driversKeys.all(scope), "list", filters] as const,
 };

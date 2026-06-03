@@ -5,17 +5,28 @@ import {
   commissionsService,
   reconciliationService,
 } from "./commissions.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function useCommissionsList() {
+export const commissionsKeys = {
+  all: ["finance", "commissions"] as const,
+  list: (filters?: ListParams) => [...commissionsKeys.all, "list", filters] as const,
+};
+
+export const reconciliationKeys = {
+  all: ["finance", "reconciliation"] as const,
+  list: (filters?: ListParams) => [...reconciliationKeys.all, "list", filters] as const,
+};
+
+export function useCommissionsList(params?: ListParams) {
   return useQuery({
-    queryKey: ["finance", "commissions"],
-    queryFn: () => commissionsService.list(),
+    queryKey: commissionsKeys.list(params),
+    queryFn: () => commissionsService.list(params),
   });
 }
 
-export function useReconciliationList() {
+export function useReconciliationList(params?: ListParams) {
   return useQuery({
-    queryKey: ["finance", "reconciliation"],
-    queryFn: () => reconciliationService.list(),
+    queryKey: reconciliationKeys.list(params),
+    queryFn: () => reconciliationService.list(params),
   });
 }

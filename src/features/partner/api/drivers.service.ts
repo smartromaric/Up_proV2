@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Driver, DriverDetail, Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
 import type { KycDocument } from "@/shared/types";
 
@@ -12,7 +13,8 @@ export interface CreateDriverPayload {
 }
 
 export const partnerDriversService = {
-  list: () => apiClient.get<Paginated<Driver>>("/partner/drivers"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<Driver>>(`/partner/drivers${buildListQuery(params)}`),
 
   getById: (id: string) => apiClient.get<DriverDetail>(`/partner/drivers/${id}`),
 

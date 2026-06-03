@@ -1,15 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { ServicePill } from "@/shared/ui/ServicePill";
 import { Button } from "@/shared/ui/Button";
 import { formatFCFA } from "@/shared/lib/format";
 import { getServiceLabel } from "@/shared/lib/tripLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { PricingRule, TripService } from "@/shared/types";
 import { usePricingList } from "../api/pricing.queries";
 
@@ -19,20 +25,39 @@ const STATUS_FILTERS = [
   { value: "draft" as const, label: "Brouillons" },
 ];
 
-export function PricingListPage() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | PricingRule["status"]>("all");
-  const { data, isLoading, isError } = usePricingList();
+const ZONE_OPTIONS = [
+  { value: "all" as const, label: "Toutes les zones" },
+  { value: "Cocody", label: "Cocody" },
+  { value: "Yopougon", label: "Yopougon" },
+  { value: "Plateau", label: "Plateau" },
+  { value: "Marcory", label: "Marcory" },
+  { value: "Treichville", label: "Treichville" },
+  { value: "Adjamé", label: "Adjamé" },
+  { value: "Aéroport Félix Houphouët", label: "Aéroport" },
+];
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (statusFilter !== "all") {
-      list = list.filter((p) => p.status === statusFilter);
-    }
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter((p) => p.zone_name.toLowerCase().includes(q));
-  }, [data?.data, search, statusFilter]);
+export function PricingListPage() {
+  const [statusFilter, setStatusFilter] = useState<"all" | PricingRule["status"]>("all");
+  const [zoneFilter, setZoneFilter] =
+    useState<(typeof ZONE_OPTIONS)[number]["value"]>("all");
+
+  const table = useServerTableState([statusFilter, zoneFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    zone: zoneFilter !== "all" ? zoneFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+      { value: zoneFilter, defaultValue: "all", reset: () => setZoneFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = usePricingList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<PricingRule>[] = [
     {
@@ -127,20 +152,28 @@ export function PricingListPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Rechercher une zone…"
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Rechercher une zone…"
+        totalLabel={meta ? `${meta.total} grilles tarifaires` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <FilterChips
+            options={STATUS_FILTERS}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
+          <SelectFilter
+            label="Zone"
+            value={zoneFilter}
+            onChange={setZoneFilter}
+            options={ZONE_OPTIONS}
           />
         </div>
-        <FilterChips
-          options={STATUS_FILTERS}
-          value={statusFilter}
-          onChange={setStatusFilter}
-        />
-      </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -149,6 +182,12 @@ export function PricingListPage() {
         isLoading={isLoading}
         exportFileName="tarification"
         emptyTitle="Aucune règle tarifaire"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

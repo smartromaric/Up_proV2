@@ -4,25 +4,27 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notificationService } from "@/core/http/notificationService";
 import { franchiseDashboardKeys } from "./dashboard.queries";
 import { franchiseDriversService } from "./drivers.service";
+import type { ListParams } from "@/shared/types/listParams";
 
 export const franchiseDriversKeys = {
   all: ["franchise", "drivers"] as const,
-  list: () => [...franchiseDriversKeys.all, "list"] as const,
-  kycQueue: () => [...franchiseDriversKeys.all, "kyc-queue"] as const,
+  list: (filters?: ListParams) => [...franchiseDriversKeys.all, "list", filters] as const,
+  kycQueue: (filters?: ListParams) =>
+    [...franchiseDriversKeys.all, "kyc-queue", filters] as const,
   detail: (id: string) => [...franchiseDriversKeys.all, "detail", id] as const,
 };
 
-export function useFranchiseDriversList() {
+export function useFranchiseDriversList(params?: ListParams) {
   return useQuery({
-    queryKey: franchiseDriversKeys.list(),
-    queryFn: () => franchiseDriversService.list(),
+    queryKey: franchiseDriversKeys.list(params),
+    queryFn: () => franchiseDriversService.list(params),
   });
 }
 
-export function useFranchiseKycQueue() {
+export function useFranchiseKycQueue(params?: ListParams) {
   return useQuery({
-    queryKey: franchiseDriversKeys.kycQueue(),
-    queryFn: () => franchiseDriversService.kycQueue(),
+    queryKey: franchiseDriversKeys.kycQueue(params),
+    queryFn: () => franchiseDriversService.kycQueue(params),
   });
 }
 

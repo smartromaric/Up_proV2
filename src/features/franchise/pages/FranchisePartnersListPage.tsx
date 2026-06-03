@@ -1,36 +1,54 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
 import { formatFCFA } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
+import type { FranchisePartner } from "../api/partners.service";
+import { useFranchisePartnersList } from "../api/partners.queries";
 
 const ENTITY_STATUS_LABELS = {
   active: "Actif",
   pending: "En attente",
   suspended: "Suspendu",
 } as const;
-import type { FranchisePartner } from "../api/partners.service";
-import { useFranchisePartnersList } from "../api/partners.queries";
+
+const STATUS_OPTIONS = [
+  { value: "all" as const, label: "Tous les statuts" },
+  { value: "active" as const, label: "Actif" },
+  { value: "pending" as const, label: "En attente" },
+  { value: "suspended" as const, label: "Suspendu" },
+];
 
 export function FranchisePartnersListPage() {
-  const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useFranchisePartnersList();
+  const [statusFilter, setStatusFilter] = useState<FranchisePartner["status"] | "all">(
+    "all"
+  );
 
-  const rows = useMemo(() => {
-    const list = data?.data ?? [];
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.contact_email.toLowerCase().includes(q) ||
-        p.city.toLowerCase().includes(q)
-    );
-  }, [data?.data, search]);
+  const table = useServerTableState([statusFilter], {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useFranchisePartnersList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<FranchisePartner>[] = [
     {
@@ -83,9 +101,23 @@ export function FranchisePartnersListPage() {
         breadcrumb={["Franchise", "Réseau"]}
       />
 
-      <div className="mb-4">
-        <SearchInput value={search} onChange={setSearch} placeholder="Nom, email, ville…" />
-      </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, email, ville…"
+        totalLabel={
+          meta ? `${meta.total} partenaires sur le territoire` : undefined
+        }
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <SelectFilter
+          label="Statut"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={STATUS_OPTIONS}
+        />
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -94,9 +126,12 @@ export function FranchisePartnersListPage() {
         isLoading={isLoading}
         exportFileName="sous-partenaires-franchise"
         emptyTitle="Aucun partenaire"
-        footer={
-          data?.meta ? <span>{data.meta.total} partenaires sur le territoire</span> : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

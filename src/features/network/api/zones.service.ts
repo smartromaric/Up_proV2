@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated, Zone } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 import type { ZoneMapItem } from "../components/AbidjanZonesMap";
 
 export type ZoneCreatePayload = {
@@ -20,7 +21,10 @@ export interface ZonesMapOverview {
 }
 
 export const zonesService = {
-  listAdmin: () => apiClient.get<Paginated<Zone>>("/admin/network/zones"),
+  listAdmin: (params?: ListParams) =>
+    apiClient.get<Paginated<Zone>>(
+      `/admin/network/zones${buildListQuery(params)}`
+    ),
 
   mapOverview: () =>
     apiClient.get<ZonesMapOverview>("/admin/network/zones/map-overview"),

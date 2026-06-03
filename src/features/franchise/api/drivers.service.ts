@@ -1,11 +1,15 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Driver, DriverDetail, KycQueueItem, Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export const franchiseDriversService = {
-  list: () => apiClient.get<Paginated<Driver>>("/franchise/drivers"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<Driver>>(`/franchise/drivers${buildListQuery(params)}`),
 
-  kycQueue: () =>
-    apiClient.get<Paginated<KycQueueItem>>("/franchise/drivers/kyc-queue"),
+  kycQueue: (params?: ListParams) =>
+    apiClient.get<Paginated<KycQueueItem>>(
+      `/franchise/drivers/kyc-queue${buildListQuery(params)}`
+    ),
 
   getById: (id: string) => apiClient.get<DriverDetail>(`/franchise/drivers/${id}`),
 

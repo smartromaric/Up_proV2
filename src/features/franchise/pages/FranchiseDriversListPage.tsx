@@ -1,40 +1,98 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { AccountStatusPill, AvailabilityPill } from "@/shared/ui/DriverPills";
 import {
   getDriverAccountStatusLabel,
   getDriverAvailabilityLabel,
 } from "@/shared/lib/driverLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { Driver } from "@/shared/types";
 import { useFranchiseDriversList } from "../api/drivers.queries";
+
+const ZONE_OPTIONS = [
+  { value: "all" as const, label: "Toutes les zones" },
+  { value: "Cocody", label: "Cocody" },
+  { value: "Yopougon", label: "Yopougon" },
+  { value: "Plateau", label: "Plateau" },
+  { value: "Marcory", label: "Marcory" },
+  { value: "Treichville", label: "Treichville" },
+  { value: "Adjamé", label: "Adjamé" },
+];
+
+const ACCOUNT_OPTIONS = [
+  { value: "all" as const, label: "Tous les comptes" },
+  { value: "approved", label: "Approuvé" },
+  { value: "pending", label: "En attente" },
+  { value: "suspended", label: "Suspendu" },
+];
+
+const AVAILABILITY_OPTIONS = [
+  { value: "all" as const, label: "Toutes dispo." },
+  { value: "online", label: "En ligne" },
+  { value: "offline", label: "Hors ligne" },
+  { value: "on_trip", label: "En course" },
+  { value: "paused", label: "Pause" },
+];
 
 interface FranchiseDriversListPageProps {
   pendingOnly?: boolean;
 }
 
 export function FranchiseDriversListPage({ pendingOnly }: FranchiseDriversListPageProps) {
-  const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useFranchiseDriversList();
+  const [zoneFilter, setZoneFilter] = useState<(typeof ZONE_OPTIONS)[number]["value"]>("all");
+  const [accountFilter, setAccountFilter] =
+    useState<(typeof ACCOUNT_OPTIONS)[number]["value"]>("all");
+  const [availabilityFilter, setAvailabilityFilter] =
+    useState<(typeof AVAILABILITY_OPTIONS)[number]["value"]>("all");
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (pendingOnly) {
-      list = list.filter((d) => d.account_status === "pending");
+  const table = useServerTableState(
+    [zoneFilter, accountFilter, availabilityFilter, pendingOnly],
+    {
+      zone: zoneFilter !== "all" ? zoneFilter : undefined,
+      account_status: pendingOnly
+        ? "pending"
+        : accountFilter !== "all"
+          ? accountFilter
+          : undefined,
+      availability: availabilityFilter !== "all" ? availabilityFilter : undefined,
     }
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (d) =>
-        `${d.first_name} ${d.last_name}`.toLowerCase().includes(q) ||
-        d.phone.includes(q) ||
-        (d.owner_name?.toLowerCase().includes(q) ?? false)
-    );
-  }, [data?.data, search, pendingOnly]);
+  );
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: zoneFilter, defaultValue: "all", reset: () => setZoneFilter("all") },
+      ...(!pendingOnly
+        ? [
+            {
+              value: accountFilter,
+              defaultValue: "all" as const,
+              reset: () => setAccountFilter("all"),
+            },
+          ]
+        : []),
+      {
+        value: availabilityFilter,
+        defaultValue: "all",
+        reset: () => setAvailabilityFilter("all"),
+      },
+    ],
+  });
+
+  const { data, isLoading, isError } = useFranchiseDriversList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Driver>[] = [
     {
@@ -90,13 +148,41 @@ export function FranchiseDriversListPage({ pendingOnly }: FranchiseDriversListPa
         breadcrumb={["Franchise", "Flotte"]}
       />
 
-      <div className="mb-4">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Nom, téléphone, partenaire…"
-        />
-      </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Nom, téléphone, partenaire…"
+        totalLabel={
+          meta
+            ? `${meta.total} chauffeur${meta.total > 1 ? "s" : ""} sur le territoire`
+            : undefined
+        }
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        {!pendingOnly && (
+          <div className="flex flex-wrap gap-3">
+            <SelectFilter
+              label="Zone"
+              value={zoneFilter}
+              onChange={setZoneFilter}
+              options={ZONE_OPTIONS}
+            />
+            <SelectFilter
+              label="Compte"
+              value={accountFilter}
+              onChange={setAccountFilter}
+              options={ACCOUNT_OPTIONS}
+            />
+            <SelectFilter
+              label="Disponibilité"
+              value={availabilityFilter}
+              onChange={setAvailabilityFilter}
+              options={AVAILABILITY_OPTIONS}
+            />
+          </div>
+        )}
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -107,11 +193,12 @@ export function FranchiseDriversListPage({ pendingOnly }: FranchiseDriversListPa
           pendingOnly ? "moderation-kyc-franchise" : "chauffeurs-franchise"
         }
         emptyTitle={pendingOnly ? "Aucun dossier en attente" : "Aucun chauffeur"}
-        footer={
-          data?.meta ? (
-            <span>{data.meta.total} chauffeurs sur le territoire</span>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

@@ -5,17 +5,18 @@ import { partnerDriversService } from "./drivers.service";
 import type { CreateDriverPayload } from "./drivers.service";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
 import type { KycDocument } from "@/shared/types";
+import type { ListParams } from "@/shared/types/listParams";
 
 export const partnerDriversKeys = {
   all: ["partner", "drivers"] as const,
-  list: () => [...partnerDriversKeys.all, "list"] as const,
+  list: (filters?: ListParams) => [...partnerDriversKeys.all, "list", filters] as const,
   detail: (id: string) => [...partnerDriversKeys.all, "detail", id] as const,
 };
 
-export function usePartnerDriversList() {
+export function usePartnerDriversList(params?: ListParams) {
   return useQuery({
-    queryKey: partnerDriversKeys.list(),
-    queryFn: () => partnerDriversService.list(),
+    queryKey: partnerDriversKeys.list(params),
+    queryFn: () => partnerDriversService.list(params),
   });
 }
 

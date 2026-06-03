@@ -1,6 +1,7 @@
 import { apiClient } from "@/core/http/apiClient";
 
 import type { Paginated, PricingRule } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 
 
@@ -30,7 +31,10 @@ export type UpdatePricingPayload = Omit<CreatePricingPayload, "zone_name"> & {
 
 export const pricingService = {
 
-  list: () => apiClient.get<Paginated<PricingRule>>("/admin/settings/pricing"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<PricingRule>>(
+      `/admin/settings/pricing${buildListQuery(params)}`
+    ),
 
   get: (id: string) => apiClient.get<PricingRule>(`/admin/settings/pricing/${id}`),
 

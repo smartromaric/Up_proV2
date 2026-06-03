@@ -16,6 +16,11 @@ const portals = [
     description: "Territoire et sous-partenaires",
     href: "/franchise/login",
   },
+  {
+    title: "Dispatch",
+    description: "Assignation & réservation manuelle",
+    href: "/dispatch/login",
+  },
 ];
 
 export default function LoginPortalPage() {
@@ -25,7 +30,7 @@ export default function LoginPortalPage() {
         <h1 className="text-3xl font-semibold text-navy">UpJunoo Pro</h1>
         <p className="mt-2 text-muted">Choisissez votre portail</p>
       </div>
-      <div className="grid w-full max-w-2xl gap-4 sm:grid-cols-3">
+      <div className="grid w-full max-w-3xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {portals.map((portal) => (
           <Link
             key={portal.href}

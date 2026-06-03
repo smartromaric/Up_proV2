@@ -2,28 +2,27 @@
 
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { formatDateTime } from "@/shared/lib/format";
-import { useMemo, useState } from "react";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { AuditLogEntry } from "../api/settingsExtended.service";
 import { useAuditLog } from "../api/settingsExtended.queries";
 
 export function SettingsAuditPage() {
-  const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useAuditLog();
+  const table = useServerTableState();
 
-  const rows = useMemo(() => {
-    const list = data?.data ?? [];
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (e) =>
-        e.actor_email.toLowerCase().includes(q) ||
-        e.action.toLowerCase().includes(q) ||
-        e.resource.toLowerCase().includes(q) ||
-        e.detail.toLowerCase().includes(q)
-    );
-  }, [data?.data, search]);
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+  });
+
+  const { data, isLoading, isError } = useAuditLog(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<AuditLogEntry>[] = [
     {
@@ -66,13 +65,14 @@ export function SettingsAuditPage() {
     <div className="animate-fade-up">
       <PageHeader title="Journal d'audit" breadcrumb={["Admin", "Paramètres"]} />
 
-      <div className="mb-4">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Filtrer par acteur, action, ressource…"
-        />
-      </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Filtrer par acteur, action, ressource…"
+        totalLabel={meta ? `${meta.total} entrées` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      />
 
       <DataTable
         columns={columns}
@@ -81,6 +81,12 @@ export function SettingsAuditPage() {
         isLoading={isLoading}
         exportFileName="audit-log"
         emptyTitle="Aucune entrée"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

@@ -1,5 +1,7 @@
 import { http, HttpResponse } from "msw";
 import tripsListSeed from "../data/trips-list.json";
+import { TRIPS_CATALOG, filterTrips } from "../lib/tripsCatalog";
+import { paginatedList, parseListQuery } from "../lib/listQuery";
 import tripDetail from "../data/trip-detail.json";
 import liveMap from "../data/live-map.json";
 import dispatchConsoleSeed from "../data/dispatch-console.json";
@@ -10,7 +12,7 @@ import type { DispatchConsoleData, DispatchQueueItem, Trip } from "@/shared/type
 type TripsListResponse = { data: Trip[]; meta: typeof tripsListSeed.meta };
 
 let tripsState: TripsListResponse = {
-  data: tripsListSeed.data as Trip[],
+  data: TRIPS_CATALOG,
   meta: tripsListSeed.meta,
 };
 
@@ -47,8 +49,10 @@ const driverNames: Record<number, string> = Object.fromEntries(
 let crisisState = { ...crisisModeSeed };
 
 export const opsHandlers = [
-  http.get("*/api/v2/admin/ops/trips", () => {
-    return HttpResponse.json(tripsState);
+  http.get("*/api/v2/admin/ops/trips", ({ request }) => {
+    const query = parseListQuery(request);
+    const filtered = filterTrips(tripsState.data, query);
+    return HttpResponse.json(paginatedList(filtered, query));
   }),
 
   http.get("*/api/v2/admin/ops/trips/:id", ({ params }) => {

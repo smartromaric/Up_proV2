@@ -2,12 +2,27 @@
 
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { PartnerReport } from "../api/shifts.service";
 import { usePartnerReports } from "../api/shifts.queries";
 
 export function PartnerReportsPage() {
-  const { data, isLoading, isError } = usePartnerReports();
+  const table = useServerTableState();
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+  });
+
+  const { data, isLoading, isError } = usePartnerReports(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<PartnerReport>[] = [
     {
@@ -61,13 +76,28 @@ export function PartnerReportsPage() {
         breadcrumb={["Partenaire", "Activité"]}
       />
 
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Période, référence…"
+        totalLabel={meta ? `${meta.total} rapports` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      />
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(r) => r.id}
         isLoading={isLoading}
         exportFileName="rapports-partenaire"
         emptyTitle="Aucun rapport disponible"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

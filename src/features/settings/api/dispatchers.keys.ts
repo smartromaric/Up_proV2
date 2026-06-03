@@ -1,5 +1,10 @@
+import type { ScopeQueryKey } from "@/core/auth/scopeQueryKey";
+import type { ListParams } from "@/shared/types/listParams";
+
 export const dispatchersKeys = {
-  all: ["dispatchers"] as const,
-  list: () => [...dispatchersKeys.all, "list"] as const,
-  detail: (id: string) => [...dispatchersKeys.all, "detail", id] as const,
+  all: (scope?: ScopeQueryKey) => ["dispatchers", scope] as const,
+  list: (filters?: ListParams, scope?: ScopeQueryKey) =>
+    [...dispatchersKeys.all(scope), "list", filters] as const,
+  detail: (id: string, scope?: ScopeQueryKey) =>
+    [...dispatchersKeys.all(scope), "detail", id] as const,
 };

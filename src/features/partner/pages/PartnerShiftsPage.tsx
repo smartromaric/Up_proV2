@@ -2,11 +2,26 @@
 
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { PartnerShift } from "../api/shifts.service";
 import { usePartnerShifts } from "../api/shifts.queries";
 
 export function PartnerShiftsPage() {
-  const { data, isLoading, isError } = usePartnerShifts();
+  const table = useServerTableState();
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+  });
+
+  const { data, isLoading, isError } = usePartnerShifts(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<PartnerShift>[] = [
     {
@@ -61,13 +76,28 @@ export function PartnerShiftsPage() {
         breadcrumb={["Partenaire", "Activité"]}
       />
 
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Chauffeur, zone…"
+        totalLabel={meta ? `${meta.total} shifts` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      />
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(s) => s.id}
         isLoading={isLoading}
         exportFileName="shifts"
         emptyTitle="Aucun shift planifié"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

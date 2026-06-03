@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import dashboardPartner from "../data/dashboard-partner.json";
 import driversListPartner from "../data/drivers-list-partner.json";
 import walletPartnerSeed from "../data/wallet-partner.json";
+import driverTransfersPartnerSeed from "../data/driver-wallet-transfers-partner.json";
 import partnerProfile from "../data/partner-profile.json";
 import fleetList from "../data/fleet-list.json";
 import vehicleApproved from "../data/vehicle-detail-approved.json";
@@ -11,13 +12,44 @@ import vehicleDraft from "../data/vehicle-detail-draft.json";
 import driverDetail from "../data/driver-detail.json";
 import driverDetailPending from "../data/driver-detail-pending.json";
 import bookingsListPartner from "../data/bookings-list-partner.json";
-import type { TripStatus, PartnerWallet } from "@/shared/types";
+import type {
+  Driver,
+  Trip,
+  TripStatus,
+  PartnerWallet,
+  PartnerDriverTransfer,
+  PartnerDriverRechargeStats,
+} from "@/shared/types";
+import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
+import { filterDrivers, DRIVERS_CATALOG } from "../lib/driversCatalog";
+import { filterTrips, TRIPS_CATALOG } from "../lib/tripsCatalog";
 
 import shiftsListPartner from "../data/shifts-list-partner.json";
 import recurringBookingsPartner from "../data/recurring-bookings-partner.json";
 import reportsPartner from "../data/reports-partner.json";
 
 let walletState: PartnerWallet = { ...(walletPartnerSeed as PartnerWallet) };
+
+const transfersSeed = driverTransfersPartnerSeed as {
+  stats: PartnerDriverRechargeStats;
+  data: PartnerDriverTransfer[];
+  meta: { total: number };
+};
+
+let driverTransfersState: PartnerDriverTransfer[] = [...transfersSeed.data];
+let driverRechargeStats: PartnerDriverRechargeStats = { ...transfersSeed.stats };
+
+const PARTNER_DRIVER_IDS = new Set(
+  (driversListPartner.data as Driver[]).map((d) => d.id)
+);
+const PARTNER_DRIVERS = DRIVERS_CATALOG.filter(
+  (d) => PARTNER_DRIVER_IDS.has(d.id) || d.owner_name === "Cocody Express"
+);
+
+const PARTNER_BOOKINGS = [
+  ...(bookingsListPartner.data as Trip[]),
+  ...TRIPS_CATALOG.filter((t) => t.client_name.includes("Express") || t.ref.startsWith("TR-884")).slice(0, 40),
+];
 
 function bookingTimeline(status: TripStatus, createdAt: string) {
   const base = new Date(createdAt);
@@ -135,8 +167,13 @@ export const partnerHandlers = [
     return HttpResponse.json({ ...partnerProfile, ...(body as object) });
   }),
 
-  http.get("*/api/v2/partner/drivers", () => {
-    return HttpResponse.json(driversListPartner);
+  http.get("*/api/v2/partner/drivers", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = filterDrivers(PARTNER_DRIVERS, query);
+    if (query.account_status) {
+      list = list.filter((d) => d.account_status === query.account_status);
+    }
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/partner/drivers/:id", ({ params }) => {
@@ -210,8 +247,22 @@ export const partnerHandlers = [
     );
   }),
 
-  http.get("*/api/v2/partner/vehicles", () => {
-    return HttpResponse.json(fleetList);
+  http.get("*/api/v2/partner/vehicles", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = fleetList.data.filter((v) =>
+      matchesSearch(
+        query.search,
+        v.plate,
+        v.label,
+        v.category,
+        v.driver_name,
+        v.approval_status
+      )
+    );
+    if (query.status) {
+      list = list.filter((v) => v.approval_status === query.status);
+    }
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.post("*/api/v2/partner/vehicles", async ({ request }) => {
@@ -296,6 +347,105 @@ export const partnerHandlers = [
     return HttpResponse.json(walletState);
   }),
 
+  http.get("*/api/v2/partner/wallet/driver-transfers/stats", () => {
+    return HttpResponse.json(driverRechargeStats);
+  }),
+
+  http.get("*/api/v2/partner/wallet/driver-transfers", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = driverTransfersState.filter((t) =>
+      matchesSearch(
+        query.search,
+        t.ref,
+        t.driver_name,
+        t.driver_phone,
+        t.note ?? ""
+      )
+    );
+    return HttpResponse.json(paginatedList(list, query));
+  }),
+
+  http.post("*/api/v2/partner/wallet/driver-recharge", async ({ request }) => {
+    const body = (await request.json()) as {
+      driver_id?: number;
+      amount_fcfa?: number;
+      note?: string;
+    };
+    const driverId = body.driver_id ?? 0;
+    const amount = body.amount_fcfa ?? 0;
+    if (amount < 1000) {
+      return HttpResponse.json(
+        { message: "Montant minimum : 1 000 FCFA" },
+        { status: 422 }
+      );
+    }
+    if (amount > walletState.available_fcfa) {
+      return HttpResponse.json(
+        { message: "Solde disponible insuffisant pour ce transfert" },
+        { status: 422 }
+      );
+    }
+    const driver = PARTNER_DRIVERS.find((d) => d.id === driverId);
+    if (!driver) {
+      return HttpResponse.json({ message: "Chauffeur introuvable" }, { status: 404 });
+    }
+    if (driver.account_status !== "approved") {
+      return HttpResponse.json(
+        { message: "Le compte chauffeur doit être approuvé avant recharge" },
+        { status: 422 }
+      );
+    }
+
+    const now = new Date().toISOString();
+    const ref = `DT-${Math.floor(8800 + Math.random() * 999)}`;
+    const transfer: PartnerDriverTransfer = {
+      id: ref,
+      ref,
+      driver_id: driver.id,
+      driver_name: `${driver.first_name} ${driver.last_name}`,
+      driver_phone: driver.phone,
+      amount_fcfa: amount,
+      status: "completed",
+      mobile_wallet_credited: true,
+      note: body.note?.trim() || "Recharge app mobile",
+      created_at: now,
+    };
+
+    driverTransfersState = [transfer, ...driverTransfersState];
+    driverRechargeStats = {
+      ...driverRechargeStats,
+      total_spent_fcfa: driverRechargeStats.total_spent_fcfa + amount,
+      transfers_count: driverRechargeStats.transfers_count + 1,
+      month_spent_fcfa: driverRechargeStats.month_spent_fcfa + amount,
+      month_transfers_count: driverRechargeStats.month_transfers_count + 1,
+      last_transfer_at: now,
+    };
+
+    walletState = {
+      ...walletState,
+      balance_fcfa: walletState.balance_fcfa - amount,
+      available_fcfa: walletState.available_fcfa - amount,
+      recent_movements: [
+        {
+          id: `M-${Date.now()}`,
+          label: `Recharge ${driver.first_name} ${driver.last_name} · ${ref}`,
+          amount_fcfa: amount,
+          direction: "debit",
+          created_at: now,
+        },
+        ...walletState.recent_movements,
+      ],
+    };
+
+    return HttpResponse.json({
+      ok: true,
+      message: `Recharge de ${amount.toLocaleString("fr-FR")} FCFA envoyée sur l'app mobile de ${driver.first_name} ${driver.last_name}`,
+      transfer,
+      wallet: walletState,
+      stats: driverRechargeStats,
+    });
+  }),
+
   http.post("*/api/v2/partner/wallet/withdraw", async ({ request }) => {
     const body = (await request.json()) as { amount_fcfa?: number };
     const amount = body.amount_fcfa ?? 0;
@@ -340,20 +490,46 @@ export const partnerHandlers = [
     });
   }),
 
-  http.get("*/api/v2/partner/shifts", () => {
-    return HttpResponse.json(shiftsListPartner);
+  http.get("*/api/v2/partner/shifts", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = shiftsListPartner.data.filter((s) =>
+      matchesSearch(
+        query.search,
+        s.driver_name,
+        s.vehicle_label,
+        s.day_label,
+        String(s.id)
+      )
+    );
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
-  http.get("*/api/v2/partner/bookings/recurring", () => {
-    return HttpResponse.json(recurringBookingsPartner);
+  http.get("*/api/v2/partner/bookings/recurring", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = recurringBookingsPartner.data.filter((b) =>
+      matchesSearch(
+        query.search,
+        b.client_name,
+        b.from_label,
+        b.to_label,
+        b.frequency
+      )
+    );
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
-  http.get("*/api/v2/partner/reports", () => {
-    return HttpResponse.json(reportsPartner);
+  http.get("*/api/v2/partner/reports", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = reportsPartner.data.filter((r) =>
+      matchesSearch(query.search, r.period_label, r.id)
+    );
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
-  http.get("*/api/v2/partner/bookings", () => {
-    return HttpResponse.json(bookingsListPartner);
+  http.get("*/api/v2/partner/bookings", ({ request }) => {
+    const query = parseListQuery(request);
+    const filtered = filterTrips(PARTNER_BOOKINGS, query);
+    return HttpResponse.json(paginatedList(filtered, query));
   }),
 
   http.get("*/api/v2/partner/bookings/:id", ({ params }) => {

@@ -1,25 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
 import { HeroKpi } from "@/features/ops/components/HeroKpi";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { TransactionStatusPill } from "@/shared/ui/TransactionStatusPill";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { TRANSACTION_TYPE_LABELS } from "@/shared/lib/financeLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
+import { getPaymentLabel } from "@/shared/lib/paymentLabels";
+import type { Transaction, TransactionStatus, TransactionType } from "@/shared/types";
+import { useTransactionsList } from "../api/transactions.queries";
 
 const TRANSACTION_STATUS_LABELS = {
   completed: "Validé",
   pending: "En attente",
   failed: "Échoué",
 } as const;
-import { getPaymentLabel } from "@/shared/lib/paymentLabels";
-import type { Transaction, TransactionType } from "@/shared/types";
-import { useTransactionsList } from "../api/transactions.queries";
 
 const TYPE_FILTERS: { value: TransactionType | "all"; label: string }[] = [
   { value: "all", label: "Toutes" },
@@ -29,26 +34,34 @@ const TYPE_FILTERS: { value: TransactionType | "all"; label: string }[] = [
   { value: "refund", label: "Remboursements" },
 ];
 
-export function TransactionsListPage() {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TransactionType | "all">("all");
-  const { data, isLoading, isError } = useTransactionsList();
+const STATUS_FILTERS: { value: TransactionStatus | "all"; label: string }[] = [
+  { value: "all", label: "Tous statuts" },
+  { value: "completed", label: "Validées" },
+  { value: "pending", label: "En attente" },
+  { value: "failed", label: "Échouées" },
+];
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (typeFilter !== "all") {
-      list = list.filter((t) => t.type === typeFilter);
-    }
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (t) =>
-        t.id.toLowerCase().includes(q) ||
-        t.label.toLowerCase().includes(q) ||
-        t.entity_ref.toLowerCase().includes(q) ||
-        t.franchise_name.toLowerCase().includes(q)
-    );
-  }, [data?.data, search, typeFilter]);
+export function TransactionsListPage() {
+  const [typeFilter, setTypeFilter] = useState<TransactionType | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<TransactionStatus | "all">("all");
+
+  const table = useServerTableState([typeFilter, statusFilter], {
+    type: typeFilter !== "all" ? typeFilter : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: typeFilter, defaultValue: "all", reset: () => setTypeFilter("all") },
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useTransactionsList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Transaction>[] = [
     {
@@ -158,18 +171,31 @@ export function TransactionsListPage() {
         </div>
       )}
 
-      <div className="mb-4 space-y-4">
-        <FilterChips
-          options={TYPE_FILTERS}
-          value={typeFilter}
-          onChange={setTypeFilter}
-        />
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Réf., libellé, franchise…"
-        />
-      </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Réf., libellé, franchise…"
+        totalLabel={
+          meta
+            ? `${meta.total.toLocaleString("fr-CI")} transactions`
+            : undefined
+        }
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
+        <div className="space-y-3">
+          <FilterChips
+            options={TYPE_FILTERS}
+            value={typeFilter}
+            onChange={setTypeFilter}
+          />
+          <FilterChips
+            options={STATUS_FILTERS}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
+        </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -178,11 +204,12 @@ export function TransactionsListPage() {
         isLoading={isLoading}
         exportFileName="transactions"
         emptyTitle="Aucune transaction"
-        footer={
-          data?.meta ? (
-            <span>{data.meta.total.toLocaleString("fr-CI")} transactions</span>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

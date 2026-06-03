@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useScopeQueryKey } from "@/core/auth/scopeQueryKey";
 import { notificationService } from "@/core/http/notificationService";
 import { tripsKeys } from "./trips.keys";
 import { tripDetailKeys } from "./tripDetail.keys";
@@ -24,11 +25,12 @@ export function useReassignCandidates(tripId: string, enabled: boolean) {
 
 export function useReassignTrip(tripId: string) {
   const qc = useQueryClient();
+  const scopeKey = useScopeQueryKey();
   return useMutation({
     mutationFn: (driverId: number) => tripDetailService.reassign(tripId, driverId),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: tripDetailKeys.detail(tripId) });
-      void qc.invalidateQueries({ queryKey: tripsKeys.all });
+      void qc.invalidateQueries({ queryKey: tripsKeys.all(scopeKey) });
       notificationService.success(data.message);
     },
     onError: () => notificationService.error("Réassignation impossible"),

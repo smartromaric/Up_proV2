@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface PlatformIntegration {
   id: string;
@@ -39,8 +40,10 @@ export const settingsExtendedService = {
       status: connected ? "connected" : "disconnected",
     }),
 
-  auditLog: () =>
-    apiClient.get<Paginated<AuditLogEntry>>("/admin/settings/audit"),
+  auditLog: (params?: ListParams) =>
+    apiClient.get<Paginated<AuditLogEntry>>(
+      `/admin/settings/audit${buildListQuery(params)}`
+    ),
 
   general: () => apiClient.get<GeneralSettings>("/admin/settings/general"),
 

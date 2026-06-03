@@ -1,12 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
-import { SearchInput } from "@/shared/ui/SearchInput";
 import { formatFCFA } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { PlatformWallet } from "../api/wallets.service";
 import { useWalletsList } from "../api/wallets.queries";
 
@@ -31,22 +36,23 @@ function ownerHref(w: PlatformWallet): string | null {
 }
 
 export function WalletsListPage() {
-  const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<PlatformWallet["owner_type"] | "all">("all");
-  const { data, isLoading, isError } = useWalletsList();
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (typeFilter !== "all") list = list.filter((w) => w.owner_type === typeFilter);
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (w) =>
-        w.owner_name.toLowerCase().includes(q) ||
-        w.id.toLowerCase().includes(q) ||
-        w.franchise_name.toLowerCase().includes(q)
-    );
-  }, [data?.data, search, typeFilter]);
+  const table = useServerTableState([typeFilter], {
+    type: typeFilter !== "all" ? typeFilter : undefined,
+  });
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: typeFilter, defaultValue: "all", reset: () => setTypeFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useWalletsList(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<PlatformWallet>[] = [
     {
@@ -126,20 +132,20 @@ export function WalletsListPage() {
     <div className="animate-fade-up">
       <PageHeader title="Portefeuilles" breadcrumb={["Admin", "Finance"]} />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Rechercher un titulaire…"
-          />
-        </div>
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Rechercher un titulaire…"
+        totalLabel={meta ? `${meta.total} portefeuilles` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
         <FilterChips
           options={TYPE_FILTERS}
           value={typeFilter}
           onChange={setTypeFilter}
         />
-      </div>
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -148,6 +154,12 @@ export function WalletsListPage() {
         isLoading={isLoading}
         exportFileName="portefeuilles"
         emptyTitle="Aucun portefeuille"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

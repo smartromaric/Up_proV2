@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { Paginated } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface CommissionRow {
   id: string;
@@ -23,11 +24,15 @@ export interface ReconciliationRow {
 }
 
 export const commissionsService = {
-  list: () =>
-    apiClient.get<Paginated<CommissionRow>>("/admin/finance/commissions"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<CommissionRow>>(
+      `/admin/finance/commissions${buildListQuery(params)}`
+    ),
 };
 
 export const reconciliationService = {
-  list: () =>
-    apiClient.get<Paginated<ReconciliationRow>>("/admin/finance/reconciliation"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<ReconciliationRow>>(
+      `/admin/finance/reconciliation${buildListQuery(params)}`
+    ),
 };

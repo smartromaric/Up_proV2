@@ -6,24 +6,40 @@ import {
   partnerReportsService,
   partnerShiftsService,
 } from "./shifts.service";
+import type { ListParams } from "@/shared/types/listParams";
 
-export function usePartnerShifts() {
+export const partnerShiftsKeys = {
+  all: ["partner", "shifts"] as const,
+  list: (filters?: ListParams) => [...partnerShiftsKeys.all, "list", filters] as const,
+};
+
+export const partnerRecurringKeys = {
+  all: ["partner", "bookings", "recurring"] as const,
+  list: (filters?: ListParams) => [...partnerRecurringKeys.all, "list", filters] as const,
+};
+
+export const partnerReportsKeys = {
+  all: ["partner", "reports"] as const,
+  list: (filters?: ListParams) => [...partnerReportsKeys.all, "list", filters] as const,
+};
+
+export function usePartnerShifts(params?: ListParams) {
   return useQuery({
-    queryKey: ["partner", "shifts"],
-    queryFn: () => partnerShiftsService.list(),
+    queryKey: partnerShiftsKeys.list(params),
+    queryFn: () => partnerShiftsService.list(params),
   });
 }
 
-export function usePartnerRecurringBookings() {
+export function usePartnerRecurringBookings(params?: ListParams) {
   return useQuery({
-    queryKey: ["partner", "bookings", "recurring"],
-    queryFn: () => partnerRecurringService.list(),
+    queryKey: partnerRecurringKeys.list(params),
+    queryFn: () => partnerRecurringService.list(params),
   });
 }
 
-export function usePartnerReports() {
+export function usePartnerReports(params?: ListParams) {
   return useQuery({
-    queryKey: ["partner", "reports"],
-    queryFn: () => partnerReportsService.list(),
+    queryKey: partnerReportsKeys.list(params),
+    queryFn: () => partnerReportsService.list(params),
   });
 }

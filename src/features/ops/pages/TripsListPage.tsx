@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { SearchInput } from "@/shared/ui/SearchInput";
 import { FilterChips } from "@/shared/ui/FilterChips";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { ServicePill } from "@/shared/ui/ServicePill";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
@@ -14,30 +15,46 @@ import {
   getTripStatusLabel,
   STATUS_FILTER_OPTIONS,
 } from "@/shared/lib/tripLabels";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { Trip, TripStatus } from "@/shared/types";
 import { useTripsList } from "../api/trips.queries";
 
-export function TripsListPage() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
-  const { data, isLoading, isError } = useTripsList(statusFilter);
+const SERVICE_OPTIONS = [
+  { value: "all" as const, label: "Tous services" },
+  { value: "taxi", label: "Taxi" },
+  { value: "delivery", label: "Livraison" },
+  { value: "rental", label: "Location" },
+  { value: "freight", label: "Fret" },
+];
 
-  const rows = useMemo(() => {
-    let list = data?.data ?? [];
-    if (statusFilter !== "all") {
-      list = list.filter((t) => t.status === statusFilter);
+export function TripsListPage() {
+  const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
+  const [serviceFilter, setServiceFilter] =
+    useState<(typeof SERVICE_OPTIONS)[number]["value"]>("all");
+
+  const table = useServerTableState(
+    [statusFilter, serviceFilter],
+    {
+      service: serviceFilter !== "all" ? serviceFilter : undefined,
     }
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (t) =>
-        t.ref.toLowerCase().includes(q) ||
-        t.client_name.toLowerCase().includes(q) ||
-        (t.driver_name?.toLowerCase().includes(q) ?? false) ||
-        t.from_label.toLowerCase().includes(q) ||
-        t.to_label.toLowerCase().includes(q)
-    );
-  }, [data?.data, search, statusFilter]);
+  );
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+    fields: [
+      { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+      { value: serviceFilter, defaultValue: "all", reset: () => setServiceFilter("all") },
+    ],
+  });
+
+  const { data, isLoading, isError } = useTripsList(statusFilter, table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<Trip>[] = [
     {
@@ -114,25 +131,28 @@ export function TripsListPage() {
     <div className="animate-fade-up">
       <PageHeader title="Courses" breadcrumb={["Admin", "Opérations"]} />
 
-      <div className="mb-4 space-y-4">
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Réf., client, chauffeur, adresse…"
+        totalLabel={
+          meta ? `${meta.total.toLocaleString("fr-CI")} courses` : undefined
+        }
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      >
         <FilterChips
           options={STATUS_FILTER_OPTIONS}
           value={statusFilter}
           onChange={setStatusFilter}
         />
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Réf., client, chauffeur, adresse…"
-          />
-          {data?.meta && (
-            <span className="text-sm text-muted">
-              {data.meta.total.toLocaleString("fr-CI")} courses aujourd&apos;hui
-            </span>
-          )}
-        </div>
-      </div>
+        <SelectFilter
+          label="Service"
+          value={serviceFilter}
+          onChange={setServiceFilter}
+          options={SERVICE_OPTIONS}
+        />
+      </TableFiltersBar>
 
       <DataTable
         columns={columns}
@@ -142,16 +162,12 @@ export function TripsListPage() {
         exportFileName="courses"
         emptyTitle="Aucune course"
         emptyDescription="Aucun résultat pour ces filtres."
-        footer={
-          data?.meta ? (
-            <>
-              <span>
-                Page {data.meta.current_page} / {data.meta.last_page}
-              </span>
-              <span>{rows.length} affichée(s)</span>
-            </>
-          ) : undefined
-        }
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

@@ -1,17 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { HeroKpi } from "@/features/ops/components/HeroKpi";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { Button } from "@/shared/ui/Button";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
-import { usePartnerWallet } from "../api/wallet.queries";
+import {
+  usePartnerDriverRechargeStats,
+  usePartnerWallet,
+} from "../api/wallet.queries";
 import { PartnerWalletWithdrawModal } from "../components/PartnerWalletWithdrawModal";
+import { PartnerDriverRechargeModal } from "../components/PartnerDriverRechargeModal";
 
 export function PartnerWalletPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [rechargeOpen, setRechargeOpen] = useState(false);
   const { data, isLoading, isError } = usePartnerWallet();
+  const { data: rechargeStats } = usePartnerDriverRechargeStats();
 
   if (isLoading) {
     return <div className="h-64 animate-pulse rounded-card bg-border" />;
@@ -27,13 +34,25 @@ export function PartnerWalletPage() {
         title="Portefeuille"
         breadcrumb={["Partenaire", "Finance"]}
         actions={
-          <Button
-            variant="primary"
-            disabled={data.available_fcfa <= 0}
-            onClick={() => setWithdrawOpen(true)}
-          >
-            Demander un retrait
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/partner/wallet/driver-transfers">
+              <Button variant="secondary">Historique recharges</Button>
+            </Link>
+            <Button
+              variant="primary"
+              disabled={data.available_fcfa <= 0}
+              onClick={() => setRechargeOpen(true)}
+            >
+              Recharger un chauffeur
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={data.available_fcfa <= 0}
+              onClick={() => setWithdrawOpen(true)}
+            >
+              Demander un retrait
+            </Button>
+          </div>
         }
       />
 
@@ -43,7 +62,7 @@ export function PartnerWalletPage() {
           trendPct={0}
           label="Solde total"
         />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             label="Disponible"
             value={formatFCFA(data.available_fcfa)}
@@ -57,6 +76,20 @@ export function PartnerWalletPage() {
                 : undefined
             }
           />
+          {rechargeStats ? (
+            <>
+              <KpiCard
+                label="Recharges chauffeurs (total)"
+                value={formatFCFA(rechargeStats.total_spent_fcfa)}
+                hint={`${rechargeStats.transfers_count} transfert(s)`}
+              />
+              <KpiCard
+                label="Recharges ce mois"
+                value={formatFCFA(rechargeStats.month_spent_fcfa)}
+                hint={`${rechargeStats.month_transfers_count} ce mois`}
+              />
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -86,6 +119,12 @@ export function PartnerWalletPage() {
           ))}
         </ul>
       </div>
+
+      <PartnerDriverRechargeModal
+        open={rechargeOpen}
+        availableFcfa={data.available_fcfa}
+        onClose={() => setRechargeOpen(false)}
+      />
 
       <PartnerWalletWithdrawModal
         open={withdrawOpen}

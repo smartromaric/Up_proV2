@@ -2,7 +2,13 @@
 
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
+import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
+import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import {
+  serverPaginationFromMeta,
+  useServerTableState,
+} from "@/shared/hooks/useServerTableState";
 import type { RecurringBooking } from "../api/shifts.service";
 import { usePartnerRecurringBookings } from "../api/shifts.queries";
 
@@ -13,7 +19,16 @@ const FREQ_LABELS: Record<RecurringBooking["frequency"], string> = {
 };
 
 export function PartnerRecurringBookingsPage() {
-  const { data, isLoading, isError } = usePartnerRecurringBookings();
+  const table = useServerTableState();
+
+  const { hasActiveFilters, resetAll } = useListFiltersReset({
+    search: { value: table.search, set: table.setSearch },
+  });
+
+  const { data, isLoading, isError } = usePartnerRecurringBookings(table.listParams);
+
+  const rows = data?.data ?? [];
+  const meta = data?.meta;
 
   const columns: Column<RecurringBooking>[] = [
     {
@@ -96,13 +111,28 @@ export function PartnerRecurringBookingsPage() {
         breadcrumb={["Partenaire", "Activité"]}
       />
 
+      <TableFiltersBar
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder="Client, trajet…"
+        totalLabel={meta ? `${meta.total} réservations récurrentes` : undefined}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetAll}
+      />
+
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={rows}
         rowKey={(b) => b.id}
         isLoading={isLoading}
         exportFileName="reservations-recurrentes"
         emptyTitle="Aucune réservation récurrente"
+        pagination={false}
+        serverPagination={serverPaginationFromMeta(
+          meta,
+          table.setPage,
+          table.setPageSize
+        )}
       />
     </div>
   );

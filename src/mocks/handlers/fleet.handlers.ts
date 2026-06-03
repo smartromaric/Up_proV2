@@ -7,6 +7,7 @@ import fleetClientDetail from "../data/fleet-client-detail.json";
 import driverTripsSeed from "../data/driver-trips.json";
 import driverWalletTxSeed from "../data/driver-wallet-transactions.json";
 import type { DriverDetail, Paginated, TripStatus } from "@/shared/types";
+import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 
 const accountOverrides: Record<string, DriverDetail["account_status"]> = {};
 const clientStatusOverrides: Record<number, "active" | "suspended"> = {};
@@ -55,8 +56,19 @@ export const fleetHandlers = [
     return HttpResponse.json(getDriver(String(params.id)));
   }),
 
-  http.get("*/api/v2/admin/fleet/kyc", () => {
-    return HttpResponse.json(kycQueue);
+  http.get("*/api/v2/admin/fleet/kyc", ({ request }) => {
+    const query = parseListQuery(request);
+    const list = kycQueue.data.filter((row) =>
+      matchesSearch(
+        query.search,
+        row.first_name,
+        row.last_name,
+        row.phone,
+        row.zone,
+        row.owner_name
+      )
+    );
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.post("*/api/v2/admin/drivers/:id/kyc/approve", () => {
@@ -109,8 +121,14 @@ export const fleetHandlers = [
     return HttpResponse.json(payload);
   }),
 
-  http.get("*/api/v2/admin/fleet/clients", () => {
-    return HttpResponse.json(fleetClientsList);
+  http.get("*/api/v2/admin/fleet/clients", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = fleetClientsList.data.filter((c) =>
+      matchesSearch(query.search, c.full_name, c.email, c.phone, c.type)
+    );
+    if (query.status) list = list.filter((c) => c.status === query.status);
+    if (query.type) list = list.filter((c) => c.type === query.type);
+    return HttpResponse.json(paginatedList(list, query));
   }),
 
   http.get("*/api/v2/admin/fleet/clients/:id", ({ params }) => {

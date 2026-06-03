@@ -1,0 +1,82 @@
+{
+  "stats": {
+    "total_spent_fcfa": 3842000,
+    "transfers_count": 128,
+    "month_spent_fcfa": 612000,
+    "month_transfers_count": 34,
+    "last_transfer_at": "2026-06-02T14:22:00Z",
+    "partners_count": 18,
+    "franchises_count": 4
+  },
+  "data": [
+    {
+      "id": "DT-8821",
+      "ref": "DT-8821",
+      "driver_id": 101,
+      "driver_name": "Kouassi Jean",
+      "driver_phone": "+225 07 12 34 56 78",
+      "amount_fcfa": 25000,
+      "status": "completed",
+      "mobile_wallet_credited": true,
+      "note": "Recharge app mobile",
+      "created_at": "2026-06-02T14:22:00Z",
+      "owner_name": "Cocody Express",
+      "source": "partner"
+    },
+    {
+      "id": "DT-8819",
+      "ref": "DT-8819",
+      "driver_id": 105,
+      "driver_name": "Traoré Aminata",
+      "driver_phone": "+225 05 88 11 22 33",
+      "amount_fcfa": 15000,
+      "status": "completed",
+      "mobile_wallet_credited": true,
+      "created_at": "2026-06-01T09:15:00Z",
+      "owner_name": "Cocody Express",
+      "source": "partner"
+    },
+    {
+      "id": "DT-F-120",
+      "ref": "DT-F-120",
+      "driver_id": 110,
+      "driver_name": "Traoré Aminata",
+      "driver_phone": "+225 07 55 44 33 22",
+      "amount_fcfa": 30000,
+      "status": "completed",
+      "mobile_wallet_credited": true,
+      "note": "Avance territoire Abidjan Nord",
+      "created_at": "2026-05-31T11:00:00Z",
+      "owner_name": "Franchise Abidjan Nord",
+      "source": "franchise"
+    },
+    {
+      "id": "DT-8805",
+      "ref": "DT-8805",
+      "driver_id": 108,
+      "driver_name": "Koné Ibrahim",
+      "driver_phone": "+225 07 99 00 11 22",
+      "amount_fcfa": 10000,
+      "status": "pending",
+      "mobile_wallet_credited": false,
+      "created_at": "2026-05-29T11:02:00Z",
+      "owner_name": "Marcory Fleet",
+      "source": "partner"
+    },
+    {
+      "id": "DT-8798",
+      "ref": "DT-8798",
+      "driver_id": 103,
+      "driver_name": "Diabaté Moussa",
+      "driver_phone": "+225 01 44 22 11 00",
+      "amount_fcfa": 20000,
+      "status": "failed",
+      "mobile_wallet_credited": false,
+      "note": "Solde insuffisant",
+      "created_at": "2026-05-28T16:55:00Z",
+      "owner_name": "Cocody Express",
+      "source": "partner"
+    }
+  ],
+  "meta": { "total": 128, "per_page": 25, "current_page": 1, "last_page": 6 }
+}

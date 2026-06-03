@@ -1,6 +1,7 @@
 import { apiClient, apiWithNotify } from "@/core/http/apiClient";
 import type { VehicleDocumentType } from "@/shared/types/vehicleDocuments";
 import type { Paginated, Vehicle, VehicleDetail } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 import { partnerDriversService, type CreateDriverPayload } from "./drivers.service";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
 import type { VehiclePieceFile } from "../components/VehicleCreatePiecesSection";
@@ -24,7 +25,10 @@ export interface CreateVehiclePayload {
 }
 
 export const partnerVehiclesService = {
-  list: () => apiClient.get<VehiclesListResponse>("/partner/vehicles"),
+  list: (params?: ListParams) =>
+    apiClient.get<VehiclesListResponse>(
+      `/partner/vehicles${buildListQuery(params)}`
+    ),
 
   getById: (id: string) => apiClient.get<VehicleDetail>(`/partner/vehicles/${id}`),
 

@@ -1,7 +1,7 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { AuthSession, User } from "@/shared/types";
 
-export type LoginPortal = "admin" | "partner" | "franchise";
+export type LoginPortal = "admin" | "partner" | "franchise" | "dispatch";
 
 export interface LoginPayload {
   portal: LoginPortal;

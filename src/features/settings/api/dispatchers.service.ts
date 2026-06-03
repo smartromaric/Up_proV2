@@ -4,6 +4,7 @@ import type {
   Paginated,
   DispatcherAccount,
 } from "@/shared/types";
+import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export type DispatcherPayload = Omit<
   DispatcherAccountDetail,
@@ -11,7 +12,10 @@ export type DispatcherPayload = Omit<
 > & { password?: string };
 
 export const dispatchersService = {
-  list: () => apiClient.get<Paginated<DispatcherAccount>>("/admin/dispatchers"),
+  list: (params?: ListParams) =>
+    apiClient.get<Paginated<DispatcherAccount>>(
+      `/admin/dispatchers${buildListQuery(params)}`
+    ),
 
   get: (id: string) =>
     apiClient.get<DispatcherAccountDetail>(`/admin/dispatchers/${id}`),
