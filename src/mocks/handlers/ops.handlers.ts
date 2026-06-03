@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import tripsListSeed from "../data/trips-list.json";
 import { TRIPS_CATALOG, filterTrips } from "../lib/tripsCatalog";
+import { getTripsScopeFilterOptions } from "../lib/tripsScope";
 import { paginatedList, parseListQuery } from "../lib/listQuery";
 import tripDetail from "../data/trip-detail.json";
 import {
@@ -11,11 +12,15 @@ import {
 import dispatchConsoleSeed from "../data/dispatch-console.json";
 import tripForensic from "../data/trip-forensic.json";
 import crisisModeSeed from "../data/crisis-mode.json";
-import type { DispatchConsoleData, DispatchQueueItem, Trip } from "@/shared/types";
+import type {
+  DispatchConsoleData,
+  DispatchQueueItem,
+  Paginated,
+  Trip,
+  TripsListResponse,
+} from "@/shared/types";
 
-type TripsListResponse = { data: Trip[]; meta: typeof tripsListSeed.meta };
-
-let tripsState: TripsListResponse = {
+let tripsState: Paginated<Trip> = {
   data: TRIPS_CATALOG,
   meta: tripsListSeed.meta,
 };
@@ -57,7 +62,11 @@ export const opsHandlers = [
   http.get("*/api/v2/admin/ops/trips", ({ request }) => {
     const query = parseListQuery(request);
     const filtered = filterTrips(tripsState.data, query);
-    return HttpResponse.json(paginatedList(filtered, query));
+    const body: TripsListResponse = {
+      ...paginatedList(filtered, query),
+      filter_options: getTripsScopeFilterOptions(),
+    };
+    return HttpResponse.json(body);
   }),
 
   http.get("*/api/v2/admin/ops/trips/:id", ({ params }) => {

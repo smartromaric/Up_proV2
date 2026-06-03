@@ -52,6 +52,16 @@ export interface Trip {
   status: TripStatus;
   payment_method: "cash" | "wallet" | "card" | "orange_money";
   created_at: string;
+  franchise_id?: number;
+  franchise_name?: string;
+  partner_id?: number;
+  partner_name?: string;
+}
+
+export type TripsScopeFilterOptions = NonNullable<LiveMapData["filter_options"]>;
+
+export interface TripsListResponse extends Paginated<Trip> {
+  filter_options: TripsScopeFilterOptions;
 }
 
 export type TripMatchingOutcome = "declined" | "no_response" | "accepted";

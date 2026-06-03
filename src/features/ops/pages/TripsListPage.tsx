@@ -22,6 +22,10 @@ import {
 } from "@/shared/hooks/useServerTableState";
 import type { Trip, TripStatus } from "@/shared/types";
 import { useTripsList } from "../api/trips.queries";
+import {
+  TripsScopeFilters,
+  type TripsScopeFiltersValue,
+} from "../components/TripsScopeFilters";
 
 const SERVICE_OPTIONS = [
   { value: "all" as const, label: "Tous services" },
@@ -35,19 +39,32 @@ export function TripsListPage() {
   const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
   const [serviceFilter, setServiceFilter] =
     useState<(typeof SERVICE_OPTIONS)[number]["value"]>("all");
+  const [scope, setScope] = useState<TripsScopeFiltersValue>({
+    franchiseId: null,
+    partnerId: null,
+  });
 
   const table = useServerTableState(
-    [statusFilter, serviceFilter],
+    [statusFilter, serviceFilter, scope.franchiseId, scope.partnerId],
     {
       service: serviceFilter !== "all" ? serviceFilter : undefined,
+      franchise_id: scope.franchiseId ?? undefined,
+      partner_id: scope.partnerId ?? undefined,
     }
   );
+
+  const scopeActive = scope.franchiseId != null || scope.partnerId != null;
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
     fields: [
       { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
       { value: serviceFilter, defaultValue: "all", reset: () => setServiceFilter("all") },
+      {
+        value: scopeActive,
+        defaultValue: false,
+        reset: () => setScope({ franchiseId: null, partnerId: null }),
+      },
     ],
   });
 
@@ -55,6 +72,8 @@ export function TripsListPage() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
+  const filterOptions = data?.filter_options;
+  const showScopeColumns = !scopeActive;
 
   const columns: Column<Trip>[] = [
     {
@@ -93,6 +112,42 @@ export function TripsListPage() {
       cell: (t) => t.client_name,
       exportValue: (t) => t.client_name,
     },
+    ...(showScopeColumns
+      ? [
+          {
+            id: "franchise",
+            header: "Franchise",
+            cell: (t: Trip) =>
+              t.franchise_id != null ? (
+                <Link
+                  href={`/admin/network/franchises/${t.franchise_id}`}
+                  className="text-sm text-foreground hover:text-teal"
+                >
+                  {t.franchise_name ?? `Franchise ${t.franchise_id}`}
+                </Link>
+              ) : (
+                "—"
+              ),
+            exportValue: (t: Trip) => t.franchise_name ?? "",
+          } satisfies Column<Trip>,
+          {
+            id: "partner",
+            header: "Partenaire",
+            cell: (t: Trip) =>
+              t.partner_id != null ? (
+                <Link
+                  href={`/admin/network/partners/${t.partner_id}`}
+                  className="text-sm text-foreground hover:text-teal"
+                >
+                  {t.partner_name ?? `Partenaire ${t.partner_id}`}
+                </Link>
+              ) : (
+                "—"
+              ),
+            exportValue: (t: Trip) => t.partner_name ?? "",
+          } satisfies Column<Trip>,
+        ]
+      : []),
     {
       id: "driver",
       header: "Chauffeur",
@@ -130,6 +185,16 @@ export function TripsListPage() {
   return (
     <div className="animate-fade-up">
       <PageHeader title="Courses" breadcrumb={["Admin", "Opérations"]} />
+
+      {filterOptions && (
+        <div className="mb-4">
+          <TripsScopeFilters
+            options={filterOptions}
+            value={scope}
+            onChange={setScope}
+          />
+        </div>
+      )}
 
       <TableFiltersBar
         search={table.search}

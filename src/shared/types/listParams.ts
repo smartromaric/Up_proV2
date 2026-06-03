@@ -10,6 +10,8 @@ export interface ListParams {
   account_status?: string;
   type?: string;
   service?: string;
+  franchise_id?: number;
+  partner_id?: number;
 }
 
 export function buildListQuery(params?: ListParams): string {
@@ -29,6 +31,8 @@ export function buildListQuery(params?: ListParams): string {
   }
   if (params.type && params.type !== "all") qs.set("type", params.type);
   if (params.service && params.service !== "all") qs.set("service", params.service);
+  if (params.franchise_id != null) qs.set("franchise_id", String(params.franchise_id));
+  if (params.partner_id != null) qs.set("partner_id", String(params.partner_id));
   const s = qs.toString();
   return s ? `?${s}` : "";
 }

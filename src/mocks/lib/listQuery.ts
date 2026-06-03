@@ -9,6 +9,8 @@ export interface ListQuery extends PaginateParams {
   account_status: string | null;
   type: string | null;
   service: string | null;
+  franchise_id: number | null;
+  partner_id: number | null;
 }
 
 export function parseListQuery(request: Request): ListQuery {
@@ -25,7 +27,15 @@ export function parseListQuery(request: Request): ListQuery {
     account_status: url.searchParams.get("account_status"),
     type: url.searchParams.get("type"),
     service: url.searchParams.get("service"),
+    franchise_id: parseIdParam(url.searchParams.get("franchise_id")),
+    partner_id: parseIdParam(url.searchParams.get("partner_id")),
   };
+}
+
+function parseIdParam(raw: string | null): number | null {
+  if (!raw?.trim()) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
 }
 
 export function matchesSearch(
