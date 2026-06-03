@@ -26,6 +26,9 @@ export function isNavItemActive(pathname: string, itemPath: string): boolean {
   if (itemPath === "/partner/bookings/new") {
     return pathname === "/partner/bookings/new";
   }
+  if (itemPath === "/partner/map") {
+    return pathname === "/partner/map";
+  }
   if (itemPath === "/partner/wallet") {
     return pathname === "/partner/wallet";
   }

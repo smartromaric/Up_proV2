@@ -70,6 +70,12 @@ export const PARTNER_NAV: NavGroup[] = [
         icon: "reports",
         permission: "ops.trips.view",
       },
+      {
+        label: "Carte live",
+        path: "/partner/map",
+        icon: "map",
+        permission: "ops.map.view",
+      },
     ],
   },
   {
