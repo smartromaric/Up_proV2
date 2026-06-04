@@ -1,17 +1,26 @@
 import { formatFCFA, formatPercent } from "@/shared/lib/format";
 
 interface HeroKpiProps {
-  amount: number;
+  amount?: number;
+  value?: number;
+  /** Affichage monétaire (défaut) ou nombre entier (ex. courses) */
+  display?: "currency" | "number";
   trendPct: number;
   label?: string;
 }
 
 export function HeroKpi({
-  amount,
+  amount = 0,
+  value,
+  display = "currency",
   trendPct,
   label = "Bénéfice net aujourd'hui",
 }: HeroKpiProps) {
   const trendUp = trendPct >= 0;
+  const main =
+    display === "number"
+      ? (value ?? 0).toLocaleString("fr-CI")
+      : formatFCFA(amount);
 
   return (
     <section className="hero-grain kpi-card--navy relative overflow-hidden rounded-hero bg-gradient-to-br from-[#243049] via-navy-hero to-navy p-8 text-white shadow-[0_4px_24px_rgba(47,61,102,0.35)] md:p-10">
@@ -41,7 +50,7 @@ export function HeroKpi({
           {label}
         </p>
         <p className="mt-3 text-[clamp(2rem,5vw,3rem)] font-semibold tabular-nums tracking-tight text-white">
-          {formatFCFA(amount)}
+          {main}
         </p>
         <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/85">
           <span

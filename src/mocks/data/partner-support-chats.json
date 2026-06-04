@@ -1,0 +1,29 @@
+{
+  "data": [
+    {
+      "id": "CH-195",
+      "subject": "Commissions mai",
+      "last_message_preview": "Besoin d'un point sur les commissions mai.",
+      "unread_count": 1,
+      "status": "open",
+      "updated_at": "2026-06-02T09:30:00Z"
+    },
+    {
+      "id": "CH-P-12",
+      "subject": "Validation véhicule",
+      "last_message_preview": "Votre dossier est en cours de revue par la franchise.",
+      "unread_count": 0,
+      "status": "open",
+      "updated_at": "2026-06-01T16:20:00Z"
+    },
+    {
+      "id": "CH-P-08",
+      "subject": "Plafond retrait wallet",
+      "last_message_preview": "Le plafond a été augmenté à 500 000 FCFA.",
+      "unread_count": 0,
+      "status": "closed",
+      "updated_at": "2026-05-28T11:00:00Z"
+    }
+  ],
+  "meta": { "total": 3, "per_page": 25, "current_page": 1, "last_page": 1 }
+}

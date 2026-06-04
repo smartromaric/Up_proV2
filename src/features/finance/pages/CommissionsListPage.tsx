@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
@@ -11,6 +12,10 @@ import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
+import {
+  AdminFranchiseScopeFilter,
+  type AdminFranchiseScopeValue,
+} from "@/features/ops/components/AdminFranchiseScopeFilter";
 import type { CommissionRow } from "../api/commissions.service";
 import { useCommissionsList } from "../api/commissions.queries";
 
@@ -22,15 +27,22 @@ const STATUS_FILTERS = [
 
 export function CommissionsListPage() {
   const [statusFilter, setStatusFilter] = useState<CommissionRow["status"] | "all">("all");
+  const [scope, setScope] = useState<AdminFranchiseScopeValue>({ franchiseId: null });
 
-  const table = useServerTableState([statusFilter], {
+  const table = useServerTableState([statusFilter, scope.franchiseId], {
     status: statusFilter !== "all" ? statusFilter : undefined,
+    franchise_id: scope.franchiseId ?? undefined,
   });
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
     fields: [
       { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+      {
+        value: scope.franchiseId != null,
+        defaultValue: false,
+        reset: () => setScope({ franchiseId: null }),
+      },
     ],
   });
 
@@ -38,6 +50,7 @@ export function CommissionsListPage() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
+  const showFranchiseColumn = scope.franchiseId == null;
 
   const columns: Column<CommissionRow>[] = [
     {
@@ -51,12 +64,23 @@ export function CommissionsListPage() {
       ),
       exportValue: (c) => c.period_label,
     },
-    {
-      id: "franchise",
-      header: "Franchise",
-      cell: (c) => c.franchise_name,
-      exportValue: (c) => c.franchise_name,
-    },
+    ...(showFranchiseColumn
+      ? [
+          {
+            id: "franchise",
+            header: "Franchise",
+            cell: (c: CommissionRow) => (
+              <Link
+                href={`/admin/network/franchises/${c.franchise_id}`}
+                className="text-sm font-medium text-foreground hover:text-teal"
+              >
+                {c.franchise_name}
+              </Link>
+            ),
+            exportValue: (c: CommissionRow) => c.franchise_name,
+          } satisfies Column<CommissionRow>,
+        ]
+      : []),
     {
       id: "trips",
       header: "Courses",
@@ -108,10 +132,18 @@ export function CommissionsListPage() {
     <div className="animate-fade-up">
       <PageHeader title="Commissions" breadcrumb={["Admin", "Finance"]} />
 
+      {data?.filter_options && (
+        <AdminFranchiseScopeFilter
+          options={data.filter_options}
+          value={scope}
+          onChange={setScope}
+        />
+      )}
+
       <TableFiltersBar
         search={table.search}
         onSearchChange={table.setSearch}
-        searchPlaceholder="Franchise, zone, période…"
+        searchPlaceholder="Franchise, période, référence…"
         totalLabel={meta ? `${meta.total} commissions` : undefined}
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
@@ -130,6 +162,7 @@ export function CommissionsListPage() {
         isLoading={isLoading}
         exportFileName="commissions"
         emptyTitle="Aucune commission"
+        emptyDescription="Aucun résultat pour cette franchise ou ces filtres."
         pagination={false}
         serverPagination={serverPaginationFromMeta(
           meta,

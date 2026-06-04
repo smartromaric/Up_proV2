@@ -4,7 +4,13 @@ import dispatchRulesSeed from "../data/dispatch-rules.json";
 import zonesList from "../data/zones-list.json";
 import franchisesList from "../data/franchises-list.json";
 import rolesListSeed from "../data/roles-list.json";
-import pricingListSeed from "../data/pricing-list.json";
+import {
+  addPricingRule,
+  findPricingRule,
+  getPricingState,
+  setPricingState,
+  updatePricingRule,
+} from "../lib/pricingMockStore";
 import settingsIntegrationsSeed from "../data/settings-integrations.json";
 import settingsAuditSeed from "../data/settings-audit-log.json";
 import settingsGeneralSeed from "../data/settings-general.json";
@@ -17,6 +23,17 @@ import type {
   Paginated,
 } from "@/shared/types";
 import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
+import { getTripsScopeFilterOptions } from "../lib/tripsScope";
+
+const FRANCHISES = franchisesList.data as {
+  id: number;
+  name: string;
+  city: string;
+}[];
+
+function resolveFranchise(franchiseId: number) {
+  return FRANCHISES.find((f) => f.id === franchiseId);
+}
 
 interface DispatcherListResponse {
   data: DispatcherAccount[];
@@ -34,11 +51,6 @@ let rulesState: DispatchRules = {
 let rolesState: Paginated<AdminRole> = {
   data: rolesListSeed.data as AdminRole[],
   meta: rolesListSeed.meta,
-};
-
-let pricingState: Paginated<PricingRule> = {
-  data: pricingListSeed.data as PricingRule[],
-  meta: pricingListSeed.meta,
 };
 
 type IntegrationRow = (typeof settingsIntegrationsSeed.data)[0];
@@ -304,17 +316,34 @@ export const settingsHandlers = [
 
   http.get("*/api/v2/admin/settings/pricing", ({ request }) => {
     const query = parseListQuery(request);
+    const pricingState = getPricingState();
     let list = pricingState.data.filter((p) =>
-      matchesSearch(query.search, p.zone_name, p.service, String(p.id))
+      matchesSearch(
+        query.search,
+        p.zone_name,
+        p.service,
+        p.franchise_name,
+        String(p.id)
+      )
     );
     if (query.status) list = list.filter((p) => p.status === query.status);
-    if (query.zone) list = list.filter((p) => p.zone_name === query.zone);
-    return HttpResponse.json(paginatedList(list, query));
+    if (query.zone) {
+      list = list.filter((p) =>
+        p.zone_name.toLowerCase().includes(query.zone!.toLowerCase())
+      );
+    }
+    if (query.franchise_id != null) {
+      list = list.filter((p) => p.franchise_id === query.franchise_id);
+    }
+    return HttpResponse.json({
+      ...paginatedList(list, query),
+      filter_options: getTripsScopeFilterOptions(),
+    });
   }),
 
   http.get("*/api/v2/admin/settings/pricing/:id", ({ params }) => {
     const id = Number(params.id);
-    const rule = pricingState.data.find((p) => p.id === id);
+    const rule = findPricingRule(id);
     if (!rule) {
       return HttpResponse.json({ message: "Grille introuvable" }, { status: 404 });
     }
@@ -324,11 +353,10 @@ export const settingsHandlers = [
   http.put("*/api/v2/admin/settings/pricing/:id", async ({ params, request }) => {
     const id = Number(params.id);
     const body = (await request.json()) as Partial<PricingRule>;
-    const idx = pricingState.data.findIndex((p) => p.id === id);
-    if (idx < 0) {
+    const current = findPricingRule(id);
+    if (!current) {
       return HttpResponse.json({ message: "Grille introuvable" }, { status: 404 });
     }
-    const current = pricingState.data[idx];
     const base_fare_fcfa = body.base_fare_fcfa ?? current.base_fare_fcfa;
     const per_km_fcfa = body.per_km_fcfa ?? current.per_km_fcfa;
     const min_fare_fcfa = body.min_fare_fcfa ?? current.min_fare_fcfa;
@@ -338,18 +366,14 @@ export const settingsHandlers = [
         { status: 422 }
       );
     }
-    const updated: PricingRule = {
-      ...current,
+    const updated = updatePricingRule(id, {
       service: body.service ?? current.service,
       base_fare_fcfa,
       per_km_fcfa,
       min_fare_fcfa,
       surge_multiplier: body.surge_multiplier ?? current.surge_multiplier,
       status: body.status ?? current.status,
-    };
-    const next = [...pricingState.data];
-    next[idx] = updated;
-    pricingState = { ...pricingState, data: next };
+    });
     return HttpResponse.json(updated);
   }),
 
@@ -357,6 +381,14 @@ export const settingsHandlers = [
     const body = (await request.json()) as Partial<PricingRule>;
     if (!body.zone_name?.trim()) {
       return HttpResponse.json({ message: "Zone requise" }, { status: 422 });
+    }
+    const franchiseId = body.franchise_id;
+    if (franchiseId == null || !Number.isFinite(franchiseId)) {
+      return HttpResponse.json({ message: "Franchise requise" }, { status: 422 });
+    }
+    const franchise = resolveFranchise(franchiseId);
+    if (!franchise) {
+      return HttpResponse.json({ message: "Franchise introuvable" }, { status: 422 });
     }
     const base_fare_fcfa = body.base_fare_fcfa ?? 500;
     const per_km_fcfa = body.per_km_fcfa ?? 300;
@@ -367,9 +399,9 @@ export const settingsHandlers = [
         { status: 422 }
       );
     }
-    const ids = pricingState.data.map((p) => p.id);
-    const rule: PricingRule = {
-      id: ids.length ? Math.max(...ids) + 1 : 1,
+    const rule = addPricingRule({
+      franchise_id: franchise.id,
+      franchise_name: franchise.name,
       zone_name: body.zone_name.trim(),
       service: body.service ?? "taxi",
       base_fare_fcfa,
@@ -377,12 +409,7 @@ export const settingsHandlers = [
       min_fare_fcfa,
       surge_multiplier: body.surge_multiplier ?? 1,
       status: body.status ?? "draft",
-    };
-    pricingState = {
-      ...pricingState,
-      data: [...pricingState.data, rule],
-      meta: { ...pricingState.meta, total: pricingState.data.length + 1 },
-    };
+    });
     return HttpResponse.json(rule, { status: 201 });
   }),
 

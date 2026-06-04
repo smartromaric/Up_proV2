@@ -8,7 +8,8 @@
       "uses_count": 142,
       "max_uses": 500,
       "status": "active",
-      "expires_at": "2026-08-31T23:59:59Z"
+      "expires_at": "2026-08-31T23:59:59Z",
+      "assigned_user_ids": [1001, 1003]
     },
     {
       "id": 2,
@@ -19,7 +20,8 @@
       "uses_count": 89,
       "max_uses": 200,
       "status": "active",
-      "expires_at": "2026-07-15T23:59:59Z"
+      "expires_at": "2026-07-15T23:59:59Z",
+      "assigned_user_ids": []
     },
     {
       "id": 3,
@@ -29,7 +31,8 @@
       "uses_count": 500,
       "max_uses": 500,
       "status": "expired",
-      "expires_at": "2025-09-30T23:59:59Z"
+      "expires_at": "2025-09-30T23:59:59Z",
+      "assigned_user_ids": []
     }
   ],
   "meta": { "total": 3, "per_page": 25, "current_page": 1, "last_page": 1 }

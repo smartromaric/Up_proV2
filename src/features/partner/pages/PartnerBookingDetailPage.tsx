@@ -30,7 +30,7 @@ export function PartnerBookingDetailPage({ bookingId }: PartnerBookingDetailPage
   if (isError || !booking) {
     return (
       <p className="text-sm text-red-600">
-        Réservation introuvable.{" "}
+        Course introuvable.{" "}
         <Link href="/partner/bookings" className="text-teal underline">
           Retour
         </Link>
@@ -48,7 +48,7 @@ export function PartnerBookingDetailPage({ bookingId }: PartnerBookingDetailPage
     <div className="animate-fade-up mx-auto w-full max-w-6xl">
       <PageHeader
         title={booking.ref}
-        breadcrumb={["Partenaire", "Réservations", booking.ref]}
+        breadcrumb={["Partenaire", "Courses", booking.ref]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {booking.service && <ServicePill service={booking.service} />}
@@ -168,7 +168,7 @@ export function PartnerBookingDetailPage({ bookingId }: PartnerBookingDetailPage
 
           <Link href="/partner/bookings">
             <Button variant="secondary" className="w-full">
-              ← Retour aux réservations
+              ← Retour aux courses
             </Button>
           </Link>
         </aside>
@@ -176,9 +176,9 @@ export function PartnerBookingDetailPage({ bookingId }: PartnerBookingDetailPage
 
       <ConfirmModal
         open={confirmCancel}
-        title="Annuler cette réservation ?"
+        title="Annuler cette course ?"
         message="La course sera retirée de la file d'attente. Cette action est irréversible."
-        confirmLabel="Annuler la réservation"
+        confirmLabel="Annuler la course"
         variant="danger"
         onConfirm={() => {
           cancelBooking.mutate(undefined, { onSuccess: () => setConfirmCancel(false) });

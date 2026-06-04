@@ -1,11 +1,28 @@
 import { env } from "@/core/config/env";
+import { LOGIN_BY_PORTAL } from "@/core/auth/authRoutes";
 import { useAuthStore } from "@/core/auth/authStore";
 import { AppError, AuthError, NetworkError } from "./errorHandler";
 
-const API_BASE = `${env.apiUrl}/api/v2`;
+const API_V2_BASE = `${env.apiUrl}/api/v2`;
 
 export function getApiBaseUrl(): string {
-  return API_BASE;
+  return API_V2_BASE;
+}
+
+export function getApiV1BaseUrl(): string {
+  return `${env.apiUrl}/v1`;
+}
+
+/** Résout l'URL complète selon le préfixe du chemin (v1 auth vs api/v2 back-office). */
+export function resolveApiUrl(endpoint: string): string {
+  if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+    return endpoint;
+  }
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  if (path.startsWith("/v1/")) {
+    return `${env.apiUrl}${path}`;
+  }
+  return `${API_V2_BASE}${path}`;
 }
 
 async function createHeaders(
@@ -39,19 +56,16 @@ async function createHeaders(
   return headers;
 }
 
-const LOGIN_BY_ROLE: Record<string, string> = {
-  admin: "/admin/login",
-  partner: "/partner/login",
-  franchise: "/franchise/login",
-  dispatch: "/dispatch/login",
-};
-
 export async function fetchClient(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> {
+  /** Routes publiques : pas de Bearer (logout/me nécessitent le JWT). */
   const isAuthRequest =
-    endpoint.includes("/auth/login") || endpoint.includes("/auth/logout");
+    endpoint.includes("/auth/login") ||
+    endpoint.includes("/auth/forgot-password") ||
+    endpoint.includes("/auth/otp/") ||
+    endpoint.includes("/auth/refresh");
 
   try {
     const headers = await createHeaders(
@@ -59,9 +73,7 @@ export async function fetchClient(
       isAuthRequest
     );
 
-    const url = endpoint.startsWith("http")
-      ? endpoint
-      : `${API_BASE}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+    const url = resolveApiUrl(endpoint);
 
     const response = await fetch(url, { ...options, headers });
 
@@ -69,7 +81,8 @@ export async function fetchClient(
       const role = useAuthStore.getState().user?.role;
       useAuthStore.getState().clearSession();
       if (typeof window !== "undefined") {
-        window.location.href = LOGIN_BY_ROLE[role ?? "admin"] ?? "/login";
+        window.location.href =
+          LOGIN_BY_PORTAL[role as keyof typeof LOGIN_BY_PORTAL] ?? "/login";
       }
       throw new AuthError("Session expirée. Veuillez vous reconnecter.");
     }

@@ -32,8 +32,8 @@ export function PartnerBookingsNewPage() {
   return (
     <div className="animate-fade-up mx-auto w-full max-w-6xl">
       <PageHeader
-        title="Réserver une course"
-        breadcrumb={["Partenaire", "Réservations", "Nouvelle"]}
+        title="Nouvelle course"
+        breadcrumb={["Partenaire", "Courses", "Nouvelle"]}
       />
 
       <form
@@ -67,7 +67,7 @@ export function PartnerBookingsNewPage() {
                 );
                 router.push(`/partner/bookings/${booking.id}`);
               },
-              onError: () => notificationService.error("Impossible de créer la réservation"),
+              onError: () => notificationService.error("Impossible de créer la course"),
             }
           );
         }}
@@ -146,7 +146,7 @@ export function PartnerBookingsNewPage() {
 
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           <Button type="submit" disabled={create.isPending || !canSubmit}>
-            {create.isPending ? "Réservation…" : "Réserver la course"}
+            {create.isPending ? "Création…" : "Créer la course"}
           </Button>
           <Link href="/partner/bookings">
             <Button type="button" variant="secondary">

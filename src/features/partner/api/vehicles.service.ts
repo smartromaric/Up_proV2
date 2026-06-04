@@ -47,7 +47,7 @@ export const partnerVehiclesService = {
 
   assignDriver: (
     vehicleId: number | string,
-    driver: { id: number; first_name: string; last_name: string }
+    driver: { id: string | number; first_name: string; last_name: string }
   ) =>
     apiClient.post<VehicleDetail>(`/partner/vehicles/${vehicleId}/assign-driver`, {
       driver_id: driver.id,

@@ -1,16 +1,21 @@
 import { apiClient } from "@/core/http/apiClient";
-import type { Paginated } from "@/shared/types";
+import type { LiveMapData, Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
 export interface CommissionRow {
   id: string;
   period_label: string;
+  franchise_id: number;
   franchise_name: string;
   trips_count: number;
   gross_fcfa: number;
   commission_fcfa: number;
   rate_pct: number;
   status: "pending" | "paid";
+}
+
+export interface CommissionsListResponse extends Paginated<CommissionRow> {
+  filter_options: NonNullable<LiveMapData["filter_options"]>;
 }
 
 export interface ReconciliationRow {
@@ -25,7 +30,7 @@ export interface ReconciliationRow {
 
 export const commissionsService = {
   list: (params?: ListParams) =>
-    apiClient.get<Paginated<CommissionRow>>(
+    apiClient.get<CommissionsListResponse>(
       `/admin/finance/commissions${buildListQuery(params)}`
     ),
 };

@@ -1,0 +1,467 @@
+<!DOCTYPE html><html><head><meta charset=utf-8><title>API Integration</title><style>body{font-family:Segoe UI,sans-serif;max-width:900px;margin:2rem auto;line-height:1.5} pre{background:#f4f4f8;padding:1rem;overflow:auto;font-size:12px} code{font-size:12px} table{border-collapse:collapse;width:100%} th,td{border:1px solid #ccc;padding:6px} h1{color:#2f3d66}</style></head><body><pre># UpJunoo Pro — Intégration API back-office
+
+&gt; Document de référence (juin 2026) — base API : `https://api.upjunoo-dev.tech`  
+&gt; Source Swagger : `SWAGGER.md` · Code front : `src/core/api/links.ts`
+
+---
+
+## 1. Configuration front
+
+| Variable | Rôle |
+|----------|------|
+| `NEXT_PUBLIC_API_URL` | Hôte API (sans `/v1` ni `/api/v2`) |
+| `NEXT_PUBLIC_USE_MOCKS` | `true` → MSW + chemins `/api/v2/...` |
+| `NEXT_PUBLIC_USE_REAL_AUTH` | `true` → auth + dashboard + carte live en `/v1/...` même si mocks actifs |
+| `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` | Carte live Mapbox (`pk....`) |
+
+**Règle de routage HTTP** (`fetchClient.resolveApiUrl`) :
+
+- Chemin commençant par `/v1/` → `{API_URL}/v1/...`
+- Sinon → `{API_URL}/api/v2/...` (legacy MSW / ancien back-office)
+
+**Headers envoyés (routes protégées)** :
+
+```http
+Authorization: Bearer &lt;access_token&gt;
+Content-Type: application/json
+Accept: application/json
+X-Client-Type: back-office
+X-Scope: platform | franchise | owner
+X-Franchise-Id: &lt;optionnel&gt;
+X-Owner-Id: &lt;optionnel&gt;
+```
+
+---
+
+## 2. Routes déjà branchées en API réelle (`/v1`)
+
+| Méthode | Route API | Page(s) front | Fichier service |
+|---------|-----------|---------------|-----------------|
+| POST | `/v1/auth/login` | `/admin/login`, … | `auth.service.ts` |
+| GET | `/v1/auth/me` | Tous portails (AuthGuard) | `auth.service.ts` |
+| POST | `/v1/auth/logout` | Déconnexion topbar | `auth.mutations.ts` |
+| GET | `/v1/admin/dashboard` | `/admin/dashboard` | `dashboard.service.ts` |
+| GET | `/v1/admin/live-map` | `/admin/ops/map` | `liveMap.service.ts` |
+
+Query utiles déjà utilisées :
+
+- Live map : `?includeWithoutLocation=true`
+
+---
+
+## 3. Routes `/v1/admin` prévues backend (Swagger) — pas encore au front
+
+Correspondance indicative **page admin → route v1 cible** (à mapper + créer `*.api.types.ts` / `*.mapper.ts`).
+
+### Opérations
+
+| Page front | Route legacy (mock) | Route v1 Swagger | Priorité |
+|------------|---------------------|------------------|----------|
+| Courses liste/détail | `/admin/ops/trips` | `/v1/admin/orders` | P0 |
+| Dispatch console | `/admin/ops/dispatch` | `/v1/admin/orders` + `/v1/admin/live-drivers` | P0 |
+| Carte live (polling orders) | — | `/v1/admin/live-orders` | P1 |
+| Chauffeurs carte seuls | — | `/v1/admin/live-drivers` | P1 |
+| Activité dashboard (table) | — | `/v1/admin/dashboard/recent-activity` | P2 |
+| Mode crise | `/admin/ops/crisis` | `/v1/admin/dispatch-config` ? | P2 |
+
+### Flotte &amp; KYC
+
+| Page front | Legacy | Route v1 | Priorité |
+|------------|--------|----------|----------|
+| Chauffeurs | `/admin/drivers` | `/v1/admin/drivers` | P0 |
+| File KYC | `/admin/fleet/kyc` | `/v1/admin/kyc/documents` | P0 |
+| Approbation KYC | `.../kyc/approve` | `/v1/admin/kyc/documents/{id}/approve` | P0 |
+| Clients | `/admin/fleet/clients` | `/v1/admin/users` (filtre type) | P1 |
+
+### Réseau
+
+| Page front | Legacy | Route v1 | Priorité |
+|------------|--------|----------|----------|
+| Franchises | `/admin/network/franchises` | Catalog / franchises (voir `/v1/franchises` module 99) | P0 |
+| Partenaires | `/admin/network/partners` | `/v1/admin/partners` | P0 |
+| Zones | `/admin/network/zones` | À confirmer (polygones / catalog) | P1 |
+
+### Finance
+
+| Page front | Legacy | Route v1 | Priorité |
+|------------|--------|----------|----------|
+| Finance dashboard | `/admin/finance/dashboard` | `/v1/admin/reports/finance` ou agrégats dashboard | P1 |
+| Transactions | `/admin/finance/transactions` | `/v1/admin/reports/...` / wallets | P1 |
+| Retraits | `/admin/finance/withdrawals` | `/v1/admin/withdrawals` | P0 |
+| Commissions | `/admin/finance/commissions` | `/v1/admin/commission-rules` | P1 |
+| Réconciliation | `/admin/finance/reconciliation` | `/v1/admin/cash-reconciliations` | P1 |
+| Tarification admin | `/admin/settings/pricing` | `/v1/admin/pricing-rules` | P0 |
+
+### Paramètres &amp; gouvernance
+
+| Page front | Legacy | Route v1 | Priorité |
+|------------|--------|----------|----------|
+| Rôles | `/admin/settings/roles` | `/v1/admin/roles` + `/permissions` | P1 |
+| Dispatchers | `/admin/dispatchers` | `/v1/admin/users` + rôles | P2 |
+| Règles dispatch | `/admin/settings/dispatch-rules` | `/v1/admin/dispatch-config` | P1 |
+| Audit | `/admin/settings/audit` | `/v1/admin/audit-log` | P2 |
+| Intégrations | `/admin/settings/integrations` | `/v1/admin/system-settings` | P2 |
+| Général | `/admin/settings/general` | `/v1/admin/system-settings/{key}` | P2 |
+
+### Marketing &amp; support
+
+| Page front | Legacy | Route v1 | Priorité |
+|------------|--------|----------|----------|
+| Promos / campagnes / bannières | `/admin/marketing/*` | `/v1/admin/promotions` | P2 |
+| Tickets support | `/admin/support/tickets` | À confirmer (module support) | P2 |
+
+### Auth (compléments)
+
+| Besoin front | Route Swagger réelle | Statut front |
+|--------------|----------------------|--------------|
+| Mot de passe oublié | **`/v1/auth/password/forgot`** (pas `/forgot-password`) | URL incorrecte dans `links.ts` |
+| Refresh token | `/v1/auth/refresh` | Token stocké, **non utilisé** sur 401 |
+| OTP | `/v1/auth/otp/send`, `verify` | Non implémenté |
+
+---
+
+## 4. Écarts Swagger ↔ API réelle ↔ attentes front
+
+### 4.1 Schémas absents ou vides dans `SWAGGER.md`
+
+Le Swagger liste les paths mais **peu de schemas de réponse** pour :
+
+- `GET /v1/admin/dashboard`
+- `GET /v1/admin/live-map`
+- `GET /v1/admin/orders`
+- `GET /v1/admin/drivers`
+
+→ Ce document et les fichiers `*.api.types.ts` du front servent de contrat de fait.
+
+### 4.2 Auth — enveloppe réelle (OK côté front)
+
+**Attendu front** (`AuthSession`) :
+
+```json
+{
+  "token": "&lt;jwt&gt;",
+  "refreshToken": "&lt;string&gt;",
+  "user": {
+    "id": "uuid",
+    "name": "Dev Admin",
+    "email": "dev.admin@upjunoo-dev.tech",
+    "role": "admin",
+    "scope": "platform",
+    "permissions": ["ops.dashboard.view", "..."]
+  }
+}
+```
+
+**Réponse réelle** `POST /v1/auth/login` (extrait) — **non documentée telle quelle dans Swagger** :
+
+```json
+{
+  "status": "ok",
+  "role": "ADMIN",
+  "userType": "ADMIN",
+  "accessToken": "eyJ...",
+  "refreshToken": "lqj3eedzjb3y",
+  "expiresIn": 3600,
+  "session": { "access_token": "eyJ...", "expires_in": 3600 },
+  "profile": {
+    "id": "1aed72f8-5ac4-4f68-a152-3705551006c5",
+    "user_type": "ADMIN",
+    "email": "dev.admin@upjunoo-dev.tech",
+    "first_name": "Dev",
+    "last_name": "Admin",
+    "display_name": "Dev Admin"
+  }
+}
+```
+
+**Écarts** :
+
+| Point | Swagger | Réel | Front |
+|-------|---------|------|-------|
+| Permissions | Non fournies | Absentes | Liste **mockée** en dur (`auth.permissions.ts`) |
+| `user.id` | — | UUID string | OK (`string \| number`) |
+| Forgot password path | `/v1/auth/password/forgot` | — | Front appelle `/v1/auth/forgot-password` ❌ |
+
+---
+
+### 4.3 Dashboard — forme réelle vs mock front
+
+**Attendu front** (`DashboardAdminKpi`) — mock `/api/v2/admin/dashboard` :
+
+```json
+{
+  "trips_today": 912,
+  "trips_today_trend_pct": 9.8,
+  "chart_flux": [{ "day": "Lun", "revenue": 820000, "commission": 310000 }],
+  "recent_trips": [{ "id": "1", "ref": "TR-88421", "service": "taxi", "from_label": "...", "status": "completed" }],
+  "franchise_options": [{ "id": 1, "name": "Côte d'Ivoire", "city": "Abidjan" }],
+  "active_zone": { "franchise_id": 1, "drivers_online": 342, "trips_24h": 127 }
+}
+```
+
+**Réponse réelle** `GET /v1/admin/dashboard` — **structure différente** :
+
+```json
+{
+  "status": "ok",
+  "dashboard": {
+    "summary": {
+      "ridesToday": { "total": 2, "vsYesterday": { "value": 99.5, "direction": "down" } },
+      "weeklyFlow": {
+        "labels": ["Ven", "Sam", "Dim", "Lun", "Mar", "Mer", "Jeu"],
+        "series": [
+          { "key": "revenue", "values": [0, 0, 0, 0, 0, 0, 0] },
+          { "key": "commissions", "values": [0, 0, 0, 0, 0, 16955, 0] }
+        ]
+      },
+      "ridesBreakdownToday": { "inProgress": 2, "completed": 0, "cancelled": 0 },
+      "networkActivity": { "driversOnline": 822, "ridesLast24h": 2, "label": "Bingerville" },
+      "drivers": { "approved": 1030, "total": 1036 },
+      "kyc": { "pendingReview": 1 },
+      "users": { "totalRegistered": 2181, "clientsActiveToday": 1 }
+    },
+    "finance": { "revenueTodayXof": 0, "withdrawalsPending": 1 },
+    "recentActivity": {
+      "items": [{
+        "id": "45752a5c-...",
+        "ref": "TR-45752A5C",
+        "service": "RIDE",
+        "route": { "from": "Plateau", "to": "Cocody" },
+        "client": { "displayName": "Dev Client" },
+        "amountXof": 2750,
+        "status": "requested",
+        "createdAt": "2026-06-04T13:04:08.808552+00:00"
+      }]
+    },
+    "alerts": [{
+      "code": "KYC_PENDING",
+      "severity": "warning",
+      "count": 1,
+      "label": "KYC en attente",
+      "actionUrl": "/admin/kyc/pending"
+    }]
+  }
+}
+```
+
+**Manques / écarts pour le front** :
+
+| Champ front | Statut v1 |
+|-----------|-----------|
+| `franchise_options` | **Absent** → filtre périmètre masqué |
+| `franchise_id` numérique | API utilise **UUID** (`franchiseId` query) |
+| `net_profit_today_fcfa` | Remplacé par `finance.revenueTodayXof` |
+| `avg_wait_min` (live stats) | Non fourni → `0` |
+| `actionUrl` alertes | Chemins type `/admin/kyc/pending` → remappés vers `/admin/fleet/kyc` |
+
+**À demander au backend** (idéal) :
+
+```json
+{
+  "dashboard": {
+    "filterOptions": {
+      "franchises": [{ "id": "uuid", "name": "Côte d'Ivoire", "city": "Abidjan" }],
+      "partners": [{ "id": "uuid", "name": "...", "franchiseId": "uuid" }]
+    }
+  }
+}
+```
+
+---
+
+### 4.4 Carte live — forme réelle vs mock front
+
+**Attendu front** (`LiveMapData`) — mock :
+
+```json
+{
+  "zone_name": "Côte d'Ivoire — Abidjan",
+  "stats": { "drivers_online": 342, "drivers_on_trip": 89, "active_trips": 127, "avg_wait_min": 4.2 },
+  "bounds": { "lat_min": 5.28, "lat_max": 5.42, "lng_min": -4.05, "lng_max": -3.92 },
+  "drivers": [{ "id": 101, "name": "Kouassi", "lat": 5.359, "lng": -3.987, "availability": "online" }],
+  "filter_options": { "franchises": [...], "partners": [...] }
+}
+```
+
+**Réponse réelle** `GET /v1/admin/live-map` :
+
+```json
+{
+  "status": "ok",
+  "drivers": [{
+    "id": "f0fb23c5-eadd-477c-ac51-d136b58a3f46",
+    "availabilityStatus": "online",
+    "profile": { "displayName": "Chauffeur GN 1" },
+    "franchiseId": "fe97586a-9766-45c3-b397-fb8a3419b7e6",
+    "location": null
+  }],
+  "meta": {
+    "onlineInDatabase": 200,
+    "withRecentLocation": 0,
+    "includeWithoutLocation": true
+  },
+  "orders": {
+    "rides": [{
+      "id": "45752a5c-3fe3-4b80-bfcf-ee3a16f32784",
+      "status": "requested",
+      "pickup_latitude": 5.316667,
+      "pickup_longitude": -4.033333,
+      "dropoff_latitude": 5.348,
+      "dropoff_longitude": -3.988,
+      "pickup_address": "Plateau",
+      "dropoff_address": "Cocody"
+    }],
+    "deliveries": [{ "service_type": "DELIVERY_CARGO", "...": "..." }]
+  }
+}
+```
+
+**Écarts** :
+
+| Point | Détail |
+|-------|--------|
+| Pas de `bounds` / `zone_name` | Calculés côté front à partir des points |
+| Chauffeurs sans GPS | `location: null` malgré `includeWithoutLocation=true` → **200 en ligne, 0 pin** |
+| Commandes | Nombreuses ; front limite à **120 marqueurs** |
+| `filter_options` | Absent |
+| IDs | **UUID** vs `number` dans mocks |
+| `availability` | `availabilityStatus: "online"` vs `availability: "online"` |
+| Services commande | `RIDE`, `DELIVERY_CARGO` → mappés vers `taxi` / `delivery` |
+
+**Contrat idéal backend pour la carte** :
+
+```json
+{
+  "map": {
+    "zoneName": "Abidjan",
+    "bounds": { "south": 5.28, "north": 5.42, "west": -4.05, "east": -3.92 },
+    "stats": { "driversOnline": 822, "driversOnTrip": 12, "activeOrders": 45, "avgWaitMin": 4.2 },
+    "drivers": [{ "id": "uuid", "lat": 5.35, "lng": -3.99, "availability": "online", "displayName": "..." }],
+    "orders": [{ "id": "uuid", "pickup": { "lat", "lng }, "dropoff": { "lat", "lng }, "status": "requested" }],
+    "filterOptions": { "franchises": [], "partners": [] }
+  }
+}
+```
+
+---
+
+### 4.5 Listes paginées (toutes pages tableau)
+
+**Attendu front** (`Paginated&lt;T&gt;`) :
+
+```json
+{
+  "data": [ { "...": "..." } ],
+  "meta": {
+    "total": 120,
+    "per_page": 20,
+    "current_page": 1,
+    "last_page": 6
+  }
+}
+```
+
+**Query front** : `page`, `per_page`, `search`, `status`, `franchise_id`, `partner_id` (snake_case).
+
+**À valider sur v1** : le backend utilise probablement `limit`/`offset` ou `page`/`limit` — **non aligné documenté**. Chaque migration liste devra inclure un adaptateur pagination.
+
+---
+
+### 4.6 Erreurs API
+
+**Front** (`apiClient`) accepte :
+
+```json
+{ "message": "..." }
+```
+
+ou
+
+```json
+{ "error": { "code": "AUTH_REQUIRED", "message": "Missing bearer token" } }
+```
+
+Swagger référence `AUTH_REQUIRED` — **OK** après correctif client.
+
+---
+
+## 5. Ce que le front doit avoir (contrats stables)
+
+Pour chaque domaine migré vers `/v1` :
+
+1. **`links.ts`** — entrée `admin.v1.*`
+2. **`*.api.types.ts`** — types bruts API
+3. **`*.mapper.ts`** — conversion vers `@/shared/types`
+4. **`*.service.ts`** — `useLegacyX()` + appel v1 si `useRealAuth || !useMocks`
+5. **Handler MSW** `*/v1/admin/...` pour dev hors ligne (optionnel)
+6. **IDs** — prévoir `string | number` partout (UUID)
+7. **Filtres** — query `franchiseId` / `partnerId` en **UUID**, pas `franchise_id` numérique
+
+---
+
+## 6. Backlog front — fonctionnalités backend déjà là, UI pas migrée
+
+### Fait (API v1)
+
+- [x] Login / logout / me admin
+- [x] Dashboard admin + alertes
+- [x] Carte live Mapbox + live-map
+- [x] GuestGuard / AuthGuard / Redux DevTools (dev)
+
+### À faire en priorité (admin)
+
+- [ ] **Courses** : `/v1/admin/orders` → pages `/admin/ops/trips`, détail, forensic
+- [ ] **Chauffeurs** : `/v1/admin/drivers` → liste + fiche `/admin/fleet/drivers/[id]`
+- [ ] **KYC** : `/v1/admin/kyc/documents` → file `/admin/fleet/kyc`
+- [ ] **Retraits** : `/v1/admin/withdrawals` → approve/reject
+- [ ] **Partenaires** : `/v1/admin/partners`
+- [ ] **Tarifs admin** : `/v1/admin/pricing-rules` (remplace mock settings pricing)
+- [ ] **Franchises** : endpoint réseau + `filterOptions` dashboard / live-map
+- [ ] Corriger **forgot password** → `/v1/auth/password/forgot`
+- [ ] **Refresh token** sur 401 (`/v1/auth/refresh`)
+- [ ] Filtres dashboard / carte : `franchiseId`, `partnerId` (UUID)
+
+### Pages encore 100 % mock (`/api/v2`)
+
+Tous les modules non listés en section 2 — dont :
+
+- Finance (transactions, wallets, commissions, réconciliation, driver-transfers)
+- Réseau (zones, polygones)
+- Marketing, support tickets, dispatch console, mode crise
+- Paramètres (rôles, dispatchers, audit, intégrations, dispatch-rules)
+- Portails **franchise**, **partenaire**, **dispatch** (auth v1 partielle seulement pour login si activé)
+
+### Portails franchise / partenaire / dispatch
+
+Swagger expose surtout `/v1/auth/franchise/login`, `/v1/auth/partner/login`, modules mobile `/v1/drivers/...`, `/v1/franchises/...` (section 99).
+
+**Le back-office franchise/partenaire n’a pas d’équivalent `/v1/admin/...` documenté** pour la plupart des écrans — migration = définir avec le backend les routes BFF ou réutiliser les routes admin filtrées par scope.
+
+---
+
+## 7. Catalogue dev utile
+
+| Route | Usage |
+|-------|--------|
+| `GET /v1/dev/sandbox` | Comptes test, anon key, `cityId` Abidjan |
+| `GET /v1/catalog/countries` | Pays / villes pour formulaires |
+| `GET /v1/catalog/cities` | Villes |
+
+---
+
+## 8. Résumé pour le backend
+
+Demandes de contrat pour accélérer le front :
+
+1. **Schemas OpenAPI** complets pour dashboard, live-map, orders, drivers, withdrawals.
+2. **`filterOptions`** (franchises / partenaires) sur dashboard et live-map.
+3. **Pagination unifiée** : documenter `page` + `per_page` + shape `meta`.
+4. **Positions GPS** chauffeurs sur live-map (ou endpoint dédié avec `lat`/`lng` récents).
+5. **Permissions** utilisateur dans `GET /v1/auth/me` (ou endpoint rôles).
+6. Aligner **URLs auth** documentées = URLs réelles (`password/forgot` vs `forgot-password`).
+7. **Liste commandes** : champs alignés table front (`ref`, `from_label`, `to_label`, `client_name`, `driver_name`, `amount_fcfa`, `status`, `service`).
+
+---
+
+*Généré depuis l’état du dépôt Up_prov2 et des appels API dev du 2026-06-04.*
+</pre><p><em>Exportez via Ctrl+P pour obtenir un PDF.</em></p></body></html>

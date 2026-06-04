@@ -14,7 +14,7 @@ const portals = [
   },
   {
     title: "Franchise",
-    description: "Territoire et sous-partenaires",
+    description: "Territoire et partenaires",
     href: "/franchise/login",
   },
   {

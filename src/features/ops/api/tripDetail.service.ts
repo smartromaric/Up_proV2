@@ -1,5 +1,11 @@
 import { apiClient } from "@/core/http/apiClient";
+import { env } from "@/core/config/env";
 import type { TripDetail } from "@/shared/types";
+import { resolveAdminOrder } from "@/features/admin/api/adminEntityLookup.service";
+import {
+  indexLiveMapDrivers,
+  mapApiOrderToTripDetail,
+} from "./orderDetail.mapper";
 
 export interface ReassignCandidate {
   id: number;
@@ -7,8 +13,20 @@ export interface ReassignCandidate {
   vehicle: string;
 }
 
+function useLegacyTripDetail(): boolean {
+  return env.useMocks && !env.useRealAuth;
+}
+
 export const tripDetailService = {
-  getById: (id: string) => apiClient.get<TripDetail>(`/admin/ops/trips/${id}`),
+  getById: async (id: string): Promise<TripDetail> => {
+    if (useLegacyTripDetail()) {
+      return apiClient.get<TripDetail>(`/admin/ops/trips/${id}`);
+    }
+
+    const { order, liveMap } = await resolveAdminOrder(id);
+    const driversById = indexLiveMapDrivers(liveMap);
+    return mapApiOrderToTripDetail(order, driversById);
+  },
 
   getReassignCandidates: (id: string) =>
     apiClient.get<{ data: ReassignCandidate[] }>(

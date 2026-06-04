@@ -1,10 +1,12 @@
 import { PortalSidebar } from "@/portals/shared/PortalSidebar";
 import { PortalTopbar } from "@/portals/shared/PortalTopbar";
+import { PartnerChatSoundListener } from "@/features/support/components/PartnerChatSoundListener";
 import { PARTNER_NAV } from "./partnerNav";
 
 export function PartnerShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-canvas">
+      <PartnerChatSoundListener />
       <PortalSidebar nav={PARTNER_NAV} subtitle="Partenaire" />
       <div className="flex min-w-0 flex-1 flex-col">
         <PortalTopbar

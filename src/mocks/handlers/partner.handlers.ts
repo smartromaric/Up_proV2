@@ -20,6 +20,12 @@ import type { TripTimelineEvent } from "@/shared/types";
 import driverTripsSeed from "../data/driver-trips.json";
 import driverWalletTxSeed from "../data/driver-wallet-transactions.json";
 import bookingsListPartner from "../data/bookings-list-partner.json";
+import partnerSupportChatsSeed from "../data/partner-support-chats.json";
+import type {
+  PartnerSupportChat,
+  PartnerSupportChatDetail,
+  PartnerSupportMessage,
+} from "@/features/partner/api/support.service";
 import type {
   Driver,
   Trip,
@@ -31,10 +37,82 @@ import type {
 import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 import { filterDrivers, DRIVERS_CATALOG } from "../lib/driversCatalog";
 import { filterTrips, TRIPS_CATALOG } from "../lib/tripsCatalog";
-
 import shiftsListPartner from "../data/shifts-list-partner.json";
 import recurringBookingsPartner from "../data/recurring-bookings-partner.json";
 import reportsPartner from "../data/reports-partner.json";
+
+const PARTNER_COMPANY_NAME =
+  (partnerProfile as { company_name?: string }).company_name ?? "Cocody Express";
+
+let partnerSupportChatsState: {
+  data: PartnerSupportChat[];
+  meta: typeof partnerSupportChatsSeed.meta;
+} = {
+  data: partnerSupportChatsSeed.data as PartnerSupportChat[],
+  meta: partnerSupportChatsSeed.meta,
+};
+
+function buildPartnerChatDetail(chat: PartnerSupportChat): PartnerSupportChatDetail {
+  const samples: Record<string, PartnerSupportMessage[]> = {
+    "CH-195": [
+      {
+        id: "CHM-7",
+        author: PARTNER_COMPANY_NAME,
+        role: "reporter",
+        body: "Besoin d'un point sur les commissions mai.",
+        at: "2026-06-02T09:30:00Z",
+      },
+    ],
+    "CH-P-12": [
+      {
+        id: "CHM-P1",
+        author: PARTNER_COMPANY_NAME,
+        role: "reporter",
+        body: "Bonjour, mon véhicule immatriculé 1234 AB 01 est bloqué en validation.",
+        at: "2026-06-01T14:00:00Z",
+      },
+      {
+        id: "CHM-P2",
+        author: "Support franchise",
+        role: "agent",
+        body: "Votre dossier est en cours de revue par la franchise.",
+        at: "2026-06-01T16:20:00Z",
+      },
+    ],
+    "CH-P-08": [
+      {
+        id: "CHM-P3",
+        author: PARTNER_COMPANY_NAME,
+        role: "reporter",
+        body: "Pouvez-vous augmenter mon plafond de retrait wallet ?",
+        at: "2026-05-27T10:00:00Z",
+      },
+      {
+        id: "CHM-P4",
+        author: "Support franchise",
+        role: "agent",
+        body: "Le plafond a été augmenté à 500 000 FCFA.",
+        at: "2026-05-28T11:00:00Z",
+      },
+    ],
+  };
+  return {
+    ...chat,
+    messages: samples[chat.id] ?? [
+      {
+        id: `${chat.id}-start`,
+        author: PARTNER_COMPANY_NAME,
+        role: "reporter",
+        body: chat.last_message_preview,
+        at: chat.updated_at,
+      },
+    ],
+  };
+}
+
+const partnerChatDetails: Record<string, PartnerSupportChatDetail> = Object.fromEntries(
+  partnerSupportChatsState.data.map((c) => [c.id, buildPartnerChatDetail(c)])
+);
 
 let walletState: PartnerWallet = { ...(walletPartnerSeed as PartnerWallet) };
 
@@ -86,7 +164,7 @@ function bookingTimeline(
     {
       id: "t-requested",
       type: "requested",
-      label: "Réservation créée",
+      label: "Course créée",
       description: "Course enregistrée par le partenaire",
       at: createdAt,
     },
@@ -598,7 +676,7 @@ export const partnerHandlers = [
   http.get("*/api/v2/partner/bookings/:id", ({ params }) => {
     const detail = bookingDetailById(String(params.id));
     if (!detail) {
-      return HttpResponse.json({ message: "Réservation introuvable" }, { status: 404 });
+      return HttpResponse.json({ message: "Course introuvable" }, { status: 404 });
     }
     return HttpResponse.json(detail);
   }),
@@ -607,19 +685,19 @@ export const partnerHandlers = [
     const id = String(params.id);
     const idx = bookingsListPartner.data.findIndex((b) => b.id === id);
     if (idx < 0) {
-      return HttpResponse.json({ message: "Réservation introuvable" }, { status: 404 });
+      return HttpResponse.json({ message: "Course introuvable" }, { status: 404 });
     }
     const booking = bookingsListPartner.data[idx];
     if (!["requested", "matching", "assigned"].includes(booking.status)) {
       return HttpResponse.json(
-        { message: "Cette réservation ne peut plus être annulée" },
+        { message: "Cette course ne peut plus être annulée" },
         { status: 422 }
       );
     }
     bookingsListPartner.data[idx] = { ...booking, status: "cancelled" };
     return HttpResponse.json({
       ok: true,
-      message: "Réservation annulée",
+      message: "Course annulée",
       booking: bookingDetailById(id),
     });
   }),
@@ -672,4 +750,84 @@ export const partnerHandlers = [
       { status: 201 }
     );
   }),
+
+  http.get("*/api/v2/partner/support/chat", ({ request }) => {
+    const query = parseListQuery(request);
+    let list = [...partnerSupportChatsState.data];
+    list = list.filter((c) =>
+      matchesSearch(
+        query.search,
+        c.id,
+        c.subject ?? "",
+        c.last_message_preview
+      )
+    );
+    if (query.status) list = list.filter((c) => c.status === query.status);
+    return HttpResponse.json(paginatedList(list, query));
+  }),
+
+  http.get("*/api/v2/partner/support/chat/:id", ({ params }) => {
+    const id = String(params.id);
+    const detail = partnerChatDetails[id];
+    if (!detail) {
+      return HttpResponse.json(
+        { message: "Conversation introuvable" },
+        { status: 404 }
+      );
+    }
+    detail.unread_count = 0;
+    const idx = partnerSupportChatsState.data.findIndex((c) => c.id === id);
+    if (idx >= 0) {
+      partnerSupportChatsState.data[idx] = {
+        ...partnerSupportChatsState.data[idx],
+        unread_count: 0,
+      };
+    }
+    return HttpResponse.json(detail);
+  }),
+
+  http.post(
+    "*/api/v2/partner/support/chat/:id/messages",
+    async ({ params, request }) => {
+      const id = String(params.id);
+      const detail = partnerChatDetails[id];
+      if (!detail) {
+        return HttpResponse.json(
+          { message: "Conversation introuvable" },
+          { status: 404 }
+        );
+      }
+      if (detail.status === "closed") {
+        return HttpResponse.json(
+          { message: "Conversation clôturée" },
+          { status: 422 }
+        );
+      }
+      const body = (await request.json()) as { body?: string };
+      const text = body.body?.trim();
+      if (!text) {
+        return HttpResponse.json({ message: "Message requis" }, { status: 422 });
+      }
+      const msg: PartnerSupportMessage = {
+        id: `CHM-P-${Date.now()}`,
+        author: PARTNER_COMPANY_NAME,
+        role: "reporter",
+        body: text,
+        at: new Date().toISOString(),
+      };
+      detail.messages = [...detail.messages, msg];
+      detail.last_message_preview = text;
+      detail.updated_at = msg.at;
+      const idx = partnerSupportChatsState.data.findIndex((c) => c.id === id);
+      if (idx >= 0) {
+        partnerSupportChatsState.data[idx] = {
+          ...partnerSupportChatsState.data[idx],
+          last_message_preview: text,
+          updated_at: msg.at,
+          unread_count: 0,
+        };
+      }
+      return HttpResponse.json(msg, { status: 201 });
+    }
+  ),
 ];

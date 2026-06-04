@@ -36,6 +36,12 @@ export const PARTNER_NAV: NavGroup[] = [
         permission: "fleet.drivers.view",
       },
       {
+        label: "Courses",
+        path: "/partner/bookings",
+        icon: "trips",
+        permission: "ops.trips.view",
+      },
+      {
         label: "Carte live",
         path: "/partner/map",
         icon: "map",
@@ -47,19 +53,13 @@ export const PARTNER_NAV: NavGroup[] = [
     group: "ACTIVITÉ",
     items: [
       {
-        label: "Réservations",
-        path: "/partner/bookings",
-        icon: "bookings",
-        permission: "ops.trips.view",
-      },
-      {
-        label: "Nouvelle réservation",
+        label: "Nouvelle course",
         path: "/partner/bookings/new",
         icon: "booking-new",
         permission: "ops.trips.view",
       },
       {
-        label: "Réservations récurrentes",
+        label: "Courses récurrentes",
         path: "/partner/bookings/recurring",
         icon: "recurring",
         permission: "ops.trips.view",
@@ -92,6 +92,17 @@ export const PARTNER_NAV: NavGroup[] = [
         path: "/partner/wallet/driver-transfers",
         icon: "wallet-transfer",
         permission: "finance.wallets.view",
+      },
+    ],
+  },
+  {
+    group: "SUPPORT",
+    items: [
+      {
+        label: "Chat",
+        path: "/partner/support/chat",
+        icon: "chat",
+        permission: "ops.dashboard.view",
       },
     ],
   },

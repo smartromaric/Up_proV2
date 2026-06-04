@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import { useLiveMap } from "../api/liveMap.queries";
+import { useLiveMapWithRealtime } from "../hooks/useLiveMapWithRealtime";
 import { LiveMapCanvas } from "../components/LiveMapCanvas";
 import { LiveMapStatsBar } from "../components/LiveMapStatsBar";
 import { LiveMapDriversPanel } from "../components/LiveMapDriversPanel";
@@ -35,7 +35,15 @@ export function LiveMapPage() {
     partnerId: null,
   });
 
-  const { data, isLoading, isError, dataUpdatedAt } = useLiveMap(filters);
+  const {
+    data,
+    isLoading,
+    isError,
+    dataUpdatedAt,
+    socketStatus,
+    realtimeActive,
+    httpPollingActive,
+  } = useLiveMapWithRealtime(filters);
 
   const breadcrumb = useMemo(() => {
     const base = ["Admin", "Opérations", "Carte live"];
@@ -62,8 +70,25 @@ export function LiveMapPage() {
         title="Carte live — Réseau mondial"
         breadcrumb={breadcrumb}
         actions={
-          <span className="rounded-full bg-navy/8 px-3 py-1 text-xs font-medium text-muted">
-            MAJ {updated} · refresh 30s
+          <span className="flex flex-wrap items-center gap-2">
+            {realtimeActive ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-700">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                Temps réel actif
+              </span>
+            ) : socketStatus === "connecting" ? (
+              <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-800">
+                Connexion temps réel…
+              </span>
+            ) : socketStatus === "error" || socketStatus === "disconnected" ? (
+              <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-700">
+                Temps réel indisponible · snapshot {updated}
+              </span>
+            ) : null}
+            <span className="rounded-full bg-navy/8 px-3 py-1 text-xs font-medium text-muted">
+              MAJ {updated}
+              {httpPollingActive ? " · refresh 30s" : " · positions via socket"}
+            </span>
           </span>
         }
       />

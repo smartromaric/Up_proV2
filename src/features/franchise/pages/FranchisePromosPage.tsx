@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { Button } from "@/shared/ui/Button";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
@@ -46,7 +48,12 @@ export function FranchisePromosPage() {
       header: "Code",
       cell: (p) => (
         <div>
-          <p className="font-mono font-medium text-foreground">{p.code}</p>
+          <Link
+            href={`/franchise/promos/${p.id}`}
+            className="font-mono font-medium text-foreground hover:text-teal"
+          >
+            {p.code}
+          </Link>
           <p className="text-xs text-muted">{p.label}</p>
         </div>
       ),
@@ -62,6 +69,22 @@ export function FranchisePromosPage() {
             ? `${p.discount_pct} %`
             : "—",
       exportValue: (p) => p.discount_pct || p.fixed_discount_fcfa || 0,
+    },
+    {
+      id: "audience",
+      header: "Utilisateurs",
+      cell: (p) =>
+        p.assigned_users.length === 0 ? (
+          <span className="text-sm text-muted">Tous</span>
+        ) : (
+          <span className="text-sm text-foreground">
+            {p.assigned_users.length} ciblé{p.assigned_users.length > 1 ? "s" : ""}
+          </span>
+        ),
+      exportValue: (p) =>
+        p.assigned_users.length === 0
+          ? "Tous"
+          : p.assigned_users.map((u) => u.full_name).join(", "),
     },
     {
       id: "uses",
@@ -104,7 +127,12 @@ export function FranchisePromosPage() {
     <div className="animate-fade-up">
       <PageHeader
         title="Codes promo territoire"
-        breadcrumb={["Franchise", "Marketing"]}
+        breadcrumb={["Franchise", "Marketing", "Codes promo"]}
+        actions={
+          <Link href="/franchise/promos/new">
+            <Button>Nouveau code</Button>
+          </Link>
+        }
       />
 
       <TableFiltersBar

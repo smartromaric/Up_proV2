@@ -15,7 +15,7 @@ const OUTCOME_CLASS: Record<TripMatchingOutcome, string> = {
 };
 
 export interface TimelineMatchingDriverRow {
-  driver_id: number;
+  driver_id: string | number;
   driver_name: string;
   outcome: TripMatchingOutcome;
   reason?: string;

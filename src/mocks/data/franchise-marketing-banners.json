@@ -1,0 +1,35 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "title": "Livraison express Plateau",
+      "placement": "home_hero",
+      "status": "active",
+      "impressions": 18200,
+      "clicks": 1540,
+      "starts_at": "2026-06-01T00:00:00Z",
+      "ends_at": "2026-06-30T23:59:59Z"
+    },
+    {
+      "id": 2,
+      "title": "Devenez chauffeur — Côte d'Ivoire",
+      "placement": "driver_app",
+      "status": "active",
+      "impressions": 6400,
+      "clicks": 480,
+      "starts_at": "2026-05-15T00:00:00Z",
+      "ends_at": "2026-12-31T23:59:59Z"
+    },
+    {
+      "id": 3,
+      "title": "Offre partenaires Abidjan",
+      "placement": "partner_portal",
+      "status": "draft",
+      "impressions": 0,
+      "clicks": 0,
+      "starts_at": "2026-06-10T00:00:00Z",
+      "ends_at": "2026-07-31T23:59:59Z"
+    }
+  ],
+  "meta": { "total": 3, "per_page": 25, "current_page": 1, "last_page": 1 }
+}

@@ -1,6 +1,12 @@
 import franchisesList from "../data/franchises-list.json";
 import partnersList from "../data/partners-list.json";
-import type { LiveMapData, LiveMapDriver } from "@/shared/types";
+import type {
+  LiveMapActiveTrip,
+  LiveMapData,
+  LiveMapDriver,
+  LiveMapOrderMarker,
+  LiveMapTripRoute,
+} from "@/shared/types";
 
 type CatalogDriver = LiveMapDriver & {
   franchise_id: number;
@@ -278,6 +284,104 @@ function computeBounds(drivers: CatalogDriver[]) {
   };
 }
 
+const MOCK_ACTIVE_TRIPS: Record<number, LiveMapActiveTrip> = {
+  101: {
+    id: "9001",
+    ref: "TR-88421",
+    from_label: "Cocody Angré",
+    to_label: "Plateau",
+    status: "in_progress",
+    status_label: "En cours",
+    amount_fcfa: 3500,
+  },
+  105: {
+    id: "9002",
+    ref: "TR-90215",
+    from_label: "Marcory Zone 4",
+    to_label: "Treichville",
+    status: "accepted",
+    status_label: "Acceptée",
+    amount_fcfa: 2800,
+  },
+  109: {
+    id: "9003",
+    ref: "TR-91002",
+    from_label: "Aéroport FHB",
+    to_label: "Cocody Riviera",
+    status: "arrived",
+    status_label: "Arrivé",
+    amount_fcfa: 5200,
+  },
+  202: {
+    id: "9004",
+    ref: "TR-CA-441",
+    from_label: "Plateau Montréal",
+    to_label: "YUL Terminal",
+    status: "in_progress",
+    status_label: "En cours",
+    amount_fcfa: 4200,
+  },
+};
+
+function attachActiveTrips(drivers: CatalogDriver[]): LiveMapDriver[] {
+  return drivers.map((d) => {
+    if (d.availability !== "on_trip") return d;
+    const active_trip = MOCK_ACTIVE_TRIPS[d.id as number];
+    return active_trip ? { ...d, active_trip } : d;
+  });
+}
+
+function buildMockOrderExtras(
+  drivers: LiveMapDriver[]
+): { order_markers: LiveMapOrderMarker[]; trip_routes: LiveMapTripRoute[] } {
+  const order_markers: LiveMapOrderMarker[] = [];
+  const trip_routes: LiveMapTripRoute[] = [];
+
+  for (const d of drivers) {
+    const t = d.active_trip;
+    if (!t) continue;
+    order_markers.push(
+      {
+        id: `${t.id}-pickup`,
+        order_id: t.id,
+        lat: d.lat,
+        lng: d.lng,
+        kind: "pickup",
+        status: t.status,
+        status_label: t.status_label,
+        label: t.from_label,
+        ref: t.ref,
+        driver_id: String(d.id),
+        amount_fcfa: t.amount_fcfa,
+      },
+      {
+        id: `${t.id}-dropoff`,
+        order_id: t.id,
+        lat: d.lat + 0.012,
+        lng: d.lng - 0.018,
+        kind: "dropoff",
+        status: t.status,
+        status_label: t.status_label,
+        label: t.to_label,
+        ref: t.ref,
+        driver_id: String(d.id),
+        amount_fcfa: t.amount_fcfa,
+      }
+    );
+    trip_routes.push({
+      order_id: t.id,
+      ref: t.ref,
+      status_label: t.status_label,
+      coordinates: [
+        [d.lng, d.lat],
+        [d.lng - 0.018, d.lat + 0.012],
+      ],
+    });
+  }
+
+  return { order_markers, trip_routes };
+}
+
 function computeStats(drivers: CatalogDriver[]) {
   const online = drivers.filter((d) => d.availability === "online").length;
   const onTrip = drivers.filter((d) => d.availability === "on_trip").length;
@@ -323,13 +427,18 @@ export function buildLiveMapFromDrivers(
     active_filter?: LiveMapData["active_filter"];
   }
 ): LiveMapData {
+  const enriched = attachActiveTrips(drivers);
+  const extras = buildMockOrderExtras(enriched);
+
   return {
     zone_name: meta.zone_name,
     city: meta.city,
     scope: meta.scope,
     stats: computeStats(drivers),
     bounds: computeBounds(drivers),
-    drivers,
+    drivers: enriched,
+    order_markers: extras.order_markers.length ? extras.order_markers : undefined,
+    trip_routes: extras.trip_routes.length ? extras.trip_routes : undefined,
     filter_options: meta.includeFilterOptions
       ? {
           franchises: FRANCHISES.map((f) => ({

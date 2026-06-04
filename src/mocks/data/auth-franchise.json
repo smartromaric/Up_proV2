@@ -10,6 +10,9 @@
     "permissions": [
       "ops.dashboard.view",
       "ops.map.view",
+      "ops.trips.view",
+      "ops.dispatch.view",
+      "ops.dispatch.assign",
       "network.partners.view",
       "fleet.drivers.view",
       "fleet.kyc.approve",

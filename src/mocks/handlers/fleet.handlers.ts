@@ -4,8 +4,13 @@ import driverDetail102 from "../data/driver-detail-102.json";
 import driverDetail104 from "../data/driver-detail-104.json";
 import driverDetailPending from "../data/driver-detail-pending.json";
 import kycQueue from "../data/kyc-queue.json";
-import fleetClientsList from "../data/fleet-clients-list.json";
-import fleetClientDetail from "../data/fleet-client-detail.json";
+
+import {
+  activateFleetClient,
+  getFleetClientDetail,
+  listFleetClients,
+  suspendFleetClient,
+} from "../lib/fleetClientsMock";
 import driverTripsSeed from "../data/driver-trips.json";
 import driverWalletTxSeed from "../data/driver-wallet-transactions.json";
 import type {
@@ -17,7 +22,6 @@ import type {
 import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 
 const accountOverrides: Record<string, DriverDetail["account_status"]> = {};
-const clientStatusOverrides: Record<number, "active" | "suspended"> = {};
 
 type DriverTripRow = {
   id: string;
@@ -136,57 +140,21 @@ export const fleetHandlers = [
   }),
 
   http.get("*/api/v2/admin/fleet/clients", ({ request }) => {
-    const query = parseListQuery(request);
-    let list = fleetClientsList.data.filter((c) =>
-      matchesSearch(query.search, c.full_name, c.email, c.phone, c.type)
-    );
-    if (query.status) list = list.filter((c) => c.status === query.status);
-    if (query.type) list = list.filter((c) => c.type === query.type);
-    return HttpResponse.json(paginatedList(list, query));
+    return HttpResponse.json(listFleetClients(request));
   }),
 
   http.get("*/api/v2/admin/fleet/clients/:id", ({ params }) => {
     const id = Number(params.id);
-    const fromList = fleetClientsList.data.find((c) => c.id === id);
-    const status =
-      clientStatusOverrides[id] ?? fromList?.status ?? fleetClientDetail.status;
-    return HttpResponse.json({
-      ...fleetClientDetail,
-      ...fromList,
-      id: id || fleetClientDetail.id,
-      status,
-    });
+    return HttpResponse.json(getFleetClientDetail(id));
   }),
 
   http.post("*/api/v2/admin/fleet/clients/:id/suspend", ({ params }) => {
     const id = Number(params.id);
-    clientStatusOverrides[id] = "suspended";
-    const fromList = fleetClientsList.data.find((c) => c.id === id);
-    return HttpResponse.json({
-      ok: true,
-      message: "Client suspendu",
-      client: {
-        ...fleetClientDetail,
-        ...fromList,
-        id,
-        status: "suspended" as const,
-      },
-    });
+    return HttpResponse.json(suspendFleetClient(id));
   }),
 
   http.post("*/api/v2/admin/fleet/clients/:id/activate", ({ params }) => {
     const id = Number(params.id);
-    clientStatusOverrides[id] = "active";
-    const fromList = fleetClientsList.data.find((c) => c.id === id);
-    return HttpResponse.json({
-      ok: true,
-      message: "Client réactivé",
-      client: {
-        ...fleetClientDetail,
-        ...fromList,
-        id,
-        status: "active" as const,
-      },
-    });
+    return HttpResponse.json(activateFleetClient(id));
   }),
 ];

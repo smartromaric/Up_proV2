@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { HeroKpi } from "@/features/ops/components/HeroKpi";
 import { KpiCard } from "@/shared/ui/KpiCard";
@@ -11,12 +10,16 @@ import {
   useFranchiseDriverRechargeStats,
   useFranchiseFinance,
 } from "../api/finance.queries";
-import { FranchiseDriverRechargeModal } from "../components/FranchiseDriverRechargeModal";
+import { FranchisePartnerRechargeModal } from "../components/FranchisePartnerRechargeModal";
+import {
+  useFranchisePartnerRechargeStats,
+} from "../api/finance.queries";
 
 export function FranchiseFinancePage() {
-  const [rechargeOpen, setRechargeOpen] = useState(false);
+  const [partnerRechargeOpen, setPartnerRechargeOpen] = useState(false);
   const { data, isLoading, isError } = useFranchiseFinance();
   const { data: rechargeStats } = useFranchiseDriverRechargeStats();
+  const { data: partnerRechargeStats } = useFranchisePartnerRechargeStats();
 
   if (isLoading) {
     return <div className="h-64 animate-pulse rounded-card bg-border" />;
@@ -34,18 +37,13 @@ export function FranchiseFinancePage() {
         title="Finance locale"
         breadcrumb={["Franchise", "Finance"]}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Link href="/franchise/finance/driver-transfers">
-              <Button variant="secondary">Historique recharges</Button>
-            </Link>
-            <Button
-              variant="primary"
-              disabled={available <= 0}
-              onClick={() => setRechargeOpen(true)}
-            >
-              Recharger un chauffeur
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            disabled={available <= 0}
+            onClick={() => setPartnerRechargeOpen(true)}
+          >
+            Recharger un partenaire
+          </Button>
         }
       />
 
@@ -64,6 +62,14 @@ export function FranchiseFinancePage() {
             label="Paiements en attente"
             value={formatFCFA(data.payouts_pending_fcfa)}
           />
+          {partnerRechargeStats ? (
+            <KpiCard
+              index={3}
+              label="Recharges partenaires (total)"
+              value={formatFCFA(partnerRechargeStats.total_spent_fcfa)}
+              hint={`${partnerRechargeStats.transfers_count} crédit(s)`}
+            />
+          ) : null}
           {rechargeStats ? (
             <KpiCard
               index={3}
@@ -102,10 +108,10 @@ export function FranchiseFinancePage() {
         </div>
       </div>
 
-      <FranchiseDriverRechargeModal
-        open={rechargeOpen}
+      <FranchisePartnerRechargeModal
+        open={partnerRechargeOpen}
         availableFcfa={available}
-        onClose={() => setRechargeOpen(false)}
+        onClose={() => setPartnerRechargeOpen(false)}
       />
     </div>
   );

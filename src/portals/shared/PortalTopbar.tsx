@@ -1,8 +1,7 @@
 "use client";
 
 import { useAuthStore } from "@/core/auth/authStore";
-import { clearAuthCookie } from "@/core/auth/authCookie";
-import { Button } from "@/shared/ui/Button";
+import { LogoutButton } from "@/features/auth/components/LogoutButton";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
 interface PortalTopbarProps {
@@ -13,7 +12,6 @@ interface PortalTopbarProps {
 
 export function PortalTopbar({ scopeLabel, badge, loginPath }: PortalTopbarProps) {
   const user = useAuthStore((s) => s.user);
-  const clearSession = useAuthStore((s) => s.clearSession);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-6">
@@ -26,17 +24,7 @@ export function PortalTopbar({ scopeLabel, badge, loginPath }: PortalTopbarProps
         <span className="rounded-full bg-teal-soft px-2.5 py-1 text-xs font-medium text-teal-dark">
           {badge}
         </span>
-        <Button
-          variant="ghost"
-          className="!py-1.5 !px-2 text-xs"
-          onClick={() => {
-            clearSession();
-            clearAuthCookie();
-            window.location.href = loginPath;
-          }}
-        >
-          Déconnexion
-        </Button>
+        <LogoutButton loginPath={loginPath} />
       </div>
     </header>
   );

@@ -16,16 +16,37 @@ import {
   useSuspendClient,
   useActivateClient,
 } from "../api/clients.queries";
+import {
+  getFleetClientsPaths,
+  type FleetClientsPortal,
+} from "../lib/fleetClientsPaths";
+import {
+  useFranchiseActivateClient,
+  useFranchiseClientDetail,
+  useFranchiseSuspendClient,
+} from "@/features/franchise/api/clients.queries";
 
 interface ClientDetailPageProps {
   clientId: string;
+  portal?: FleetClientsPortal;
 }
 
-export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
+export function ClientDetailPage({
+  clientId,
+  portal = "admin",
+}: ClientDetailPageProps) {
+  const paths = getFleetClientsPaths(portal);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
-  const { data, isLoading, isError } = useClientDetail(clientId);
-  const suspendClient = useSuspendClient(clientId);
-  const activateClient = useActivateClient(clientId);
+  const adminDetail = useClientDetail(clientId);
+  const franchiseDetail = useFranchiseClientDetail(clientId);
+  const { data, isLoading, isError } =
+    portal === "franchise" ? franchiseDetail : adminDetail;
+  const adminSuspend = useSuspendClient(clientId);
+  const franchiseSuspend = useFranchiseSuspendClient(clientId);
+  const adminActivate = useActivateClient(clientId);
+  const franchiseActivate = useFranchiseActivateClient(clientId);
+  const suspendClient = portal === "franchise" ? franchiseSuspend : adminSuspend;
+  const activateClient = portal === "franchise" ? franchiseActivate : adminActivate;
 
   if (isLoading) {
     return <div className="h-64 animate-pulse rounded-card bg-border" />;
@@ -35,7 +56,7 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
     return (
       <p className="text-sm text-red-600">
         Client introuvable.{" "}
-        <Link href="/admin/fleet/clients" className="text-teal underline">
+        <Link href={paths.list} className="text-teal underline">
           Retour
         </Link>
       </p>
@@ -50,7 +71,7 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
       header: "Réf.",
       cell: (t) => (
         <Link
-          href={`/admin/ops/trips/${t.id}`}
+          href={paths.tripDetail(t.id)}
           className="font-medium text-foreground hover:text-teal"
         >
           {t.ref}
@@ -93,7 +114,7 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
     <div className="animate-fade-up">
       <PageHeader
         title={data.full_name}
-        breadcrumb={["Admin", "Flotte", "Clients", data.full_name]}
+        breadcrumb={[...paths.breadcrumbDetail(data.full_name)]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <span
@@ -131,7 +152,7 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
       />
 
       <p className="mb-6 text-sm text-muted">
-        <Link href="/admin/fleet/clients" className="text-teal hover:underline">
+        <Link href={paths.list} className="text-teal hover:underline">
           ← Retour à la liste
         </Link>
         {" · "}

@@ -1,0 +1,141 @@
+{
+  "selected_franchise_id": null,
+  "franchise_options": [
+    { "id": 1, "name": "Côte d'Ivoire", "city": "Abidjan" },
+    { "id": 2, "name": "Canada", "city": "Montréal" },
+    { "id": 3, "name": "Espace euro", "city": "Paris" },
+    { "id": 4, "name": "Sénégal", "city": "Dakar" }
+  ],
+  "gmv_today_fcfa": 18420000,
+  "gmv_today_trend_pct": 11.2,
+  "gmv_month_fcfa": 428500000,
+  "gmv_month_trend_pct": 8.6,
+  "net_margin_month_fcfa": 62400000,
+  "net_margin_trend_pct": 6.3,
+  "commissions_month_fcfa": 89200000,
+  "commissions_trend_pct": 9.1,
+  "platform_treasury_fcfa": 156800000,
+  "withdrawals_pending_fcfa": 12450000,
+  "withdrawals_pending_count": 47,
+  "avg_trip_fcfa": 4850,
+  "collection_rate_pct": 97.4,
+  "reconciliation_gap_fcfa": 320000,
+  "reconciliation_items_open": 3,
+  "driver_wallets_total_fcfa": 42800000,
+  "partner_wallets_total_fcfa": 31200000,
+  "client_wallets_total_fcfa": 18750000,
+  "take_rate_pct": 20.8,
+  "chart_weekly": [
+    { "day": "Lun", "gmv": 52000000, "commissions": 10800000, "payouts": 38200000 },
+    { "day": "Mar", "gmv": 48800000, "commissions": 10100000, "payouts": 36100000 },
+    { "day": "Mer", "gmv": 61200000, "commissions": 12800000, "payouts": 45200000 },
+    { "day": "Jeu", "gmv": 55400000, "commissions": 11500000, "payouts": 40900000 },
+    { "day": "Ven", "gmv": 68400000, "commissions": 14200000, "payouts": 50800000 },
+    { "day": "Sam", "gmv": 72100000, "commissions": 15000000, "payouts": 53400000 },
+    { "day": "Dim", "gmv": 18420000, "commissions": 3820000, "payouts": 13620000 }
+  ],
+  "by_franchise": [
+    {
+      "franchise_id": 1,
+      "franchise_name": "Côte d'Ivoire",
+      "city": "Abidjan",
+      "gmv_month_fcfa": 168200000,
+      "margin_fcfa": 24800000,
+      "share_pct": 39.3
+    },
+    {
+      "franchise_id": 3,
+      "franchise_name": "Espace euro",
+      "city": "Paris",
+      "gmv_month_fcfa": 142800000,
+      "margin_fcfa": 21200000,
+      "share_pct": 33.3
+    },
+    {
+      "franchise_id": 2,
+      "franchise_name": "Canada",
+      "city": "Montréal",
+      "gmv_month_fcfa": 98400000,
+      "margin_fcfa": 14200000,
+      "share_pct": 23.0
+    },
+    {
+      "franchise_id": 4,
+      "franchise_name": "Sénégal",
+      "city": "Dakar",
+      "gmv_month_fcfa": 19100000,
+      "margin_fcfa": 2200000,
+      "share_pct": 4.4
+    }
+  ],
+  "payment_mix": [
+    { "method": "wallet", "label": "Wallet Up", "amount_fcfa": 198400000, "share_pct": 46.3 },
+    { "method": "cash", "label": "Espèces", "amount_fcfa": 142100000, "share_pct": 33.2 },
+    { "method": "card", "label": "Carte", "amount_fcfa": 62000000, "share_pct": 14.5 },
+    { "method": "mobile_money", "label": "Mobile money", "amount_fcfa": 26000000, "share_pct": 6.0 }
+  ],
+  "alerts": [
+    {
+      "id": "w1",
+      "severity": "warning",
+      "title": "47 retraits en attente",
+      "description": "12,45 M FCFA à valider sous 24 h pour limiter le risque de trésorerie.",
+      "href": "/admin/finance/withdrawals"
+    },
+    {
+      "id": "r1",
+      "severity": "critical",
+      "title": "Écart de réconciliation",
+      "description": "320 000 FCFA non rapprochés sur 3 lignes — prioriser avant clôture.",
+      "href": "/admin/finance/reconciliation"
+    },
+    {
+      "id": "c1",
+      "severity": "info",
+      "title": "Taux de recouvrement stable",
+      "description": "97,4 % des encaissements collectés ce mois (+0,8 pt vs M-1)."
+    }
+  ],
+  "recent_movements": [
+    {
+      "id": "m1",
+      "label": "Commission course TR-88421",
+      "amount_fcfa": 900,
+      "direction": "credit",
+      "category": "commission",
+      "created_at": "2026-06-02T14:32:00Z"
+    },
+    {
+      "id": "m2",
+      "label": "Retrait partenaire Cocody Express",
+      "amount_fcfa": 2500000,
+      "direction": "debit",
+      "category": "withdrawal",
+      "created_at": "2026-06-02T13:10:00Z"
+    },
+    {
+      "id": "m3",
+      "label": "Recharge wallet chauffeur #104",
+      "amount_fcfa": 15000,
+      "direction": "debit",
+      "category": "recharge",
+      "created_at": "2026-06-02T11:45:00Z"
+    },
+    {
+      "id": "m4",
+      "label": "Encaissement Mobile Money",
+      "amount_fcfa": 128000,
+      "direction": "credit",
+      "category": "collection",
+      "created_at": "2026-06-02T10:20:00Z"
+    },
+    {
+      "id": "m5",
+      "label": "Ajustement réconciliation banque",
+      "amount_fcfa": 45000,
+      "direction": "credit",
+      "category": "reconciliation",
+      "created_at": "2026-06-02T09:00:00Z"
+    }
+  ]
+}

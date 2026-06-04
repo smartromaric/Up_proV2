@@ -8,8 +8,12 @@ import { useLoginMutation } from "../api/auth.mutations";
 import { env } from "@/core/config/env";
 
 export function AdminLoginPage() {
-  const [email, setEmail] = useState("admin@upjunoo.ci");
-  const [password, setPassword] = useState("demo");
+  const [email, setEmail] = useState(
+    process.env.NEXT_PUBLIC_DEV_ADMIN_EMAIL ?? "dev.admin@upjunoo-dev.tech"
+  );
+  const [password, setPassword] = useState(
+    process.env.NEXT_PUBLIC_DEV_ADMIN_PASSWORD ?? "Upjunoo@Dev2026!"
+  );
   const login = useLoginMutation("admin");
 
   return (

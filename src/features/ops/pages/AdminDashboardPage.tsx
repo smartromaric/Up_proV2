@@ -4,10 +4,12 @@ import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { useAdminDashboard } from "../api/dashboard.queries";
-import { HeroKpi } from "../components/HeroKpi";
+import { HeroTripsTodayKpi } from "../components/HeroTripsTodayKpi";
+import { DashboardUsersKpi } from "../components/DashboardUsersKpi";
 import { ChartFlux } from "../components/ChartFlux";
 import { RecentTripsTable } from "../components/RecentTripsTable";
 import { AdminNetworkActivityPanel } from "../components/AdminNetworkActivityPanel";
+import { AdminDashboardAlerts } from "../components/AdminDashboardAlerts";
 import { AdminDashboardFranchiseSelect } from "../components/AdminDashboardFranchiseSelect";
 
 function DashboardSkeleton() {
@@ -51,12 +53,14 @@ export function AdminDashboardPage() {
         title="Tableau de bord"
         breadcrumb={["Admin", "Opérations", scopeLabel]}
         actions={
-          <AdminDashboardFranchiseSelect
-            options={data.franchise_options}
-            value={franchiseId}
-            onChange={setFranchiseId}
-            disabled={isFetching}
-          />
+          data.franchise_options.length > 0 ? (
+            <AdminDashboardFranchiseSelect
+              options={data.franchise_options}
+              value={typeof franchiseId === "number" ? franchiseId : null}
+              onChange={setFranchiseId}
+              disabled={isFetching}
+            />
+          ) : undefined
         }
       />
 
@@ -71,21 +75,24 @@ export function AdminDashboardPage() {
       <div
         className={`animate-stagger space-y-5 ${isFetching ? "opacity-70 transition-opacity" : ""}`}
       >
-        <HeroKpi
-          amount={data.net_profit_today_fcfa}
-          trendPct={data.net_profit_trend_pct}
+        <HeroTripsTodayKpi
+          total={data.trips_today}
+          trendPct={data.trips_today_trend_pct}
         />
 
         <div className="grid gap-5 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <ChartFlux data={data.chart_flux} />
           </div>
-          <div className="space-y-5">
+          <div className="flex flex-col gap-5">
+            {data.alerts && data.alerts.length > 0 && (
+              <AdminDashboardAlerts alerts={data.alerts} />
+            )}
             <KpiCard
               index={0}
-              label="Courses terminées"
-              value={String(data.trips_completed_today)}
-              hint={`${data.trips_cancelled_today} annulées`}
+              label="Répartition du jour"
+              value={`${data.trips_in_progress_today} en cours`}
+              hint={`${data.trips_completed_today} terminées · ${data.trips_cancelled_today} annulées · ${data.trips_today} au total`}
             />
             <AdminNetworkActivityPanel
               activeZone={data.active_zone}
@@ -108,10 +115,9 @@ export function AdminDashboardPage() {
             value={String(data.drivers_pending_kyc)}
             trend={data.drivers_pending_kyc > 0 ? "Action requise" : undefined}
           />
-          <KpiCard
-            index={2}
-            label="Utilisateurs inscrits"
-            value={data.users_registered.toLocaleString("fr-CI")}
+          <DashboardUsersKpi
+            usersRegistered={data.users_registered}
+            clientsOrderedToday={data.clients_ordered_today}
           />
         </div>
 

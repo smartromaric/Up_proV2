@@ -8,6 +8,14 @@ export type FranchiseCreatePayload = {
   status: Franchise["status"];
   contact_email: string;
   contact_phone: string;
+  /** Mot de passe du compte admin franchise (portail /franchise) */
+  admin_password: string;
+};
+
+export type FranchiseCreateResponse = Franchise & {
+  contact_email: string;
+  contact_phone: string;
+  portal_login_email: string;
 };
 
 export const franchisesService = {
@@ -17,5 +25,5 @@ export const franchisesService = {
     ),
 
   create: (payload: FranchiseCreatePayload) =>
-    apiClient.post<Franchise>("/admin/network/franchises", payload),
+    apiClient.post<FranchiseCreateResponse>("/admin/network/franchises", payload),
 };

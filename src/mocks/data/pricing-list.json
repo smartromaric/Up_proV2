@@ -2,6 +2,8 @@
   "data": [
     {
       "id": 1,
+      "franchise_id": 1,
+      "franchise_name": "Côte d'Ivoire",
       "zone_name": "Cocody — Plateau",
       "service": "taxi",
       "base_fare_fcfa": 500,
@@ -12,6 +14,8 @@
     },
     {
       "id": 2,
+      "franchise_id": 1,
+      "franchise_name": "Côte d'Ivoire",
       "zone_name": "Yopougon centre",
       "service": "taxi",
       "base_fare_fcfa": 500,
@@ -22,6 +26,8 @@
     },
     {
       "id": 3,
+      "franchise_id": 1,
+      "franchise_name": "Côte d'Ivoire",
       "zone_name": "Aéroport Félix Houphouët",
       "service": "taxi",
       "base_fare_fcfa": 800,
@@ -32,6 +38,8 @@
     },
     {
       "id": 4,
+      "franchise_id": 1,
+      "franchise_name": "Côte d'Ivoire",
       "zone_name": "Plateau — Zone 4",
       "service": "delivery",
       "base_fare_fcfa": 400,
@@ -42,6 +50,8 @@
     },
     {
       "id": 5,
+      "franchise_id": 1,
+      "franchise_name": "Côte d'Ivoire",
       "zone_name": "Abidjan — Grand-Bassam",
       "service": "rental",
       "base_fare_fcfa": 5000,
@@ -49,7 +59,19 @@
       "min_fare_fcfa": 15000,
       "surge_multiplier": 1.0,
       "status": "draft"
+    },
+    {
+      "id": 6,
+      "franchise_id": 2,
+      "franchise_name": "Canada",
+      "zone_name": "Montréal — Centre-ville",
+      "service": "taxi",
+      "base_fare_fcfa": 1200,
+      "per_km_fcfa": 520,
+      "min_fare_fcfa": 3500,
+      "surge_multiplier": 1.1,
+      "status": "active"
     }
   ],
-  "meta": { "total": 5, "per_page": 25, "current_page": 1, "last_page": 1 }
+  "meta": { "total": 6, "per_page": 25, "current_page": 1, "last_page": 1 }
 }

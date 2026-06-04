@@ -8,7 +8,7 @@ import {
   PricingForm,
   type PricingFormValues,
 } from "../components/PricingForm";
-import { usePricingDetail, useUpdatePricingRule } from "../api/pricing.queries";
+import { usePricingDetail, usePricingList, useUpdatePricingRule } from "../api/pricing.queries";
 
 interface PricingEditPageProps {
   pricingId: string;
@@ -17,12 +17,16 @@ interface PricingEditPageProps {
 export function PricingEditPage({ pricingId }: PricingEditPageProps) {
   const router = useRouter();
   const { data, isLoading, isError } = usePricingDetail(pricingId);
+  const { data: pricingMeta } = usePricingList({ per_page: 1 });
   const updatePricing = useUpdatePricingRule(pricingId);
+  const franchiseOptions = pricingMeta?.filter_options?.franchises ?? [];
   const [values, setValues] = useState<PricingFormValues | null>(null);
 
   useEffect(() => {
     if (data && !values) {
       setValues({
+        franchise_id: data.franchise_id,
+        franchise_name: data.franchise_name,
         zone_id: null,
         zone_name: data.zone_name,
         service: data.service,
@@ -53,13 +57,20 @@ export function PricingEditPage({ pricingId }: PricingEditPageProps) {
   return (
     <div className="animate-fade-up mx-auto w-full max-w-3xl px-4 pb-10">
       <PageHeader
-        title={`${data.zone_name} · ${data.service}`}
-        breadcrumb={["Admin", "Paramètres", "Tarification", data.zone_name]}
+        title={`${data.franchise_name} — ${data.zone_name}`}
+        breadcrumb={[
+          "Admin",
+          "Paramètres",
+          "Tarification",
+          data.franchise_name,
+          data.zone_name,
+        ]}
       />
 
       <PricingForm
         mode="edit"
         values={values}
+        franchiseOptions={franchiseOptions}
         onChange={setValues}
         isSubmitting={updatePricing.isPending}
         onCancel={() => router.push("/admin/settings/pricing")}

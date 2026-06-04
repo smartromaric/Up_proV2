@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
@@ -11,8 +12,11 @@ import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
-import type { FranchiseSupportTicket } from "../api/promos.service";
-import { useFranchiseSupportTickets } from "../api/promos.queries";
+import type {
+  FranchiseSupportTicket,
+  SupportReporterType,
+} from "../api/support.service";
+import { useFranchiseSupportTickets } from "../api/support.queries";
 
 const PRIORITY_LABELS: Record<FranchiseSupportTicket["priority"], string> = {
   low: "Basse",
@@ -26,6 +30,12 @@ const STATUS_LABELS: Record<FranchiseSupportTicket["status"], string> = {
   resolved: "Résolu",
 };
 
+const REPORTER_LABELS: Record<SupportReporterType, string> = {
+  partner: "Partenaire",
+  driver: "Chauffeur",
+  client: "Client",
+};
+
 const STATUS_FILTERS = [
   { value: "all" as const, label: "Tous" },
   { value: "open" as const, label: "Ouverts" },
@@ -33,19 +43,29 @@ const STATUS_FILTERS = [
   { value: "resolved" as const, label: "Résolus" },
 ];
 
-export function FranchiseSupportPage() {
+const TYPE_FILTERS = [
+  { value: "all" as const, label: "Tous profils" },
+  { value: "partner" as const, label: "Partenaires" },
+  { value: "driver" as const, label: "Chauffeurs" },
+  { value: "client" as const, label: "Clients" },
+];
+
+export function FranchiseSupportTicketsPage() {
   const [statusFilter, setStatusFilter] = useState<
     FranchiseSupportTicket["status"] | "all"
   >("all");
+  const [typeFilter, setTypeFilter] = useState<SupportReporterType | "all">("all");
 
-  const table = useServerTableState([statusFilter], {
+  const table = useServerTableState([statusFilter, typeFilter], {
     status: statusFilter !== "all" ? statusFilter : undefined,
+    type: typeFilter !== "all" ? typeFilter : undefined,
   });
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
     fields: [
       { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+      { value: typeFilter, defaultValue: "all", reset: () => setTypeFilter("all") },
     ],
   });
 
@@ -59,10 +79,12 @@ export function FranchiseSupportPage() {
       id: "id",
       header: "Ticket",
       cell: (t) => (
-        <div>
-          <p className="font-mono font-medium text-foreground">{t.id}</p>
-          <p className="text-xs text-muted">{t.category}</p>
-        </div>
+        <Link
+          href={`/franchise/support/tickets/${t.id}`}
+          className="font-mono font-medium text-teal hover:underline"
+        >
+          {t.id}
+        </Link>
       ),
       exportValue: (t) => t.id,
     },
@@ -72,10 +94,21 @@ export function FranchiseSupportPage() {
       cell: (t) => (
         <div>
           <p className="text-sm font-medium text-foreground">{t.subject}</p>
-          <p className="text-xs text-muted">{t.partner_name}</p>
+          <p className="text-xs text-muted">{t.category}</p>
         </div>
       ),
       exportValue: (t) => t.subject,
+    },
+    {
+      id: "reporter",
+      header: "Émetteur",
+      cell: (t) => (
+        <div>
+          <p className="text-sm text-foreground">{t.reporter_name}</p>
+          <p className="text-xs text-muted">{REPORTER_LABELS[t.reporter_type]}</p>
+        </div>
+      ),
+      exportValue: (t) => t.reporter_name,
     },
     {
       id: "priority",
@@ -122,24 +155,26 @@ export function FranchiseSupportPage() {
   ];
 
   if (isError) {
-    return <p className="text-sm text-red-600">Impossible de charger le support.</p>;
+    return <p className="text-sm text-red-600">Impossible de charger les tickets.</p>;
   }
 
   return (
     <div className="animate-fade-up">
-      <PageHeader
-        title="Support partenaires"
-        breadcrumb={["Franchise", "Support"]}
-      />
+      <PageHeader title="Tickets" breadcrumb={["Franchise", "Support", "Tickets"]} />
 
       <TableFiltersBar
         search={table.search}
         onSearchChange={table.setSearch}
-        searchPlaceholder="Ticket, sujet, partenaire…"
+        searchPlaceholder="Ticket, sujet, émetteur…"
         totalLabel={meta ? `${meta.total} tickets` : undefined}
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
       >
+        <FilterChips
+          options={TYPE_FILTERS}
+          value={typeFilter}
+          onChange={setTypeFilter}
+        />
         <FilterChips
           options={STATUS_FILTERS}
           value={statusFilter}
@@ -152,8 +187,8 @@ export function FranchiseSupportPage() {
         data={rows}
         rowKey={(t) => t.id}
         isLoading={isLoading}
-        exportFileName="tickets-support"
-        emptyTitle="Aucun ticket ouvert"
+        exportFileName="tickets-franchise"
+        emptyTitle="Aucun ticket"
         pagination={false}
         serverPagination={serverPaginationFromMeta(
           meta,

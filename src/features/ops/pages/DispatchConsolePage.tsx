@@ -13,14 +13,22 @@ import { AvailabilityPill } from "@/shared/ui/DriverPills";
 import { usePermission } from "@/core/auth/usePermission";
 import { formatFCFA } from "@/shared/lib/format";
 import type { DispatchDriverCandidate, DispatchQueueItem } from "@/shared/types";
+import type { DispatchScopeFiltersValue } from "../api/dispatchScope.types";
 import { useAssignDriver, useDispatchConsole } from "../api/dispatch.queries";
 import {
   useDispatchPortalAssign,
   useDispatchPortalConsole,
 } from "@/features/dispatch/api/dispatchPortal.queries";
 import { DispatchMapPreview } from "../components/DispatchMapPreview";
+import { TripsScopeFilters } from "../components/TripsScopeFilters";
+import { FranchiseLiveMapPartnerFilter } from "@/features/franchise/components/FranchiseLiveMapPartnerFilter";
+import type { FranchiseLiveMapFiltersValue } from "@/features/franchise/api/liveMap.types";
+import {
+  useFranchiseAssignDriver,
+  useFranchiseDispatchConsole,
+} from "@/features/franchise/api/dispatch.queries";
 
-export type DispatchConsoleVariant = "admin" | "dispatch";
+export type DispatchConsoleVariant = "admin" | "dispatch" | "franchise";
 
 function QueueCard({
   item,
@@ -102,20 +110,48 @@ export function DispatchConsolePage({
   variant?: DispatchConsoleVariant;
 }) {
   const isDispatchPortal = variant === "dispatch";
-  const adminQuery = useDispatchConsole();
-  const portalQuery = useDispatchPortalConsole();
-  const activeQuery = isDispatchPortal ? portalQuery : adminQuery;
+  const isFranchisePortal = variant === "franchise";
+  const [scope, setScope] = useState<DispatchScopeFiltersValue>({
+    franchiseId: null,
+    partnerId: null,
+  });
+  const [franchiseScope, setFranchiseScope] = useState<FranchiseLiveMapFiltersValue>({
+    partnerId: null,
+  });
+  const adminQuery = useDispatchConsole(scope);
+  const portalQuery = useDispatchPortalConsole(scope);
+  const franchiseQuery = useFranchiseDispatchConsole(franchiseScope);
+  const activeQuery = isFranchisePortal
+    ? franchiseQuery
+    : isDispatchPortal
+      ? portalQuery
+      : adminQuery;
   const { data, isLoading, isError, dataUpdatedAt } = activeQuery;
   const adminAssign = useAssignDriver();
   const portalAssign = useDispatchPortalAssign();
-  const assignMutation = isDispatchPortal ? portalAssign : adminAssign;
+  const franchiseAssign = useFranchiseAssignDriver();
+  const assignMutation = isFranchisePortal
+    ? franchiseAssign
+    : isDispatchPortal
+      ? portalAssign
+      : adminAssign;
   const canAssign = usePermission("ops.dispatch.assign");
-  const breadcrumb = isDispatchPortal
-    ? ["Dispatch", "Console"]
-    : ["Admin", "Opérations"];
-  const tripsHref = isDispatchPortal ? "/dispatch/console" : "/admin/ops/trips";
+  const breadcrumb = isFranchisePortal
+    ? ["Franchise", "Console dispatch"]
+    : isDispatchPortal
+      ? ["Dispatch", "Console"]
+      : ["Admin", "Opérations"];
+  const tripsHref = isFranchisePortal
+    ? "/franchise/trips"
+    : isDispatchPortal
+      ? "/dispatch/console"
+      : "/admin/ops/trips";
   const tripDetailHref = (id: string) =>
-    isDispatchPortal ? "/dispatch/console" : `/admin/ops/trips/${id}`;
+    isFranchisePortal
+      ? `/franchise/trips/${id}`
+      : isDispatchPortal
+        ? "/dispatch/console"
+        : `/admin/ops/trips/${id}`;
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
@@ -170,6 +206,23 @@ export function DispatchConsolePage({
         }
       />
 
+      {data.filter_options && isFranchisePortal && (
+        <FranchiseLiveMapPartnerFilter
+          options={data.filter_options}
+          value={franchiseScope}
+          onChange={setFranchiseScope}
+        />
+      )}
+      {data.filter_options && !isFranchisePortal && (
+        <div className="mb-4">
+          <TripsScopeFilters
+            options={data.filter_options}
+            value={scope}
+            onChange={setScope}
+          />
+        </div>
+      )}
+
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <KpiCard label="File d'attente" value={String(data.stats.queue_size)} />
         <KpiCard
@@ -191,7 +244,7 @@ export function DispatchConsolePage({
           <p className="text-center">
             {!isDispatchPortal && (
               <Link href={tripsHref} className="text-sm text-teal hover:underline">
-                Voir toutes les courses
+                {isFranchisePortal ? "Voir les courses du territoire" : "Voir toutes les courses"}
               </Link>
             )}
             {isDispatchPortal && (

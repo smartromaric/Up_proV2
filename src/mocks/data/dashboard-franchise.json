@@ -4,11 +4,18 @@
   "drivers_total": 420,
   "drivers_online": 89,
   "trips_today": 312,
+  "trips_today_trend_pct": 9.8,
   "trips_completed_today": 298,
   "revenue_today_fcfa": 1248000,
   "revenue_trend_pct": 5.4,
   "pending_kyc": 7,
-  "pending_withdrawals_fcfa": 890000,
+  "pending_withdrawals": {
+    "total_fcfa": 890000,
+    "partners_fcfa": 520000,
+    "partners_requests_count": 3,
+    "drivers_fcfa": 370000,
+    "drivers_requests_count": 12
+  },
   "chart_flux": [
     { "day": "Lun", "revenue": 980000, "trips": 265 },
     { "day": "Mar", "revenue": 1020000, "trips": 278 },

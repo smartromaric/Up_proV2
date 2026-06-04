@@ -1,6 +1,8 @@
 "use client";
 
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import { zustandDevtoolsOptions } from "@/core/store/zustandDevtools";
 
 export type ThemeMode = "light" | "dark";
 
@@ -30,7 +32,10 @@ export function applyThemeToDocument(theme: ThemeMode) {
 export function getInitialTheme(): ThemeMode {
   const stored = getStoredTheme();
   if (stored) return stored;
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  ) {
     return "dark";
   }
   return "light";
@@ -44,20 +49,25 @@ interface ThemeState {
   hydrate: () => void;
 }
 
-export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: "light",
-  hydrated: false,
-  setTheme: (theme) => {
-    applyThemeToDocument(theme);
-    set({ theme });
-  },
-  toggleTheme: () => {
-    const next = get().theme === "dark" ? "light" : "dark";
-    get().setTheme(next);
-  },
-  hydrate: () => {
-    const theme = getInitialTheme();
-    applyThemeToDocument(theme);
-    set({ theme, hydrated: true });
-  },
-}));
+export const useThemeStore = create<ThemeState>()(
+  devtools(
+    (set, get) => ({
+      theme: "light",
+      hydrated: false,
+      setTheme: (theme) => {
+        applyThemeToDocument(theme);
+        set({ theme }, false, "theme/setTheme");
+      },
+      toggleTheme: () => {
+        const next = get().theme === "dark" ? "light" : "dark";
+        get().setTheme(next);
+      },
+      hydrate: () => {
+        const theme = getInitialTheme();
+        applyThemeToDocument(theme);
+        set({ theme, hydrated: true }, false, "theme/hydrate");
+      },
+    }),
+    { name: "UpJunooTheme", ...zustandDevtoolsOptions }
+  )
+);

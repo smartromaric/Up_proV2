@@ -20,9 +20,11 @@ export function useCreateFranchise() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: FranchiseCreatePayload) => franchisesService.create(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: franchisesKeys.all });
-      notificationService.success("Franchise créée");
+      notificationService.success(
+        `Franchise créée. Connexion portail : ${data.portal_login_email}`
+      );
     },
     onError: () => notificationService.error("Création impossible"),
   });

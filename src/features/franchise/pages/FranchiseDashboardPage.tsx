@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import { HeroKpi } from "@/features/ops/components/HeroKpi";
+import { HeroTripsTodayKpi } from "@/features/ops/components/HeroTripsTodayKpi";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
-import { formatFCFA } from "@/shared/lib/format";
+import { formatFCFA, formatPercent } from "@/shared/lib/format";
 import { useFranchiseDashboard } from "../api/dashboard.queries";
+import { FranchisePendingWithdrawalsKpi } from "../components/FranchisePendingWithdrawalsKpi";
 
 export function FranchiseDashboardPage() {
   const { data, isLoading, isError } = useFranchiseDashboard();
@@ -27,10 +28,9 @@ export function FranchiseDashboardPage() {
       />
 
       <div className="animate-stagger space-y-5">
-        <HeroKpi
-          amount={data.revenue_today_fcfa}
-          trendPct={data.revenue_trend_pct}
-          label="Revenus du jour · territoire"
+        <HeroTripsTodayKpi
+          total={data.trips_today}
+          trendPct={data.trips_today_trend_pct}
         />
 
         <div className="grid gap-4 sm:grid-cols-4">
@@ -40,14 +40,16 @@ export function FranchiseDashboardPage() {
             value={`${data.drivers_online} / ${data.drivers_total}`}
           />
           <KpiCard
-            label="Courses aujourd'hui"
-            value={String(data.trips_today)}
-            hint={`${data.trips_completed_today} terminées`}
+            label="Revenus du jour"
+            value={formatFCFA(data.revenue_today_fcfa)}
+            hint={`${formatPercent(data.revenue_trend_pct)} vs hier`}
           />
           <KpiCard
-            label="Retraits en attente"
-            value={formatFCFA(data.pending_withdrawals_fcfa)}
+            label="Courses terminées"
+            value={String(data.trips_completed_today)}
+            hint={`sur ${data.trips_today} aujourd'hui`}
           />
+          <FranchisePendingWithdrawalsKpi pending={data.pending_withdrawals} />
         </div>
 
         <div className="grid gap-5 lg:grid-cols-2">

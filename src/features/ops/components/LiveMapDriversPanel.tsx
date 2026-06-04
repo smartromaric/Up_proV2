@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { adminPaths } from "@/core/routes/adminPaths";
 import type { LiveMapData, LiveMapDriver } from "@/shared/types";
 import { AvailabilityPill } from "@/shared/ui/DriverPills";
 
@@ -8,16 +9,50 @@ function DriverRow({
   driver,
   showMeta,
   driverHref,
+  showTripLinks,
 }: {
   driver: LiveMapDriver;
   showMeta: boolean;
-  driverHref?: (id: number) => string;
+  driverHref?: (id: string | number) => string;
+  showTripLinks?: boolean;
 }) {
+  const trip = driver.active_trip;
+
   const inner = (
     <>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">{driver.name}</p>
         <p className="truncate text-xs text-muted">{driver.vehicle}</p>
+        {trip && (
+          <p className="mt-1 truncate text-[10px] font-medium text-navy">
+            {trip.ref} · {trip.status_label}
+          </p>
+        )}
+        {trip && (
+          <p className="truncate text-[10px] text-muted">
+            {trip.from_label} → {trip.to_label}
+          </p>
+        )}
+        {showTripLinks && trip && (
+          <p className="mt-1 flex flex-wrap gap-2 text-[10px] font-semibold">
+            <Link
+              href={adminPaths.trip(trip.id)}
+              className="text-teal-dark hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Course
+            </Link>
+            {driverHref && (
+              <Link
+                href={driverHref(driver.id)}
+                className="text-teal-dark hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Chauffeur
+              </Link>
+            )}
+          </p>
+        )}
         {showMeta && (driver.partner_name || driver.zone_name) && (
           <p className="mt-0.5 truncate text-[10px] text-muted">
             {[driver.partner_name, driver.zone_name].filter(Boolean).join(" · ")}
@@ -55,11 +90,14 @@ interface LiveMapDriversPanelProps {
   data: LiveMapData;
   /** Liens admin vers fiche chauffeur */
   adminDriverLinks?: boolean;
+  /** Liens franchise vers fiche chauffeur */
+  franchiseDriverLinks?: boolean;
 }
 
 export function LiveMapDriversPanel({
   data,
   adminDriverLinks = false,
+  franchiseDriverLinks = false,
 }: LiveMapDriversPanelProps) {
   const online = data.drivers.filter(
     (d) => d.availability === "online" || d.availability === "on_trip"
@@ -74,9 +112,13 @@ export function LiveMapDriversPanel({
         ? "Chauffeurs partenaire"
         : "Territoire";
 
+  const showTripLinks = adminDriverLinks;
+
   const driverHref = adminDriverLinks
-    ? (id: number) => `/admin/fleet/drivers/${id}`
-    : undefined;
+    ? (id: string | number) => adminPaths.driver(id)
+    : franchiseDriverLinks
+      ? (id: string | number) => `/franchise/drivers/${id}`
+      : undefined;
 
   const grouped =
     data.scope === "global" && data.franchise_summary
@@ -86,6 +128,32 @@ export function LiveMapDriversPanel({
             drivers: data.drivers.filter((d) => d.franchise_id === s.franchise_id),
           }))
           .filter((g) => g.drivers.length > 0)
+      : null;
+
+  const partnerGrouped =
+    data.scope === "franchise" && !grouped
+      ? (() => {
+          const map = new Map<
+            string | number,
+            { partner_name: string; drivers: LiveMapDriver[]; active: number }
+          >();
+          for (const d of data.drivers) {
+            const pid = d.partner_id ?? 0;
+            const row = map.get(pid) ?? {
+              partner_name: d.partner_name ?? "Partenaire",
+              drivers: [] as LiveMapDriver[],
+              active: 0,
+            };
+            row.drivers.push(d);
+            if (d.availability === "online" || d.availability === "on_trip") {
+              row.active += 1;
+            }
+            map.set(pid, row);
+          }
+          return [...map.entries()]
+            .map(([partner_id, g]) => ({ partner_id, ...g }))
+            .sort((a, b) => a.partner_name.localeCompare(b.partner_name));
+        })()
       : null;
 
   return (
@@ -105,9 +173,23 @@ export function LiveMapDriversPanel({
             <span className="font-semibold tabular-nums text-heading">
               {data.drivers.length}
             </span>{" "}
-            visibles
+            géolocalisés
           </span>
+          {(data.order_markers?.length ?? 0) > 0 && (
+            <span>
+              <span className="font-semibold tabular-nums text-heading">
+                {data.order_markers!.length}
+              </span>{" "}
+              points course
+            </span>
+          )}
         </div>
+        {data.drivers.length === 0 && online > 0 && (
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            Chauffeurs en ligne sans position récente — les commandes actives restent
+            visibles sur la carte.
+          </p>
+        )}
         {data.scope === "global" && data.franchise_summary && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {data.franchise_summary.map((s) => (
@@ -123,12 +205,27 @@ export function LiveMapDriversPanel({
             ))}
           </div>
         )}
+        {partnerGrouped && partnerGrouped.length > 1 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {partnerGrouped.map((g) => (
+              <span
+                key={g.partner_id}
+                className="rounded-full bg-canvas px-2 py-0.5 text-[10px] text-muted"
+              >
+                {g.partner_name}{" "}
+                <span className="font-semibold tabular-nums text-foreground">
+                  {g.active}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
         {grouped
           ? grouped.map((group) => (
               <div key={group.franchise_id} className="mb-2">
-                <p className="sticky top-0 z-[1] bg-white py-2 text-[10px] font-semibold uppercase tracking-widest text-muted">
+                <p className="sticky top-0 z-[1] bg-surface py-2 text-[10px] font-semibold uppercase tracking-widest text-muted">
                   {group.franchise_name}
                 </p>
                 {group.drivers.map((d) => (
@@ -137,18 +234,37 @@ export function LiveMapDriversPanel({
                     driver={d}
                     showMeta={showMeta}
                     driverHref={driverHref}
+                    showTripLinks={showTripLinks}
                   />
                 ))}
               </div>
             ))
-          : data.drivers.map((d) => (
-              <DriverRow
-                key={d.id}
-                driver={d}
-                showMeta={showMeta}
-                driverHref={driverHref}
-              />
-            ))}
+          : partnerGrouped && partnerGrouped.length > 1
+            ? partnerGrouped.map((group) => (
+                <div key={group.partner_id} className="mb-2">
+                  <p className="sticky top-0 z-[1] bg-surface py-2 text-[10px] font-semibold uppercase tracking-widest text-muted">
+                    {group.partner_name}
+                  </p>
+                  {group.drivers.map((d) => (
+                    <DriverRow
+                      key={d.id}
+                      driver={d}
+                      showMeta={showMeta}
+                      driverHref={driverHref}
+                      showTripLinks={showTripLinks}
+                    />
+                  ))}
+                </div>
+              ))
+            : data.drivers.map((d) => (
+                <DriverRow
+                  key={d.id}
+                  driver={d}
+                  showMeta={showMeta}
+                  driverHref={driverHref}
+                  showTripLinks={showTripLinks}
+                />
+              ))}
       </div>
     </aside>
   );

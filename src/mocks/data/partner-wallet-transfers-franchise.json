@@ -1,0 +1,31 @@
+{
+  "stats": {
+    "total_spent_fcfa": 1250000,
+    "transfers_count": 8,
+    "month_spent_fcfa": 450000,
+    "month_transfers_count": 3,
+    "last_transfer_at": "2026-06-01T11:20:00Z"
+  },
+  "data": [
+    {
+      "id": "PT-F-201",
+      "ref": "PT-F-201",
+      "partner_id": 12,
+      "partner_name": "Cocody Express",
+      "amount_fcfa": 250000,
+      "status": "completed",
+      "note": "Crédit portefeuille partenaire · Q2",
+      "created_at": "2026-06-01T11:20:00Z"
+    },
+    {
+      "id": "PT-F-198",
+      "ref": "PT-F-198",
+      "partner_id": 15,
+      "partner_name": "Marcory Fleet",
+      "amount_fcfa": 150000,
+      "status": "completed",
+      "note": "Avance opérationnelle",
+      "created_at": "2026-05-28T09:00:00Z"
+    }
+  ]
+}

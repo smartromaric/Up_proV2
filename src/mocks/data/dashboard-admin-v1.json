@@ -1,0 +1,201 @@
+{
+  "status": "ok",
+  "generatedAt": "2026-06-04T13:24:00.570Z",
+  "dashboard": {
+    "generatedAt": "2026-06-04T13:24:00.570Z",
+    "filters": {
+      "applied": {
+        "franchiseId": null,
+        "partnerId": null,
+        "cityId": null,
+        "zoneId": null,
+        "countryCode": null,
+        "citySlug": null,
+        "status": null,
+        "serviceType": "RIDE",
+        "search": null,
+        "date": "2026-06-04",
+        "from": null,
+        "to": null,
+        "timezone": "Africa/Abidjan"
+      },
+      "period": {
+        "from": "2026-06-04T00:00:00.000Z",
+        "to": "2026-06-05T00:00:00.000Z",
+        "mode": "day",
+        "referenceDate": "2026-06-04"
+      }
+    },
+    "summary": {
+      "ridesToday": {
+        "total": 2,
+        "label": "Courses aujourd'hui",
+        "vsPreviousPeriod": {
+          "value": 99.5,
+          "direction": "down",
+          "unit": "percent"
+        },
+        "vsYesterday": {
+          "value": 99.5,
+          "direction": "down",
+          "unit": "percent"
+        },
+        "currency": "XOF"
+      },
+      "weeklyFlow": {
+        "labels": ["Ven", "Sam", "Dim", "Lun", "Mar", "Mer", "Jeu"],
+        "series": [
+          {
+            "key": "revenue",
+            "label": "Revenus",
+            "values": [0, 0, 0, 0, 0, 0, 0]
+          },
+          {
+            "key": "commissions",
+            "label": "Commissions",
+            "values": [0, 0, 0, 0, 0, 16955, 0]
+          }
+        ],
+        "unit": "XOF"
+      },
+      "ridesBreakdownToday": {
+        "inProgress": 2,
+        "completed": 0,
+        "cancelled": 0,
+        "total": 2,
+        "byStatus": {
+          "inProgress": 2,
+          "completed": 0,
+          "cancelled": 0
+        }
+      },
+      "networkActivity": {
+        "zone": {
+          "id": "1c0c0f3f-4512-4e71-8da8-6cbe8868ece3",
+          "label": "Bingerville",
+          "code": "ABJ_BINGERVILLE",
+          "ridesLast24h": 0
+        },
+        "driversOnline": 822,
+        "ridesLast24h": 2,
+        "label": "Bingerville"
+      },
+      "drivers": {
+        "approved": 1030,
+        "total": 1036,
+        "pendingApproval": 6,
+        "onlineNow": 822,
+        "approvalRate": 99.4
+      },
+      "kyc": {
+        "pendingReview": 1,
+        "actionRequired": 1,
+        "queuePath": "/v1/admin/drivers"
+      },
+      "users": {
+        "totalRegistered": 2181,
+        "byType": {
+          "CLIENT": 1140,
+          "DRIVER": 1038,
+          "PARTNER_USER": 46,
+          "FRANCHISE_USER": 2
+        },
+        "clientsActiveToday": 1
+      }
+    },
+    "finance": {
+      "revenueTodayXof": 0,
+      "commissionsTodayXof": 0,
+      "withdrawalsPending": 1,
+      "currency": "XOF"
+    },
+    "fleet": {
+      "partners": 46,
+      "vehicles": 1001,
+      "deliveries": 126
+    },
+    "recentActivity": {
+      "items": [
+        {
+          "id": "45752a5c-3fe3-4b80-bfcf-ee3a16f32784",
+          "ref": "TR-45752A5C",
+          "service": "RIDE",
+          "route": {
+            "from": "Plateau",
+            "to": "Cocody"
+          },
+          "client": {
+            "id": "791c763a-4785-4c3a-be89-9de1eadb418b",
+            "displayName": "Dev Client",
+            "type": "INDIVIDUAL"
+          },
+          "amountXof": 2750,
+          "currency": "XOF",
+          "status": "requested",
+          "statusLabel": "Demandée",
+          "createdAt": "2026-06-04T13:04:08.808552+00:00"
+        },
+        {
+          "id": "eda92ab5-7f42-4e4f-81ae-c8687f8d9df7",
+          "ref": "TR-EDA92AB5",
+          "service": "RIDE",
+          "route": {
+            "from": "Plateau",
+            "to": "Cocody"
+          },
+          "client": {
+            "id": "791c763a-4785-4c3a-be89-9de1eadb418b",
+            "displayName": "Dev Client",
+            "type": "INDIVIDUAL"
+          },
+          "amountXof": 2150,
+          "currency": "XOF",
+          "status": "requested",
+          "statusLabel": "Demandée",
+          "createdAt": "2026-06-04T11:25:38.945706+00:00"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 15,
+        "total": 2,
+        "totalPages": 1,
+        "hasMore": false,
+        "hasNext": false,
+        "hasPrev": false
+      }
+    },
+    "alerts": [
+      {
+        "code": "KYC_PENDING",
+        "severity": "warning",
+        "count": 1,
+        "label": "KYC en attente",
+        "actionUrl": "/admin/kyc/pending"
+      },
+      {
+        "code": "WITHDRAWALS_PENDING",
+        "severity": "info",
+        "count": 1,
+        "label": "Retraits à valider",
+        "actionUrl": "/admin/withdrawals"
+      },
+      {
+        "code": "DRIVERS_PENDING_APPROVAL",
+        "severity": "warning",
+        "count": 6,
+        "label": "Chauffeurs en attente d'approbation",
+        "actionUrl": "/admin/drivers"
+      }
+    ],
+    "legacy": {
+      "profiles": 2181,
+      "drivers": 1036,
+      "partners": 46,
+      "vehicles": 1001,
+      "rides": 2,
+      "deliveries": 126,
+      "withdrawals": 1
+    }
+  }
+}

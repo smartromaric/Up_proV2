@@ -6,12 +6,13 @@ import { notificationService } from "@/core/http/notificationService";
 import { tripsKeys } from "./trips.keys";
 import { dispatchKeys } from "./dispatch.keys";
 import { dispatchService } from "./dispatch.service";
+import type { DispatchScopeFiltersValue } from "./dispatchScope.types";
 
-export function useDispatchConsole() {
+export function useDispatchConsole(scope?: DispatchScopeFiltersValue) {
   const scopeKey = useScopeQueryKey();
   return useQuery({
-    queryKey: dispatchKeys.console(scopeKey),
-    queryFn: () => dispatchService.getConsole(),
+    queryKey: dispatchKeys.console(scopeKey, scope),
+    queryFn: () => dispatchService.getConsole(scope),
     refetchInterval: 15_000,
   });
 }

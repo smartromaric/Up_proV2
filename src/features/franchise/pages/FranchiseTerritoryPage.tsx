@@ -41,7 +41,7 @@ export function FranchiseTerritoryPage() {
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Zones actives" value={String(data.stats.zones_count)} />
-        <KpiCard label="Sous-partenaires" value={String(data.stats.partners_count)} />
+        <KpiCard label="Partenaires" value={String(data.stats.partners_count)} />
         <KpiCard
           label="Chauffeurs"
           value={data.stats.drivers_count.toLocaleString("fr-CI")}

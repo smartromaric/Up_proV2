@@ -68,9 +68,19 @@ export const networkHandlers = [
     const body = (await request.json()) as Partial<Franchise> & {
       contact_email?: string;
       contact_phone?: string;
+      admin_password?: string;
     };
     if (!body.name?.trim() || !body.city?.trim()) {
       return HttpResponse.json({ message: "Nom et ville requis" }, { status: 422 });
+    }
+    if (!body.admin_password || body.admin_password.length < 8) {
+      return HttpResponse.json(
+        { message: "Mot de passe admin requis (8 caractères minimum)" },
+        { status: 422 }
+      );
+    }
+    if (!body.contact_email?.trim()) {
+      return HttpResponse.json({ message: "Email de contact requis" }, { status: 422 });
     }
     const row: Franchise = {
       id: nextFranchiseId(),
@@ -88,8 +98,9 @@ export const networkHandlers = [
       {
         ...franchiseDetail,
         ...row,
-        contact_email: body.contact_email ?? "",
+        contact_email: body.contact_email.trim(),
         contact_phone: body.contact_phone ?? "",
+        portal_login_email: body.contact_email.trim(),
         created_at: new Date().toISOString(),
       },
       { status: 201 }

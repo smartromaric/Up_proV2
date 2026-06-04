@@ -3,6 +3,7 @@
     {
       "id": "COM-2026-06",
       "period_label": "Juin 2026",
+      "franchise_id": 1,
       "franchise_name": "Côte d'Ivoire",
       "trips_count": 8420,
       "gross_fcfa": 38500000,
@@ -13,6 +14,7 @@
     {
       "id": "COM-2026-05",
       "period_label": "Mai 2026",
+      "franchise_id": 1,
       "franchise_name": "Côte d'Ivoire",
       "trips_count": 7980,
       "gross_fcfa": 36200000,
@@ -21,15 +23,49 @@
       "status": "paid"
     },
     {
-      "id": "COM-2026-05-O",
+      "id": "COM-2026-05-CA",
       "period_label": "Mai 2026",
+      "franchise_id": 2,
       "franchise_name": "Canada",
       "trips_count": 5120,
       "gross_fcfa": 22100000,
       "commission_fcfa": 3315000,
       "rate_pct": 15,
       "status": "paid"
+    },
+    {
+      "id": "COM-2026-06-CA",
+      "period_label": "Juin 2026",
+      "franchise_id": 2,
+      "franchise_name": "Canada",
+      "trips_count": 5280,
+      "gross_fcfa": 23400000,
+      "commission_fcfa": 3510000,
+      "rate_pct": 15,
+      "status": "pending"
+    },
+    {
+      "id": "COM-2026-05-EU",
+      "period_label": "Mai 2026",
+      "franchise_id": 3,
+      "franchise_name": "Espace euro",
+      "trips_count": 6120,
+      "gross_fcfa": 29800000,
+      "commission_fcfa": 4470000,
+      "rate_pct": 15,
+      "status": "paid"
+    },
+    {
+      "id": "COM-2026-06-SN",
+      "period_label": "Juin 2026",
+      "franchise_id": 4,
+      "franchise_name": "Sénégal",
+      "trips_count": 980,
+      "gross_fcfa": 4200000,
+      "commission_fcfa": 630000,
+      "rate_pct": 15,
+      "status": "pending"
     }
   ],
-  "meta": { "total": 3, "per_page": 25, "current_page": 1, "last_page": 1 }
+  "meta": { "total": 6, "per_page": 25, "current_page": 1, "last_page": 1 }
 }

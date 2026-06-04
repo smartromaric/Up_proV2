@@ -1,0 +1,25 @@
+{
+  "1": [
+    {
+      "trip_ref": "TR-88421",
+      "client_name": "Ouattara Koffi",
+      "discount_fcfa": 900,
+      "used_at": "2026-06-02T14:32:00Z"
+    },
+    {
+      "trip_ref": "TR-88398",
+      "client_name": "Bamba Aïcha",
+      "discount_fcfa": 1100,
+      "used_at": "2026-06-01T09:15:00Z"
+    }
+  ],
+  "2": [
+    {
+      "trip_ref": "TR-88405",
+      "client_name": "Société BTP CI",
+      "discount_fcfa": 500,
+      "used_at": "2026-06-02T11:20:00Z"
+    }
+  ],
+  "3": []
+}

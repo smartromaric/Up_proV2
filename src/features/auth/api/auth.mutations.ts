@@ -3,16 +3,24 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/core/auth/authStore";
-import { setAuthCookie } from "@/core/auth/authCookie";
+import { clearAuthCookie, setAuthCookie } from "@/core/auth/authCookie";
+import { AppError } from "@/core/http/errorHandler";
 import { notificationService } from "@/core/http/notificationService";
+import { DASHBOARD_BY_PORTAL } from "@/core/auth/authRoutes";
 import { authService, type LoginPayload } from "./auth.service";
 
-const REDIRECT: Record<LoginPayload["portal"], string> = {
-  admin: "/admin/dashboard",
-  partner: "/partner/dashboard",
-  franchise: "/franchise/dashboard",
-  dispatch: "/dispatch/console",
-};
+export function useLogoutMutation(loginPath: string) {
+  const clearSession = useAuthStore((s) => s.clearSession);
+
+  return useMutation({
+    mutationFn: () => authService.logout(),
+    onSettled: () => {
+      clearSession();
+      clearAuthCookie();
+      window.location.href = loginPath;
+    },
+  });
+}
 
 export function useLoginMutation(portal: LoginPayload["portal"]) {
   const router = useRouter();
@@ -22,13 +30,19 @@ export function useLoginMutation(portal: LoginPayload["portal"]) {
     mutationFn: (payload: Omit<LoginPayload, "portal">) =>
       authService.login({ ...payload, portal }),
     onSuccess: (data) => {
-      setSession(data.token, data.user);
+      setSession(data.token, data.user, data.refreshToken);
       setAuthCookie();
       notificationService.success("Connexion réussie");
-      router.push(REDIRECT[portal]);
+      router.push(DASHBOARD_BY_PORTAL[portal]);
     },
-    onError: () => {
-      notificationService.error("Email ou mot de passe incorrect");
+    onError: (error: unknown) => {
+      const message =
+        error instanceof AppError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Email ou mot de passe incorrect";
+      notificationService.error(message);
     },
   });
 }

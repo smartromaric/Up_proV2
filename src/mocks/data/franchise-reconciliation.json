@@ -1,0 +1,47 @@
+{
+  "data": [
+    {
+      "id": "REC-CI-2026-06-02",
+      "date_label": "02/06/2026",
+      "source": "Orange Money",
+      "partner_id": 12,
+      "partner_name": "Cocody Express",
+      "expected_fcfa": 1250000,
+      "received_fcfa": 1250000,
+      "delta_fcfa": 0,
+      "status": "matched"
+    },
+    {
+      "id": "REC-CI-2026-06-01",
+      "date_label": "01/06/2026",
+      "source": "Cash chauffeurs",
+      "partner_id": 15,
+      "partner_name": "Marcory Fleet",
+      "expected_fcfa": 890000,
+      "received_fcfa": 875000,
+      "delta_fcfa": -15000,
+      "status": "discrepancy"
+    },
+    {
+      "id": "REC-CI-2026-05-31",
+      "date_label": "31/05/2026",
+      "source": "Wallet plateforme",
+      "expected_fcfa": 2100000,
+      "received_fcfa": 2100000,
+      "delta_fcfa": 0,
+      "status": "matched"
+    },
+    {
+      "id": "REC-CI-2026-05-30",
+      "date_label": "30/05/2026",
+      "source": "MTN Money",
+      "partner_id": 12,
+      "partner_name": "Cocody Express",
+      "expected_fcfa": 640000,
+      "received_fcfa": 640000,
+      "delta_fcfa": 0,
+      "status": "pending"
+    }
+  ],
+  "meta": { "total": 4, "per_page": 25, "current_page": 1, "last_page": 1 }
+}

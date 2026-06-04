@@ -3,7 +3,7 @@ export type Scope = "platform" | "franchise" | "owner";
 export type PortalRole = "admin" | "partner" | "franchise" | "dispatch";
 
 export interface User {
-  id: number;
+  id: string | number;
   name: string;
   email: string;
   role: PortalRole;
@@ -18,6 +18,8 @@ export interface User {
 
 export interface AuthSession {
   token: string;
+  /** `session.refresh_token` du login v1 — renouvellement via POST /v1/auth/refresh */
+  refreshToken?: string | null;
   user: User;
 }
 
@@ -67,7 +69,7 @@ export interface TripsListResponse extends Paginated<Trip> {
 export type TripMatchingOutcome = "declined" | "no_response" | "accepted";
 
 export interface TripMatchingDriver {
-  driver_id: number;
+  driver_id: string | number;
   driver_name: string;
   outcome: TripMatchingOutcome;
   /** Raison affichée si refus ou pas de réponse */
@@ -88,7 +90,7 @@ export interface TripDetail extends Trip {
   from_coords?: { lat: number; lng: number };
   to_coords?: { lat: number; lng: number };
   client_phone?: string;
-  driver_id?: number;
+  driver_id?: string | number;
   driver_phone?: string;
   commission_fcfa: number;
   driver_earning_fcfa: number;
@@ -244,7 +246,7 @@ export interface ZoneDetail extends Zone {
 }
 
 export interface Driver {
-  id: number;
+  id: string | number;
   first_name: string;
   last_name: string;
   phone: string;
@@ -289,6 +291,7 @@ export interface DriverTimelineEvent {
 }
 
 export interface DriverDetail extends Driver {
+  driver_code?: string;
   email?: string;
   owner_id?: number;
   registered_at: string;
@@ -329,18 +332,57 @@ export interface Zone {
 
 export type TripService = Trip["service"];
 
+export interface LiveMapActiveTrip {
+  id: string;
+  ref: string;
+  from_label: string;
+  to_label: string;
+  status: string;
+  status_label: string;
+  amount_fcfa?: number;
+  client_name?: string;
+  driver_id?: string;
+}
+
+export interface LiveMapOrderMarker {
+  id: string;
+  order_id: string;
+  lat: number;
+  lng: number;
+  kind: "pickup" | "dropoff";
+  status: string;
+  status_label: string;
+  label: string;
+  ref: string;
+  driver_id?: string;
+  amount_fcfa?: number;
+}
+
+/** Segments pickup → dropoff pour tracés Mapbox */
+export interface LiveMapTripRoute {
+  order_id: string;
+  ref: string;
+  status_label: string;
+  coordinates: [number, number][];
+}
+
 export interface LiveMapDriver {
-  id: number;
+  id: string | number;
   name: string;
   lat: number;
   lng: number;
+  /** Cap véhicule (degrés) — temps réel socket */
+  heading?: number;
+  speed_kmh?: number;
   availability: Driver["availability"];
   vehicle: string;
-  franchise_id?: number;
+  franchise_id?: number | string;
   franchise_name?: string;
-  partner_id?: number;
+  partner_id?: number | string;
   partner_name?: string;
   zone_name?: string;
+  /** Course en cours liée (chauffeur en course) */
+  active_trip?: LiveMapActiveTrip;
 }
 
 export type LiveMapScope = "global" | "franchise" | "partner";
@@ -388,6 +430,11 @@ export interface DispatchConsoleData {
   };
   queue: DispatchQueueItem[];
   map: Pick<LiveMapData, "bounds" | "zone_name" | "city">;
+  filter_options?: TripsScopeFilterOptions;
+  active_filter?: {
+    franchise_id: number | null;
+    partner_id: number | null;
+  };
 }
 
 export interface RolePermissionGroup {
@@ -428,6 +475,8 @@ export interface FranchiseTerritory {
 
 export interface PricingRule {
   id: number;
+  franchise_id: number;
+  franchise_name: string;
   zone_name: string;
   service: Trip["service"];
   base_fare_fcfa: number;
@@ -454,6 +503,10 @@ export interface LiveMapData {
     lng_max: number;
   };
   drivers: LiveMapDriver[];
+  /** Points commandes (pickup / dropoff) — affichés sur Mapbox */
+  order_markers?: LiveMapOrderMarker[];
+  /** Tracés course (pickup → dropoff) */
+  trip_routes?: LiveMapTripRoute[];
   filter_options?: {
     franchises: LiveMapFilterFranchise[];
     partners: LiveMapFilterPartner[];
@@ -469,6 +522,26 @@ export interface LiveMapData {
     drivers_visible: number;
     drivers_active: number;
   }[];
+  /** Config Socket.IO (meta.realtime) — absent en mode mock legacy */
+  realtime?: LiveMapRealtimeConfig | null;
+}
+
+/** meta.realtime — GET /v1/admin/live-map */
+export interface LiveMapRealtimeConfig {
+  transport?: string;
+  url: string;
+  room?: string;
+  event: string;
+  batchIntervalMs?: number;
+  joinPayload?: { room: string };
+  clientOptions?: {
+    reconnection?: boolean;
+    reconnectionAttempts?: number | null;
+    reconnectionDelay?: number;
+    reconnectionDelayMax?: number;
+    timeout?: number;
+    transports?: ("websocket" | "polling")[];
+  };
 }
 
 export interface DashboardPartnerKpi {
@@ -555,7 +628,7 @@ export type PartnerDriverTransferStatus = "completed" | "pending" | "failed";
 export interface PartnerDriverTransfer {
   id: string;
   ref: string;
-  driver_id: number;
+  driver_id: string | number;
   driver_name: string;
   driver_phone: string;
   amount_fcfa: number;
@@ -572,6 +645,18 @@ export interface PartnerDriverRechargeStats {
   month_spent_fcfa: number;
   month_transfers_count: number;
   last_transfer_at?: string;
+}
+
+/** Recharge portefeuille partenaire — vue franchise */
+export interface FranchisePartnerTransfer {
+  id: string;
+  ref: string;
+  partner_id: number;
+  partner_name: string;
+  amount_fcfa: number;
+  status: PartnerDriverTransferStatus;
+  note?: string;
+  created_at: string;
 }
 
 /** Recharge chauffeur — vue plateforme (admin) */
@@ -628,17 +713,31 @@ export interface DashboardAdminFranchiseOption {
   city: string;
 }
 
+export interface DashboardAdminAlert {
+  code: string;
+  severity: "info" | "warning" | "critical";
+  count: number;
+  label: string;
+  href: string;
+}
+
 export interface DashboardAdminKpi {
   selected_franchise_id: number | null;
   franchise_options: DashboardAdminFranchiseOption[];
   net_profit_today_fcfa: number;
   net_profit_trend_pct: number;
+  /** Nombre total de courses du jour (terminées + annulées + en cours) */
+  trips_today: number;
+  trips_today_trend_pct: number;
   trips_completed_today: number;
+  trips_in_progress_today: number;
   trips_cancelled_today: number;
   drivers_approved: number;
   drivers_total: number;
   drivers_pending_kyc: number;
   users_registered: number;
+  /** Clients distincts ayant passé au moins une commande aujourd'hui */
+  clients_ordered_today: number;
   chart_flux: { day: string; revenue: number; commission: number }[];
   recent_trips: Trip[];
   active_zone: {
@@ -660,5 +759,68 @@ export interface DashboardAdminKpi {
     trips_24h: number;
     top_partner_name: string;
     top_zone_name: string;
+  }[];
+  /** Alertes opérationnelles (API v1 — `dashboard.alerts`) */
+  alerts?: DashboardAdminAlert[];
+}
+
+export type FinanceAlertSeverity = "info" | "warning" | "critical";
+
+export interface AdminFinanceDashboard {
+  selected_franchise_id: number | null;
+  franchise_options: DashboardAdminFranchiseOption[];
+  gmv_today_fcfa: number;
+  gmv_today_trend_pct: number;
+  gmv_month_fcfa: number;
+  gmv_month_trend_pct: number;
+  net_margin_month_fcfa: number;
+  net_margin_trend_pct: number;
+  commissions_month_fcfa: number;
+  commissions_trend_pct: number;
+  platform_treasury_fcfa: number;
+  withdrawals_pending_fcfa: number;
+  withdrawals_pending_count: number;
+  avg_trip_fcfa: number;
+  collection_rate_pct: number;
+  reconciliation_gap_fcfa: number;
+  reconciliation_items_open: number;
+  driver_wallets_total_fcfa: number;
+  partner_wallets_total_fcfa: number;
+  client_wallets_total_fcfa: number;
+  take_rate_pct: number;
+  chart_weekly: {
+    day: string;
+    gmv: number;
+    commissions: number;
+    payouts: number;
+  }[];
+  by_franchise: {
+    franchise_id: number;
+    franchise_name: string;
+    city: string;
+    gmv_month_fcfa: number;
+    margin_fcfa: number;
+    share_pct: number;
+  }[];
+  payment_mix: {
+    method: string;
+    label: string;
+    amount_fcfa: number;
+    share_pct: number;
+  }[];
+  alerts: {
+    id: string;
+    severity: FinanceAlertSeverity;
+    title: string;
+    description: string;
+    href?: string;
+  }[];
+  recent_movements: {
+    id: string;
+    label: string;
+    amount_fcfa: number;
+    direction: "credit" | "debit";
+    category: string;
+    created_at: string;
   }[];
 }

@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/http/apiClient";
 import type {
+  FranchisePartnerTransfer,
   PartnerDriverRechargeStats,
   PartnerDriverTransfer,
   Paginated,
@@ -26,6 +27,12 @@ export interface FranchiseDriverRechargePayload {
   note?: string;
 }
 
+export interface FranchisePartnerRechargePayload {
+  partner_id: number;
+  amount_fcfa: number;
+  note?: string;
+}
+
 export const franchiseFinanceService = {
   get: () => apiClient.get<FranchiseFinance>("/franchise/finance"),
 
@@ -47,4 +54,23 @@ export const franchiseFinanceService = {
       finance: FranchiseFinance;
       stats: PartnerDriverRechargeStats;
     }>("/franchise/finance/driver-recharge", payload),
+
+  getPartnerRechargeStats: () =>
+    apiClient.get<PartnerDriverRechargeStats>(
+      "/franchise/finance/partner-transfers/stats"
+    ),
+
+  listPartnerTransfers: (params?: ListParams) =>
+    apiClient.get<Paginated<FranchisePartnerTransfer>>(
+      `/franchise/finance/partner-transfers${buildListQuery(params)}`
+    ),
+
+  rechargePartner: (payload: FranchisePartnerRechargePayload) =>
+    apiClient.post<{
+      ok: boolean;
+      message: string;
+      transfer: FranchisePartnerTransfer;
+      finance: FranchiseFinance;
+      stats: PartnerDriverRechargeStats;
+    }>("/franchise/finance/partner-recharge", payload),
 };

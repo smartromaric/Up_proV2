@@ -17,6 +17,7 @@ import {
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
 import type { PricingRule, TripService } from "@/shared/types";
+import { AdminFranchiseScopeFilter } from "@/features/ops/components/AdminFranchiseScopeFilter";
 import { usePricingList } from "../api/pricing.queries";
 
 const STATUS_FILTERS = [
@@ -40,10 +41,12 @@ export function PricingListPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | PricingRule["status"]>("all");
   const [zoneFilter, setZoneFilter] =
     useState<(typeof ZONE_OPTIONS)[number]["value"]>("all");
+  const [franchiseId, setFranchiseId] = useState<number | null>(null);
 
-  const table = useServerTableState([statusFilter, zoneFilter], {
+  const table = useServerTableState([statusFilter, zoneFilter, franchiseId], {
     status: statusFilter !== "all" ? statusFilter : undefined,
     zone: zoneFilter !== "all" ? zoneFilter : undefined,
+    franchise_id: franchiseId ?? undefined,
   });
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
@@ -51,6 +54,7 @@ export function PricingListPage() {
     fields: [
       { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
       { value: zoneFilter, defaultValue: "all", reset: () => setZoneFilter("all") },
+      { value: franchiseId, defaultValue: null, reset: () => setFranchiseId(null) },
     ],
   });
 
@@ -59,7 +63,19 @@ export function PricingListPage() {
   const rows = data?.data ?? [];
   const meta = data?.meta;
 
+  const filterOptions = data?.filter_options;
+
   const columns: Column<PricingRule>[] = [
+    {
+      id: "franchise",
+      header: "Franchise",
+      cell: (p) => (
+        <div>
+          <p className="text-sm font-medium text-foreground">{p.franchise_name}</p>
+        </div>
+      ),
+      exportValue: (p) => p.franchise_name,
+    },
     {
       id: "zone",
       header: "Zone",
@@ -143,8 +159,8 @@ export function PricingListPage() {
   return (
     <div className="animate-fade-up">
       <PageHeader
-        title="Tarification"
-        breadcrumb={["Admin", "Paramètres"]}
+        title="Tarification par franchise"
+        breadcrumb={["Admin", "Paramètres", "Tarification"]}
         actions={
           <Link href="/admin/settings/pricing/new">
             <Button variant="primary">Nouvelle grille</Button>
@@ -152,10 +168,18 @@ export function PricingListPage() {
         }
       />
 
+      {filterOptions && (
+        <AdminFranchiseScopeFilter
+          options={filterOptions}
+          value={{ franchiseId }}
+          onChange={({ franchiseId: id }) => setFranchiseId(id)}
+        />
+      )}
+
       <TableFiltersBar
         search={table.search}
         onSearchChange={table.setSearch}
-        searchPlaceholder="Rechercher une zone…"
+        searchPlaceholder="Zone, franchise, service…"
         totalLabel={meta ? `${meta.total} grilles tarifaires` : undefined}
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}

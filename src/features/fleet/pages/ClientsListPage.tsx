@@ -15,6 +15,11 @@ import {
 } from "@/shared/hooks/useServerTableState";
 import type { FleetClient } from "../api/clients.service";
 import { useClientsList } from "../api/clients.queries";
+import {
+  getFleetClientsPaths,
+  type FleetClientsPortal,
+} from "../lib/fleetClientsPaths";
+import { useFranchiseClientsList } from "@/features/franchise/api/clients.queries";
 
 const TYPE_FILTERS = [
   { value: "all" as const, label: "Tous" },
@@ -28,7 +33,8 @@ const STATUS_OPTIONS = [
   { value: "suspended" as const, label: "Suspendu" },
 ];
 
-export function ClientsListPage() {
+export function ClientsListPage({ portal = "admin" }: { portal?: FleetClientsPortal }) {
+  const paths = getFleetClientsPaths(portal);
   const [typeFilter, setTypeFilter] = useState<FleetClient["type"] | "all">("all");
   const [statusFilter, setStatusFilter] = useState<FleetClient["status"] | "all">("all");
 
@@ -45,7 +51,10 @@ export function ClientsListPage() {
     ],
   });
 
-  const { data, isLoading, isError } = useClientsList(table.listParams);
+  const adminList = useClientsList(table.listParams);
+  const franchiseList = useFranchiseClientsList(table.listParams);
+  const { data, isLoading, isError } =
+    portal === "franchise" ? franchiseList : adminList;
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
@@ -57,7 +66,7 @@ export function ClientsListPage() {
       cell: (c) => (
         <div>
           <Link
-            href={`/admin/fleet/clients/${c.id}`}
+            href={paths.detail(c.id)}
             className="font-medium text-foreground hover:text-teal"
           >
             {c.full_name}
@@ -119,7 +128,7 @@ export function ClientsListPage() {
 
   return (
     <div className="animate-fade-up">
-      <PageHeader title="Clients" breadcrumb={["Admin", "Flotte"]} />
+      <PageHeader title="Clients" breadcrumb={[...paths.breadcrumbList]} />
 
       <TableFiltersBar
         search={table.search}

@@ -1,0 +1,43 @@
+{
+  "data": [
+    {
+      "id": "CH-201",
+      "participant_name": "Aya Traoré",
+      "participant_type": "client",
+      "subject": "Course TR-90211",
+      "last_message_preview": "Merci, le chauffeur est bien passé.",
+      "unread_count": 0,
+      "status": "open",
+      "updated_at": "2026-06-02T12:10:00Z"
+    },
+    {
+      "id": "CH-198",
+      "participant_name": "Koné Ibrahim",
+      "participant_type": "driver",
+      "subject": "Wallet",
+      "last_message_preview": "Quand le virement sera crédité ?",
+      "unread_count": 2,
+      "status": "open",
+      "updated_at": "2026-06-02T11:45:00Z"
+    },
+    {
+      "id": "CH-195",
+      "participant_name": "Cocody Express",
+      "participant_type": "partner",
+      "last_message_preview": "Besoin d'un point sur les commissions mai.",
+      "unread_count": 1,
+      "status": "open",
+      "updated_at": "2026-06-02T09:30:00Z"
+    },
+    {
+      "id": "CH-190",
+      "participant_name": "M. Bamba",
+      "participant_type": "client",
+      "last_message_preview": "Conversation clôturée — problème résolu.",
+      "unread_count": 0,
+      "status": "closed",
+      "updated_at": "2026-05-30T18:00:00Z"
+    }
+  ],
+  "meta": { "total": 4, "per_page": 25, "current_page": 1, "last_page": 1 }
+}

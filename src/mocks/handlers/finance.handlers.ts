@@ -8,6 +8,12 @@ import {
   filterTransactions,
 } from "../lib/transactionsCatalog";
 import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
+import { buildAdminFinanceDashboard } from "../lib/adminFinanceDashboardBuilder";
+import { getTripsScopeFilterOptions } from "../lib/tripsScope";
+import type {
+  CommissionRow,
+  CommissionsListResponse,
+} from "@/features/finance/api/commissions.service";
 import type {
   PlatformDriverRechargeStats,
   PlatformDriverTransfer,
@@ -50,6 +56,17 @@ function filterWallets(rows: typeof financeWallets.data, query: ReturnType<typeo
 }
 
 export const financeHandlers = [
+  http.get("*/api/v2/admin/finance/dashboard", ({ request }) => {
+    const url = new URL(request.url);
+    const raw = url.searchParams.get("franchise_id");
+    const franchiseId = raw ? Number(raw) : null;
+    return HttpResponse.json(
+      buildAdminFinanceDashboard(
+        franchiseId != null && Number.isFinite(franchiseId) ? franchiseId : null
+      )
+    );
+  }),
+
   http.get("*/api/v2/admin/finance/transactions", ({ request }) => {
     const query = parseListQuery(request);
     const filtered = filterTransactions(TRANSACTIONS_CATALOG, query);
@@ -64,13 +81,20 @@ export const financeHandlers = [
 
   http.get("*/api/v2/admin/finance/commissions", ({ request }) => {
     const query = parseListQuery(request);
-    let filtered = financeCommissions.data.filter((c) =>
-      matchesSearch(query.search, c.franchise_name, c.period_label)
+    let filtered = (financeCommissions.data as CommissionRow[]).filter((c) =>
+      matchesSearch(query.search, c.franchise_name, c.period_label, c.id)
     );
     if (query.status) {
       filtered = filtered.filter((c) => c.status === query.status);
     }
-    return HttpResponse.json(paginatedList(filtered, query));
+    if (query.franchise_id != null) {
+      filtered = filtered.filter((c) => c.franchise_id === query.franchise_id);
+    }
+    const body: CommissionsListResponse = {
+      ...paginatedList(filtered, query),
+      filter_options: getTripsScopeFilterOptions(),
+    };
+    return HttpResponse.json(body);
   }),
 
   http.get("*/api/v2/admin/finance/reconciliation", ({ request }) => {

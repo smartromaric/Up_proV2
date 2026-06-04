@@ -5,7 +5,15 @@ import { Button } from "@/shared/ui/Button";
 import { ZoneTypePill } from "@/shared/ui/ZoneTypePill";
 import type { ZoneMapItem } from "@/features/network/components/AbidjanZonesMap";
 
+export interface PricingFranchiseOption {
+  id: number;
+  name: string;
+  city: string;
+}
+
 export interface PricingFormValues {
+  franchise_id: number | null;
+  franchise_name?: string;
   zone_id: number | null;
   zone_name: string;
   service: PricingRule["service"];
@@ -19,6 +27,8 @@ export interface PricingFormValues {
 interface PricingFormProps {
   values: PricingFormValues;
   selectedZone?: ZoneMapItem | null;
+  franchiseOptions?: PricingFranchiseOption[];
+  hideFranchise?: boolean;
   mode?: "create" | "edit";
   onChange: (values: PricingFormValues) => void;
   onSubmit: () => void;
@@ -29,6 +39,8 @@ interface PricingFormProps {
 export function PricingForm({
   values,
   selectedZone = null,
+  franchiseOptions = [],
+  hideFranchise = false,
   mode = "create",
   onChange,
   onSubmit,
@@ -46,6 +58,36 @@ export function PricingForm({
         onSubmit();
       }}
     >
+      {!hideFranchise && (
+      <div className="block">
+        <span className="text-sm font-medium">Franchise</span>
+        {mode === "edit" ? (
+          <p className="mt-2 rounded-lg border border-border bg-canvas px-3 py-2.5 text-sm font-medium text-foreground">
+            {values.franchise_name ??
+              franchiseOptions.find((f) => f.id === values.franchise_id)?.name ??
+              "Franchise"}
+          </p>
+        ) : (
+          <select
+            required
+            value={values.franchise_id ?? ""}
+            onChange={(e) => {
+              const id = e.target.value ? Number(e.target.value) : null;
+              set({ franchise_id: id, zone_id: null, zone_name: "" });
+            }}
+            className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
+          >
+            <option value="">Choisir une franchise</option>
+            {franchiseOptions.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name} · {f.city}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      )}
+
       <div className="block">
         <span className="text-sm font-medium">Zone</span>
         {mode === "edit" ? (
@@ -153,7 +195,8 @@ export function PricingForm({
           type="submit"
           disabled={
             isSubmitting ||
-            (mode === "create" && (!selectedZone || !values.zone_name.trim()))
+            (mode === "create" &&
+              (!values.franchise_id || !selectedZone || !values.zone_name.trim()))
           }
         >
           {isSubmitting

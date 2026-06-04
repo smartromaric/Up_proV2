@@ -99,7 +99,7 @@ export function PartnerRecurringBookingsPage() {
   if (isError) {
     return (
       <p className="text-sm text-red-600">
-        Impossible de charger les réservations récurrentes.
+        Impossible de charger les courses récurrentes.
       </p>
     );
   }
@@ -107,15 +107,15 @@ export function PartnerRecurringBookingsPage() {
   return (
     <div className="animate-fade-up">
       <PageHeader
-        title="Réservations récurrentes"
-        breadcrumb={["Partenaire", "Activité"]}
+        title="Courses récurrentes"
+        breadcrumb={["Partenaire", "Courses", "Récurrentes"]}
       />
 
       <TableFiltersBar
         search={table.search}
         onSearchChange={table.setSearch}
         searchPlaceholder="Client, trajet…"
-        totalLabel={meta ? `${meta.total} réservations récurrentes` : undefined}
+        totalLabel={meta ? `${meta.total} courses récurrentes` : undefined}
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
       />
@@ -126,7 +126,7 @@ export function PartnerRecurringBookingsPage() {
         rowKey={(b) => b.id}
         isLoading={isLoading}
         exportFileName="reservations-recurrentes"
-        emptyTitle="Aucune réservation récurrente"
+        emptyTitle="Aucune course récurrente"
         pagination={false}
         serverPagination={serverPaginationFromMeta(
           meta,

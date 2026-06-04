@@ -88,6 +88,12 @@ export const ADMIN_NAV: NavGroup[] = [
     group: "FINANCE",
     items: [
       {
+        label: "Finance générale",
+        path: "/admin/finance",
+        icon: "finance",
+        permission: "finance.transactions.view",
+      },
+      {
         label: "Transactions",
         path: "/admin/finance/transactions",
         icon: "transactions",

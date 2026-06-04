@@ -1,10 +1,12 @@
 import { PortalSidebar } from "@/portals/shared/PortalSidebar";
 import { PortalTopbar } from "@/portals/shared/PortalTopbar";
+import { FranchiseChatSoundListener } from "@/features/support/components/FranchiseChatSoundListener";
 import { FRANCHISE_NAV } from "./franchiseNav";
 
 export function FranchiseShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-canvas">
+      <FranchiseChatSoundListener />
       <PortalSidebar nav={FRANCHISE_NAV} subtitle="Franchise" />
       <div className="flex min-w-0 flex-1 flex-col">
         <PortalTopbar

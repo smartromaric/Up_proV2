@@ -8,12 +8,13 @@ import {
   dispatchPortalService,
   type DispatchBookPayload,
 } from "./dispatchPortal.service";
+import type { DispatchScopeFiltersValue } from "@/features/ops/api/dispatchScope.types";
 
-export function useDispatchPortalConsole() {
+export function useDispatchPortalConsole(scope?: DispatchScopeFiltersValue) {
   const scopeKey = useScopeQueryKey();
   return useQuery({
-    queryKey: dispatchPortalKeys.console(scopeKey),
-    queryFn: () => dispatchPortalService.getConsole(),
+    queryKey: dispatchPortalKeys.console(scopeKey, scope),
+    queryFn: () => dispatchPortalService.getConsole(scope),
     refetchInterval: 15_000,
   });
 }

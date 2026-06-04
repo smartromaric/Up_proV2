@@ -208,9 +208,13 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
           }
         />
         <p className="mt-1 text-sm text-muted">
+          {driver.driver_code ? (
+            <span className="font-medium text-foreground">{driver.driver_code}</span>
+          ) : null}
+          {driver.driver_code ? " · " : ""}
           {driver.phone}
-          {driver.email ? ` · ${driver.email}` : ""} · {driver.zone} ·{" "}
-          {driver.owner_name}
+          {driver.email ? ` · ${driver.email}` : ""} · {driver.zone}
+          {driver.owner_name ? ` · ${driver.owner_name}` : ""}
         </p>
       </div>
 

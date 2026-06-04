@@ -1,44 +1,27 @@
 import { http, HttpResponse } from "msw";
-import dispatchConsoleSeed from "../data/dispatch-console.json";
-import {
-  buildLocalAbidjanLiveMap,
-  getLiveMapCatalogDrivers,
-} from "../lib/liveMapBuilder";
+import { buildLocalAbidjanLiveMap, getLiveMapCatalogDrivers } from "../lib/liveMapBuilder";
+import { buildDispatchConsole } from "../lib/dispatchConsoleBuilder";
+import { TRIPS_CATALOG } from "../lib/tripsCatalog";
 import tripsListSeed from "../data/trips-list.json";
-import type { DispatchConsoleData, DispatchQueueItem, Trip } from "@/shared/types";
+import type { DispatchConsoleData, Trip } from "@/shared/types";
 
 type TripsListResponse = { data: Trip[]; meta: typeof tripsListSeed.meta };
 
 let dispatchTripsState: TripsListResponse = {
-  data: tripsListSeed.data as Trip[],
+  data: TRIPS_CATALOG,
   meta: tripsListSeed.meta,
 };
 
-function buildDispatchQueue(): DispatchQueueItem[] {
-  const pending = dispatchTripsState.data.filter((t) =>
-    ["matching", "requested"].includes(t.status)
-  );
-  return dispatchConsoleSeed.queue
-    .filter((item) => pending.some((t) => t.id === item.trip.id))
-    .map((item) => {
-      const trip = dispatchTripsState.data.find((t) => t.id === item.trip.id);
-      return trip ? { ...item, trip } : item;
-    }) as DispatchQueueItem[];
-}
-
-function dispatchConsoleResponse(): DispatchConsoleData {
-  const queue = buildDispatchQueue();
-  const localMap = buildLocalAbidjanLiveMap();
-  const online = localMap.drivers.filter((d) => d.availability === "online").length;
-  return {
-    stats: {
-      queue_size: queue.length,
-      online_nearby: online,
-      avg_wait_min: dispatchConsoleSeed.stats.avg_wait_min,
-    },
-    queue,
-    map: dispatchConsoleSeed.map,
-  };
+function dispatchConsoleResponse(request: Request): DispatchConsoleData {
+  const url = new URL(request.url);
+  const franchiseId = url.searchParams.get("franchise_id");
+  const partnerId = url.searchParams.get("partner_id");
+  return buildDispatchConsole({
+    trips: dispatchTripsState.data,
+    franchiseId: franchiseId ? Number(franchiseId) : null,
+    partnerId: partnerId ? Number(partnerId) : null,
+    includeFilterOptions: true,
+  });
 }
 
 const driverNames: Record<number, string> = Object.fromEntries(
@@ -51,8 +34,8 @@ function nextTripRef(): string {
 }
 
 export const dispatchHandlers = [
-  http.get("*/api/v2/dispatch/ops/console", () => {
-    return HttpResponse.json(dispatchConsoleResponse());
+  http.get("*/api/v2/dispatch/ops/console", ({ request }) => {
+    return HttpResponse.json(dispatchConsoleResponse(request));
   }),
 
   http.get("*/api/v2/dispatch/ops/map", () => {

@@ -1,5 +1,9 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { DispatchConsoleData, LiveMapData, Trip } from "@/shared/types";
+import {
+  dispatchScopeQueryParams,
+  type DispatchScopeFiltersValue,
+} from "@/features/ops/api/dispatchScope.types";
 
 export interface DispatchBookPayload {
   from_label: string;
@@ -16,8 +20,10 @@ export interface DispatchBookPayload {
 }
 
 export const dispatchPortalService = {
-  getConsole: () =>
-    apiClient.get<DispatchConsoleData>("/dispatch/ops/console"),
+  getConsole: (scope?: DispatchScopeFiltersValue) =>
+    apiClient.get<DispatchConsoleData>(
+      `/dispatch/ops/console${scope ? dispatchScopeQueryParams(scope) : ""}`
+    ),
 
   assignDriver: (tripId: string, driverId: number) =>
     apiClient.post<Trip>(`/dispatch/ops/trips/${tripId}/assign`, {

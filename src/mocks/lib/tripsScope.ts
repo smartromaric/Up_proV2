@@ -22,6 +22,8 @@ const DRIVER_PARTNER: Record<string, number> = {
   "Bamba Serge": 15,
 };
 
+const FRANCHISE_TERRITORY_ID = 1;
+
 export function getTripsScopeFilterOptions(): NonNullable<LiveMapData["filter_options"]> {
   return {
     franchises: FRANCHISES.map((f) => ({
@@ -51,6 +53,17 @@ export function enrichTripWithScope(trip: Trip, index: number): Trip {
     franchise_name: partner.franchise_name,
     partner_id: partner.id,
     partner_name: partner.name,
+  };
+}
+
+/** Partenaires du territoire franchise (ex. Côte d'Ivoire) pour filtres courses / carte */
+export function getFranchiseTripsFilterOptions(): NonNullable<
+  LiveMapData["filter_options"]
+> {
+  const all = getTripsScopeFilterOptions();
+  return {
+    franchises: [],
+    partners: all.partners.filter((p) => p.franchise_id === FRANCHISE_TERRITORY_ID),
   };
 }
 

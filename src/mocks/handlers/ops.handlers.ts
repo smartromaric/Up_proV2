@@ -9,47 +9,26 @@ import {
   buildLocalAbidjanLiveMap,
   getLiveMapCatalogDrivers,
 } from "../lib/liveMapBuilder";
-import dispatchConsoleSeed from "../data/dispatch-console.json";
+import { buildDispatchConsole } from "../lib/dispatchConsoleBuilder";
 import tripForensic from "../data/trip-forensic.json";
 import crisisModeSeed from "../data/crisis-mode.json";
-import type {
-  DispatchConsoleData,
-  DispatchQueueItem,
-  Paginated,
-  Trip,
-  TripsListResponse,
-} from "@/shared/types";
+import type { DispatchConsoleData, Paginated, Trip, TripsListResponse } from "@/shared/types";
 
 let tripsState: Paginated<Trip> = {
   data: TRIPS_CATALOG,
   meta: tripsListSeed.meta,
 };
 
-function buildDispatchQueue(): DispatchQueueItem[] {
-  const pending = tripsState.data.filter((t) =>
-    ["matching", "requested"].includes(t.status)
-  );
-  return dispatchConsoleSeed.queue
-    .filter((item) => pending.some((t) => t.id === item.trip.id))
-    .map((item) => {
-      const trip = tripsState.data.find((t) => t.id === item.trip.id);
-      return trip ? { ...item, trip } : item;
-    }) as DispatchQueueItem[];
-}
-
-function dispatchConsoleResponse(): DispatchConsoleData {
-  const queue = buildDispatchQueue();
-  const localMap = buildLocalAbidjanLiveMap();
-  const online = localMap.drivers.filter((d) => d.availability === "online").length;
-  return {
-    stats: {
-      queue_size: queue.length,
-      online_nearby: online,
-      avg_wait_min: dispatchConsoleSeed.stats.avg_wait_min,
-    },
-    queue,
-    map: dispatchConsoleSeed.map,
-  };
+function dispatchConsoleResponse(request: Request): DispatchConsoleData {
+  const url = new URL(request.url);
+  const franchiseId = url.searchParams.get("franchise_id");
+  const partnerId = url.searchParams.get("partner_id");
+  return buildDispatchConsole({
+    trips: tripsState.data,
+    franchiseId: franchiseId ? Number(franchiseId) : null,
+    partnerId: partnerId ? Number(partnerId) : null,
+    includeFilterOptions: true,
+  });
 }
 
 const driverNames: Record<number, string> = Object.fromEntries(
@@ -83,6 +62,79 @@ export const opsHandlers = [
     return HttpResponse.json({ ...tripDetail, id });
   }),
 
+  http.get("*/v1/admin/live-map", ({ request }) => {
+    const url = new URL(request.url);
+    const legacy = buildAdminLiveMap({
+      franchise_id: url.searchParams.get("franchise_id"),
+      partner_id: url.searchParams.get("partner_id"),
+    });
+    return HttpResponse.json({
+      status: "ok",
+      generatedAt: new Date().toISOString(),
+      meta: {
+        onlineInDatabase: legacy.stats.drivers_online,
+        withRecentLocation: legacy.drivers.length,
+        includeWithoutLocation: true,
+      },
+      drivers: legacy.drivers.map((d) => ({
+        id: String(d.id),
+        availabilityStatus: d.availability,
+        profile: { displayName: d.name },
+        vehicleLabel: d.vehicle,
+        franchiseId: d.franchise_id != null ? String(d.franchise_id) : null,
+        franchiseName: d.franchise_name,
+        partnerId: d.partner_id != null ? String(d.partner_id) : null,
+        partnerName: d.partner_name,
+        zoneName: d.zone_name,
+        location: { lat: d.lat, lng: d.lng },
+      })),
+      orders: {
+        rides: [
+          {
+            id: "9001",
+            order_reference: "TR-88421",
+            status: "in_progress",
+            driver_id: "101",
+            pickup_address: "Cocody Angré",
+            dropoff_address: "Plateau",
+            pickup_latitude: 5.359,
+            pickup_longitude: -3.987,
+            dropoff_latitude: 5.322,
+            dropoff_longitude: -4.018,
+            estimated_price_xof: 3500,
+          },
+          {
+            id: "9002",
+            order_reference: "TR-90215",
+            status: "accepted",
+            driver_id: "105",
+            pickup_address: "Marcory Zone 4",
+            dropoff_address: "Treichville",
+            pickup_latitude: 5.348,
+            pickup_longitude: -4.008,
+            dropoff_latitude: 5.301,
+            dropoff_longitude: -4.012,
+            estimated_price_xof: 2800,
+          },
+          {
+            id: "9003",
+            order_reference: "TR-91002",
+            status: "arrived",
+            driver_id: "109",
+            pickup_address: "Aéroport FHB",
+            dropoff_address: "Cocody Riviera",
+            pickup_latitude: 5.351,
+            pickup_longitude: -4.015,
+            dropoff_latitude: 5.365,
+            dropoff_longitude: -3.978,
+            estimated_price_xof: 5200,
+          },
+        ],
+        deliveries: [],
+      },
+    });
+  }),
+
   http.get("*/api/v2/admin/ops/map", ({ request }) => {
     const url = new URL(request.url);
     return HttpResponse.json(
@@ -93,8 +145,8 @@ export const opsHandlers = [
     );
   }),
 
-  http.get("*/api/v2/admin/ops/dispatch", () => {
-    return HttpResponse.json(dispatchConsoleResponse());
+  http.get("*/api/v2/admin/ops/dispatch", ({ request }) => {
+    return HttpResponse.json(dispatchConsoleResponse(request));
   }),
 
   http.post("*/api/v2/admin/ops/dispatch/trips/:id/assign", async ({ params, request }) => {

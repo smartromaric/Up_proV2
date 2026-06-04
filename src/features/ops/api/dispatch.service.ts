@@ -1,8 +1,15 @@
 import { apiClient } from "@/core/http/apiClient";
 import type { DispatchConsoleData, Trip } from "@/shared/types";
+import {
+  dispatchScopeQueryParams,
+  type DispatchScopeFiltersValue,
+} from "./dispatchScope.types";
 
 export const dispatchService = {
-  getConsole: () => apiClient.get<DispatchConsoleData>("/admin/ops/dispatch"),
+  getConsole: (scope?: DispatchScopeFiltersValue) =>
+    apiClient.get<DispatchConsoleData>(
+      `/admin/ops/dispatch${scope ? dispatchScopeQueryParams(scope) : ""}`
+    ),
 
   assignDriver: (tripId: string, driverId: number) =>
     apiClient.post<{ ok: boolean; trip: Trip; message: string }>(

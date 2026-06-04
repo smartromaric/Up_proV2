@@ -16,6 +16,8 @@ export function FranchiseCreatePage() {
   const [status, setStatus] = useState<Franchise["status"]>("pending");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminPasswordConfirm, setAdminPasswordConfirm] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
 
   const submit = () => {
@@ -24,6 +26,12 @@ export function FranchiseCreatePage() {
     if (!city.trim()) next.push("La ville est requise.");
     if (!contactEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
       next.push("Un email de contact valide est requis.");
+    }
+    if (adminPassword.length < 8) {
+      next.push("Le mot de passe admin doit contenir au moins 8 caractères.");
+    }
+    if (adminPassword !== adminPasswordConfirm) {
+      next.push("Les mots de passe ne correspondent pas.");
     }
     setErrors(next);
     if (next.length) return;
@@ -35,6 +43,7 @@ export function FranchiseCreatePage() {
         status,
         contact_email: contactEmail.trim(),
         contact_phone: contactPhone.trim(),
+        admin_password: adminPassword,
       },
       {
         onSuccess: (data) => {
@@ -107,6 +116,38 @@ export function FranchiseCreatePage() {
             className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
           />
         </label>
+        <fieldset className="space-y-4 rounded-lg border border-border bg-canvas/50 p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
+            Accès portail franchise
+          </legend>
+          <p className="text-xs text-muted">
+            L&apos;email de contact servira d&apos;identifiant de connexion. Le mot de passe
+            est transmis une seule fois à la création (mock).
+          </p>
+          <label className="block">
+            <span className="text-sm font-medium">Mot de passe admin</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              minLength={8}
+              className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
+              required
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">Confirmer le mot de passe</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={adminPasswordConfirm}
+              onChange={(e) => setAdminPasswordConfirm(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
+              required
+            />
+          </label>
+        </fieldset>
         <label className="block">
           <span className="text-sm font-medium">Statut initial</span>
           <select

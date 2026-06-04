@@ -1,0 +1,65 @@
+{
+  "data": [
+    {
+      "id": "COM-P12-2026-06",
+      "partner_id": 12,
+      "partner_name": "Cocody Express",
+      "partner_city": "Abidjan",
+      "period_label": "Juin 2026",
+      "trips_count": 4820,
+      "gross_fcfa": 22100000,
+      "commission_fcfa": 3315000,
+      "rate_pct": 15,
+      "status": "pending"
+    },
+    {
+      "id": "COM-P12-2026-05",
+      "partner_id": 12,
+      "partner_name": "Cocody Express",
+      "partner_city": "Abidjan",
+      "period_label": "Mai 2026",
+      "trips_count": 4510,
+      "gross_fcfa": 20800000,
+      "commission_fcfa": 3120000,
+      "rate_pct": 15,
+      "status": "paid"
+    },
+    {
+      "id": "COM-P15-2026-06",
+      "partner_id": 15,
+      "partner_name": "Marcory Fleet",
+      "partner_city": "Abidjan",
+      "period_label": "Juin 2026",
+      "trips_count": 2140,
+      "gross_fcfa": 9850000,
+      "commission_fcfa": 1477500,
+      "rate_pct": 15,
+      "status": "pending"
+    },
+    {
+      "id": "COM-P15-2026-05",
+      "partner_id": 15,
+      "partner_name": "Marcory Fleet",
+      "partner_city": "Abidjan",
+      "period_label": "Mai 2026",
+      "trips_count": 1980,
+      "gross_fcfa": 9120000,
+      "commission_fcfa": 1368000,
+      "rate_pct": 15,
+      "status": "paid"
+    },
+    {
+      "id": "COM-P18-2026-05",
+      "partner_id": 18,
+      "partner_name": "Riviera Mobility",
+      "partner_city": "Abidjan",
+      "period_label": "Mai 2026",
+      "trips_count": 120,
+      "gross_fcfa": 540000,
+      "commission_fcfa": 81000,
+      "rate_pct": 15,
+      "status": "paid"
+    }
+  ],
+  "meta": { "total": 5, "per_page": 25, "current_page": 1, "last_page": 1 }
+}

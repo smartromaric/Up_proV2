@@ -15,16 +15,26 @@ async function request<T>(
   const response = await fetchClient(endpoint, init);
 
   if (!response.ok) {
-    let body: { message?: string; code?: string; details?: unknown } = {};
+    let body: {
+      message?: string;
+      code?: string;
+      details?: unknown;
+      error?: { message?: string; code?: string };
+    } = {};
     try {
       body = await response.json();
     } catch {
       body = { message: response.statusText };
     }
+    const apiMessage =
+      body.message ??
+      body.error?.message ??
+      `Erreur ${response.status}`;
+    const apiCode = body.code ?? body.error?.code;
     throw new ApiError(response.status, {
-      message: body.message ?? `Erreur ${response.status}`,
-      code: body.code,
-      details: body.details,
+      message: apiMessage,
+      code: apiCode,
+      details: body.details ?? body.error,
       status: response.status,
     });
   }

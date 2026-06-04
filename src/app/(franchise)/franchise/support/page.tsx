@@ -1,5 +1,5 @@
-import { FranchiseSupportPage } from "@/features/franchise/pages/FranchiseSupportPage";
+import { FranchiseSupportTicketsPage } from "@/features/franchise/pages/FranchiseSupportTicketsPage";
 
 export default function Page() {
-  return <FranchiseSupportPage />;
+  return <FranchiseSupportTicketsPage />;
 }

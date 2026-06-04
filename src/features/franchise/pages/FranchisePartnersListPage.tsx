@@ -97,7 +97,7 @@ export function FranchisePartnersListPage() {
   return (
     <div className="animate-fade-up">
       <PageHeader
-        title="Sous-partenaires"
+        title="Partenaires"
         breadcrumb={["Franchise", "Réseau"]}
       />
 
@@ -124,7 +124,7 @@ export function FranchisePartnersListPage() {
         data={rows}
         rowKey={(p) => p.id}
         isLoading={isLoading}
-        exportFileName="sous-partenaires-franchise"
+        exportFileName="partenaires-franchise"
         emptyTitle="Aucun partenaire"
         pagination={false}
         serverPagination={serverPaginationFromMeta(

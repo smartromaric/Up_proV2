@@ -35,6 +35,9 @@ export function isNavItemActive(pathname: string, itemPath: string): boolean {
   if (itemPath === "/partner/wallet/driver-transfers") {
     return pathname.startsWith("/partner/wallet/driver-transfers");
   }
+  if (itemPath === "/partner/support/chat") {
+    return pathname.startsWith("/partner/support/chat");
+  }
 
   // ——— Franchise ———
   if (itemPath === "/franchise/drivers") {
@@ -49,13 +52,75 @@ export function isNavItemActive(pathname: string, itemPath: string): boolean {
       /^\/franchise\/partners\/\d+$/.test(pathname)
     );
   }
+  if (itemPath === "/franchise/clients") {
+    return (
+      pathname === "/franchise/clients" ||
+      /^\/franchise\/clients\/\d+$/.test(pathname)
+    );
+  }
+  if (itemPath === "/franchise/drivers/moderation") {
+    return pathname === "/franchise/drivers/moderation";
+  }
   if (itemPath === "/franchise/map") {
     return pathname === "/franchise/map";
+  }
+  if (itemPath === "/franchise/trips") {
+    return (
+      pathname === "/franchise/trips" ||
+      /^\/franchise\/trips\/[^/]+$/.test(pathname)
+    );
+  }
+  if (itemPath === "/franchise/dispatch") {
+    return pathname === "/franchise/dispatch";
+  }
+  if (itemPath === "/franchise/support") {
+    return (
+      pathname === "/franchise/support" ||
+      pathname.startsWith("/franchise/support/tickets")
+    );
+  }
+  if (itemPath === "/franchise/support/chat") {
+    return pathname.startsWith("/franchise/support/chat");
+  }
+  if (itemPath === "/franchise/promos") {
+    return (
+      pathname === "/franchise/promos" ||
+      pathname === "/franchise/promos/new" ||
+      /^\/franchise\/promos\/\d+$/.test(pathname)
+    );
+  }
+  if (itemPath === "/franchise/finance/commissions") {
+    return pathname === "/franchise/finance/commissions";
+  }
+  if (itemPath === "/franchise/finance/reconciliation") {
+    return pathname === "/franchise/finance/reconciliation";
+  }
+  if (itemPath === "/franchise/marketing/campaigns") {
+    return (
+      pathname === "/franchise/marketing/campaigns" ||
+      pathname === "/franchise/marketing/campaigns/new"
+    );
+  }
+  if (itemPath === "/franchise/marketing/banners") {
+    return (
+      pathname === "/franchise/marketing/banners" ||
+      pathname === "/franchise/marketing/banners/new"
+    );
+  }
+  if (itemPath === "/franchise/finance/partner-transfers") {
+    return pathname.startsWith("/franchise/finance/partner-transfers");
   }
   if (itemPath === "/franchise/territory") {
     return (
       pathname === "/franchise/territory" &&
       !pathname.startsWith("/franchise/territory/extension")
+    );
+  }
+  if (itemPath === "/franchise/pricing") {
+    return (
+      pathname === "/franchise/pricing" ||
+      pathname === "/franchise/pricing/new" ||
+      /^\/franchise\/pricing\/\d+$/.test(pathname)
     );
   }
   if (itemPath === "/franchise/finance") {
@@ -104,6 +169,9 @@ export function isNavItemActive(pathname: string, itemPath: string): boolean {
       pathname === "/admin/network/partners" ||
       /^\/admin\/network\/partners\/\d+$/.test(pathname)
     );
+  }
+  if (itemPath === "/admin/finance") {
+    return pathname === "/admin/finance";
   }
   if (itemPath === "/admin/finance/driver-transfers") {
     return pathname.startsWith("/admin/finance/driver-transfers");
