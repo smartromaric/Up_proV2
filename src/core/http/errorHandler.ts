@@ -5,6 +5,28 @@ export interface ErrorResponse {
   status?: number;
 }
 
+const API_ERROR_MESSAGES_FR: Record<string, string> = {
+  AUTH_LOGIN_FAILED: "Email ou mot de passe incorrect.",
+};
+
+const API_MESSAGE_ALIASES_FR: Record<string, string> = {
+  "Invalid login credentials": "Email ou mot de passe incorrect.",
+};
+
+/** Message affiché à l'utilisateur (français) à partir du code ou message API brut. */
+export function resolveUserFacingMessage(
+  code: string | undefined,
+  message: string
+): string {
+  if (code && API_ERROR_MESSAGES_FR[code]) {
+    return API_ERROR_MESSAGES_FR[code];
+  }
+  if (API_MESSAGE_ALIASES_FR[message]) {
+    return API_MESSAGE_ALIASES_FR[message];
+  }
+  return message;
+}
+
 export class AppError extends Error {
   public code: string;
   public status: number;

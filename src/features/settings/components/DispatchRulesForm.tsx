@@ -29,11 +29,12 @@ export function DispatchRulesForm({
 }: DispatchRulesFormProps) {
   const set = (patch: Partial<DispatchRules>) => onChange({ ...values, ...patch });
 
-  const toggleZone = (zoneId: number) => {
-    const has = values.active_zone_ids.includes(zoneId);
+  const toggleZone = (zoneId: number | string) => {
+    const key = String(zoneId);
+    const has = values.active_zone_ids.some((id) => String(id) === key);
     set({
       active_zone_ids: has
-        ? values.active_zone_ids.filter((id) => id !== zoneId)
+        ? values.active_zone_ids.filter((id) => String(id) !== key)
         : [...values.active_zone_ids, zoneId],
     });
   };
@@ -129,7 +130,7 @@ export function DispatchRulesForm({
             >
               <input
                 type="checkbox"
-                checked={values.active_zone_ids.includes(z.id)}
+                checked={values.active_zone_ids.some((id) => String(id) === String(z.id))}
                 onChange={() => toggleZone(z.id)}
                 className="h-4 w-4 rounded border-border text-teal"
               />

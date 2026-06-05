@@ -10,8 +10,11 @@ export interface ListParams {
   account_status?: string;
   type?: string;
   service?: string;
-  franchise_id?: number;
-  partner_id?: number;
+  franchise_id?: number | string;
+  partner_id?: number | string;
+  /** Plage de dates (YYYY-MM-DD) — envoyée à l’API v1 en `dateFrom` / `dateTo`. */
+  date_from?: string;
+  date_to?: string;
 }
 
 export function buildListQuery(params?: ListParams): string {
@@ -33,6 +36,8 @@ export function buildListQuery(params?: ListParams): string {
   if (params.service && params.service !== "all") qs.set("service", params.service);
   if (params.franchise_id != null) qs.set("franchise_id", String(params.franchise_id));
   if (params.partner_id != null) qs.set("partner_id", String(params.partner_id));
+  if (params.date_from?.trim()) qs.set("date_from", params.date_from.trim());
+  if (params.date_to?.trim()) qs.set("date_to", params.date_to.trim());
   const s = qs.toString();
   return s ? `?${s}` : "";
 }

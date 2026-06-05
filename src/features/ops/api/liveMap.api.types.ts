@@ -51,9 +51,22 @@ export interface ApiLiveMapDriver {
   isTracked?: boolean;
 }
 
+export interface ApiLiveMapOrderParty {
+  id?: string;
+  displayName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
 export interface ApiLiveMapOrderBase {
   id: string;
   order_reference?: string | null;
+  client_id?: string | null;
+  client?: ApiLiveMapOrderParty | null;
+  driver?: ApiLiveMapOrderParty | null;
+  partnerName?: string | null;
+  franchiseName?: string | null;
+  franchise_id?: string | null;
   status?: string;
   service_type?: string;
   pickup_address?: string | null;

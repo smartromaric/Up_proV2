@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 
 import Link from "next/link";
 
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import { PageHeader } from "@/shared/ui/PageHeader";
 
 import { Button } from "@/shared/ui/Button";
@@ -25,6 +26,23 @@ import { AbidjanZonesMap } from "../components/AbidjanZonesMap";
 export function ZoneCreatePage() {
 
   const router = useRouter();
+  const legacyApi = useLegacyAdminApi();
+
+  if (!legacyApi) {
+    return (
+      <div className="animate-fade-up mx-auto max-w-lg px-4 py-10 text-center">
+        <p className="text-sm text-muted">
+          La création de zone via l&apos;API v1 n&apos;est pas encore disponible.
+        </p>
+        <Link
+          href="/admin/network/zones"
+          className="mt-4 inline-block text-sm text-teal hover:underline"
+        >
+          Retour aux zones
+        </Link>
+      </div>
+    );
+  }
 
   const { data: franchises } = useFranchisesList();
 
@@ -142,7 +160,9 @@ export function ZoneCreatePage() {
 
         {mapLoading ? (
 
-          <div className="h-[min(380px,50vh)] animate-pulse rounded-card bg-border" />
+          <div className="relative h-[min(380px,50vh)] overflow-hidden rounded-card border border-border bg-map shadow-card">
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-navy/8 to-teal/5" />
+          </div>
 
         ) : (
 

@@ -8,8 +8,8 @@ export interface User {
   email: string;
   role: PortalRole;
   scope: Scope;
-  franchise_id?: number;
-  owner_id?: number;
+  franchise_id?: number | string;
+  owner_id?: number | string;
   /** Comptes dispatch — zones autorisées */
   zone_ids?: number[];
   zone_names?: string[];
@@ -54,9 +54,9 @@ export interface Trip {
   status: TripStatus;
   payment_method: "cash" | "wallet" | "card" | "orange_money";
   created_at: string;
-  franchise_id?: number;
+  franchise_id?: number | string;
   franchise_name?: string;
-  partner_id?: number;
+  partner_id?: number | string;
   partner_name?: string;
 }
 
@@ -112,10 +112,10 @@ export interface Franchise {
 }
 
 export interface Partner {
-  id: number;
+  id: number | string;
   name: string;
   franchise_name: string;
-  franchise_id: number;
+  franchise_id: number | string;
   city: string;
   drivers_count: number;
   status: "active" | "pending" | "suspended";
@@ -159,7 +159,7 @@ export type WithdrawalStatus = "pending" | "approved" | "rejected";
 export interface Withdrawal {
   id: string;
   owner_name: string;
-  owner_id: number | null;
+  owner_id: number | string | null;
   driver_id?: number;
   franchise_name: string;
   amount_fcfa: number;
@@ -191,7 +191,12 @@ export interface FranchiseDetail extends Franchise {
     commission_month_fcfa: number;
   };
   partners: { id: number; name: string; drivers_count: number; status: string }[];
-  zones: { id: number; name: string; type: Zone["type"]; drivers_active: number }[];
+  zones: {
+    id: number | string;
+    name: string;
+    type: Zone["type"];
+    drivers_active: number;
+  }[];
   recent_transactions: {
     id: string;
     label: string;
@@ -227,8 +232,10 @@ export interface PartnerDetail extends Partner {
 }
 
 export interface ZoneDetail extends Zone {
-  franchise_id: number;
+  franchise_id: number | string;
   status: "active" | "inactive";
+  center_lng?: number;
+  center_lat?: number;
   stats: {
     drivers_active: number;
     drivers_total: number;
@@ -256,8 +263,8 @@ export interface Driver {
   vehicle_label?: string;
   account_status: "pending" | "approved" | "suspended" | "banned";
   availability: "offline" | "online" | "on_trip" | "paused";
-  franchise_id?: number;
-  owner_id?: number;
+  franchise_id?: number | string;
+  owner_id?: number | string;
 }
 
 export type KycDocumentStatus = "pending" | "approved" | "rejected";
@@ -293,7 +300,7 @@ export interface DriverTimelineEvent {
 export interface DriverDetail extends Driver {
   driver_code?: string;
   email?: string;
-  owner_id?: number;
+  owner_id?: number | string;
   registered_at: string;
   approved_at: string | null;
   stats: {
@@ -308,7 +315,7 @@ export interface DriverDetail extends Driver {
 }
 
 export interface KycQueueItem {
-  driver_id: number;
+  driver_id: number | string;
   first_name: string;
   last_name: string;
   phone: string;
@@ -321,7 +328,7 @@ export interface KycQueueItem {
 }
 
 export interface Zone {
-  id: number;
+  id: number | string;
   name: string;
   city: string;
   franchise_name: string;
@@ -388,15 +395,15 @@ export interface LiveMapDriver {
 export type LiveMapScope = "global" | "franchise" | "partner";
 
 export interface LiveMapFilterFranchise {
-  id: number;
+  id: number | string;
   name: string;
   city: string;
 }
 
 export interface LiveMapFilterPartner {
-  id: number;
+  id: number | string;
   name: string;
-  franchise_id: number;
+  franchise_id: number | string;
   franchise_name: string;
   city: string;
 }
@@ -524,6 +531,18 @@ export interface LiveMapData {
   }[];
   /** Config Socket.IO (meta.realtime) — absent en mode mock legacy */
   realtime?: LiveMapRealtimeConfig | null;
+}
+
+/** Zone chaude — GET /v1/geo/hot-zones (carte live) */
+export interface LiveMapHotZone {
+  id: string;
+  name: string;
+  lng: number;
+  lat: number;
+  heatLevel: number;
+  surge?: number;
+  franchise_id?: string | null;
+  city?: string;
 }
 
 /** meta.realtime — GET /v1/admin/live-map */
@@ -684,7 +703,7 @@ export interface DispatcherAccount {
   phone: string;
   franchise_id?: number;
   franchise_name?: string;
-  zone_ids: number[];
+  zone_ids: Array<number | string>;
   zone_names?: string[];
   status: DispatcherStatus;
   last_login_at?: string | null;
@@ -703,12 +722,12 @@ export interface DispatchRules {
   max_queue_size: number;
   priority_mode: DispatchPriorityMode;
   auto_reassign: boolean;
-  active_zone_ids: number[];
+  active_zone_ids: Array<number | string>;
   updated_at: string;
 }
 
 export interface DashboardAdminFranchiseOption {
-  id: number;
+  id: number | string;
   name: string;
   city: string;
 }

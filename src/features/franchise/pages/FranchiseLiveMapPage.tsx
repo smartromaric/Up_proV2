@@ -10,26 +10,7 @@ import { LiveMapDriversPanel } from "@/features/ops/components/LiveMapDriversPan
 import { FranchiseLiveMapPartnerFilter } from "../components/FranchiseLiveMapPartnerFilter";
 import type { FranchiseLiveMapFiltersValue } from "../api/liveMap.types";
 import { useFranchiseLiveMap } from "../api/liveMap.queries";
-
-function MapSkeleton() {
-  return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="space-y-3">
-        <div className="h-14 animate-pulse rounded-card bg-border/60" />
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-[5.5rem] animate-pulse rounded-card bg-gradient-to-br from-[#1e2838] to-navy/30"
-            />
-          ))}
-        </div>
-        <div className="h-[min(520px,70vh)] animate-pulse rounded-card bg-map" />
-      </div>
-      <div className="h-[min(560px,72vh)] animate-pulse rounded-card bg-border" />
-    </div>
-  );
-}
+import { MapPageSkeleton } from "@/shared/ui/skeletons";
 
 export function FranchiseLiveMapPage() {
   const [filters, setFilters] = useState<FranchiseLiveMapFiltersValue>({
@@ -43,7 +24,7 @@ export function FranchiseLiveMapPage() {
     return [...base, data?.zone_name ?? "Territoire"];
   }, [filters.partnerId, data?.zone_name]);
 
-  if (isLoading) return <MapSkeleton />;
+  if (isLoading) return <MapPageSkeleton />;
   if (isError || !data) {
     return (
       <p className="text-sm text-red-600">Impossible de charger la carte live.</p>

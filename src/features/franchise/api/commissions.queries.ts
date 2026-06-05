@@ -6,12 +6,12 @@ import { franchiseCommissionsService } from "./commissions.service";
 
 export const franchiseCommissionsKeys = {
   all: ["franchise", "commissions"] as const,
-  list: (params?: ListParams & { partner_id?: number }) =>
+  list: (params?: ListParams & { partner_id?: number | string }) =>
     [...franchiseCommissionsKeys.all, "list", params] as const,
 };
 
 export function useFranchiseCommissionsList(
-  params?: ListParams & { partner_id?: number }
+  params?: ListParams & { partner_id?: number | string }
 ) {
   return useQuery({
     queryKey: franchiseCommissionsKeys.list(params),

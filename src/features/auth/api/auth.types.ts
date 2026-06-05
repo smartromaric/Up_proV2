@@ -41,6 +41,7 @@ export interface ApiAuthLoginResponse {
   generatedAt?: string;
   role?: string;
   userType?: ApiUserType;
+  permissions?: string[];
   session?: ApiAuthSessionPayload;
   user?: Record<string, unknown>;
   accessToken?: string;
@@ -51,6 +52,7 @@ export interface ApiAuthLoginResponse {
   driver?: unknown;
   partner?: unknown;
   franchiseMember?: unknown;
+  franchise?: unknown;
 }
 
 export interface ApiAuthLoginBody {

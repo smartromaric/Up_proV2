@@ -1,5 +1,5 @@
 import { fetchClient } from "./fetchClient";
-import { ApiError } from "./errorHandler";
+import { ApiError, resolveUserFacingMessage } from "./errorHandler";
 import { notificationService } from "./notificationService";
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -32,7 +32,7 @@ async function request<T>(
       `Erreur ${response.status}`;
     const apiCode = body.code ?? body.error?.code;
     throw new ApiError(response.status, {
-      message: apiMessage,
+      message: resolveUserFacingMessage(apiCode, apiMessage),
       code: apiCode,
       details: body.details ?? body.error,
       status: response.status,

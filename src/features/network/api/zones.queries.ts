@@ -20,6 +20,14 @@ export function useZonesMapOverview() {
   });
 }
 
+export function useZonesByFranchise(franchiseId: string, enabled = true) {
+  return useQuery({
+    queryKey: [...zonesKeys.all, "franchise", franchiseId] as const,
+    queryFn: () => zonesService.listByFranchise(franchiseId),
+    enabled: Boolean(franchiseId) && enabled,
+  });
+}
+
 export function useCreateZone() {
   const qc = useQueryClient();
   return useMutation({

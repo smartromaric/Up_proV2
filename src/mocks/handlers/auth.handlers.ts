@@ -44,6 +44,16 @@ export const authHandlers = [
     if (!body.email || !body.password) {
       return HttpResponse.json({ message: "Email et mot de passe requis" }, { status: 422 });
     }
+    const email = body.email.trim().toLowerCase();
+    if (email === authPartner.user.email.toLowerCase()) {
+      return HttpResponse.json(toV1Shape(authPartner, "PARTNER"));
+    }
+    if (email === authFranchise.user.email.toLowerCase()) {
+      return HttpResponse.json(toV1Shape(authFranchise, "FRANCHISE"));
+    }
+    if (email === authDispatch.user.email.toLowerCase()) {
+      return HttpResponse.json(toV1Shape(authDispatch, "DRIVER"));
+    }
     return HttpResponse.json(toV1Shape(authSession, "ADMIN"));
   }),
 

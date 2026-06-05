@@ -5,8 +5,8 @@ import type { User } from "@/shared/types";
 /** Segment stable pour les query keys TanStack (invalidation par scope). */
 export type ScopeQueryKey = {
   scope: string;
-  franchiseId: number | null;
-  ownerId: number | null;
+  franchiseId: string | number | null;
+  ownerId: string | number | null;
   role: string | null;
 };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import Link from "next/link";
 import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -24,7 +25,7 @@ export function PartnerBookingDetailPage({ bookingId }: PartnerBookingDetailPage
   const cancelBooking = useCancelPartnerBooking(bookingId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !booking) {

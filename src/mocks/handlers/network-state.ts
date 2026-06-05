@@ -26,15 +26,19 @@ export function nextFranchiseId(): number {
 }
 
 export function nextPartnerId(): number {
-  const ids = partnersState.data.map((p) => p.id);
+  const ids = partnersState.data.map((p) =>
+    typeof p.id === "number" ? p.id : 0
+  );
   return ids.length ? Math.max(...ids) + 1 : 1;
 }
 
 export function nextZoneId(): number {
-  const ids = zonesState.data.map((z) => z.id);
+  const ids = zonesState.data
+    .map((z) => z.id)
+    .filter((id): id is number => typeof id === "number");
   return ids.length ? Math.max(...ids) + 1 : 1;
 }
 
-export function franchiseName(id: number): string {
+export function franchiseName(id: number | string): string {
   return franchisesState.data.find((f) => f.id === id)?.name ?? "";
 }

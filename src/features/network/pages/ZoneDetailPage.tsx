@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -11,6 +12,7 @@ import { Button } from "@/shared/ui/Button";
 import { ZonePolygonMap } from "../components/ZonePolygonMap";
 import { ZonePolygonEditModal } from "../components/ZonePolygonEditModal";
 import { formatFCFA } from "@/shared/lib/format";
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import { useZoneDetail, useUpdateZonePolygon } from "../api/zoneDetail.queries";
 import { useZonesMapOverview } from "../api/zones.queries";
 
@@ -21,12 +23,13 @@ interface ZoneDetailPageProps {
 export function ZoneDetailPage({ zoneId }: ZoneDetailPageProps) {
   const [tab, setTab] = useState("map");
   const [editPolygonOpen, setEditPolygonOpen] = useState(false);
+  const legacyApi = useLegacyAdminApi();
   const { data, isLoading, isError } = useZoneDetail(zoneId);
   const { data: mapOverview } = useZonesMapOverview();
   const updatePolygon = useUpdateZonePolygon(zoneId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !data) {
@@ -86,14 +89,23 @@ export function ZoneDetailPage({ zoneId }: ZoneDetailPageProps) {
                 <ZonePolygonMap
                   polygon={data.polygon_geojson}
                   zoneName={data.name}
+                  center_lng={data.center_lng}
+                  center_lat={data.center_lat}
                   className="h-[min(380px,50vh)]"
                 />
-                <Button
-                  variant="secondary"
-                  onClick={() => setEditPolygonOpen(true)}
-                >
-                  Modifier le polygone
-                </Button>
+                {legacyApi ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setEditPolygonOpen(true)}
+                  >
+                    Modifier le polygone
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted">
+                    Périmètre polygone : édition disponible lorsque l&apos;API admin
+                    zones sera livrée (actuellement centre géographique API v1).
+                  </p>
+                )}
               </div>
             )}
 

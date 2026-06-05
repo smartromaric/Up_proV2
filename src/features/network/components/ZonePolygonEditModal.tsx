@@ -9,7 +9,7 @@ import {
 
 interface ZonePolygonEditModalProps {
   open: boolean;
-  zoneId: number;
+  zoneId: number | string;
   zoneName: string;
   initialRing: number[][];
   referenceZones: ZoneMapItem[];

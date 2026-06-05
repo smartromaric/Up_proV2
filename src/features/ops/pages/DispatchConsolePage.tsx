@@ -1,5 +1,6 @@
 "use client";
 
+import { MapPageSkeleton } from "@/shared/ui/skeletons";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -165,7 +166,7 @@ export function DispatchConsolePage({
   const selectedDriver = selected?.candidates.find((c) => c.id === selectedDriverId);
 
   if (isLoading) {
-    return <div className="h-96 animate-pulse rounded-card bg-border" />;
+    return <MapPageSkeleton />;
   }
 
   if (isError || !data) {

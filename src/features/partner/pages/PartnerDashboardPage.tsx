@@ -7,12 +7,18 @@ import { KpiCard } from "@/shared/ui/KpiCard";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { formatFCFA } from "@/shared/lib/format";
 import { usePartnerDashboard } from "../api/dashboard.queries";
+import { PortalDashboardSkeleton } from "@/shared/ui/skeletons";
 
 export function PartnerDashboardPage() {
   const { data, isLoading, isError } = usePartnerDashboard();
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return (
+      <PortalDashboardSkeleton
+        title="Tableau de bord"
+        breadcrumb={["Partenaire"]}
+      />
+    );
   }
 
   if (isError || !data) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
@@ -15,7 +16,7 @@ export function FranchisePartnerDetailPage({ partnerId }: FranchisePartnerDetail
   const { data, isLoading, isError } = useFranchisePartnerDetail(partnerId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !data) {

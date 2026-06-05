@@ -19,10 +19,10 @@ export interface LoginPayload {
 }
 
 const V1_LOGIN_BY_PORTAL: Record<LoginPortal, string> = {
-  /** Alias générique — identique au curl Swagger POST /v1/auth/login */
+  /** Route admin unique — rôle déduit via `profiles.user_type` (pas /auth/partner|franchise/login) */
   admin: LINKS.auth.v1.login,
-  partner: LINKS.auth.v1.partnerLogin,
-  franchise: LINKS.auth.v1.franchiseLogin,
+  partner: LINKS.auth.v1.login,
+  franchise: LINKS.auth.v1.login,
   dispatch: LINKS.auth.v1.driverLogin,
 };
 

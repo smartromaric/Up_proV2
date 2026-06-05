@@ -13,6 +13,7 @@ import { Button } from "@/shared/ui/Button";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getDriverAvailabilityLabel } from "@/shared/lib/driverLabels";
 import type { PartnerDetail } from "@/shared/types";
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { usePartnerDetail } from "../api/partnerDetail.queries";
 
 interface PartnerDetailPageProps {
@@ -24,7 +25,12 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
   const { data, isLoading, isError } = usePartnerDetail(partnerId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return (
+      <DetailPageSkeleton
+        title="Partenaire"
+        breadcrumb={["Admin", "Réseau", "Partenaires"]}
+      />
+    );
   }
 
   if (isError || !data) {

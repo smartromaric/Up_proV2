@@ -64,7 +64,9 @@ export function FranchisePricingNewPage() {
           Choisir une zone sur la carte ({FRANCHISE_NAME})
         </h2>
         {mapLoading ? (
-          <div className="h-[min(380px,50vh)] animate-pulse rounded-card bg-border" />
+          <div className="relative h-[min(380px,50vh)] overflow-hidden rounded-card border border-border bg-map shadow-card">
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-navy/8 to-teal/5" />
+          </div>
         ) : zones.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border bg-canvas px-4 py-8 text-center text-sm text-muted">
             Aucune zone cartographiée pour votre territoire.

@@ -10,6 +10,7 @@ import { tripTimelineToItems } from "@/shared/lib/tripTimeline";
 import { Button } from "@/shared/ui/Button";
 import { TripRoutePreview } from "../components/TripRoutePreview";
 import { TripReassignModal } from "../components/TripReassignModal";
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { useTripDetail } from "../api/tripDetail.queries";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getPaymentLabel } from "@/shared/lib/paymentLabels";
@@ -22,7 +23,14 @@ export function TripDetailPage({ tripId }: TripDetailPageProps) {
   const { data: trip, isLoading, isError } = useTripDetail(tripId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return (
+      <DetailPageSkeleton
+        title="Course"
+        breadcrumb={["Admin", "Opérations", "Courses"]}
+        showSidebar={false}
+        kpiCount={3}
+      />
+    );
   }
 
   if (isError || !trip) {

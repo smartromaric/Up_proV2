@@ -56,16 +56,23 @@ async function createHeaders(
   return headers;
 }
 
+/** Routes auth publiques (login portail, mot de passe oublié, OTP, refresh). */
+function isPublicAuthEndpoint(endpoint: string): boolean {
+  if (!endpoint.includes("/auth/")) return false;
+  return (
+    endpoint.includes("/login") ||
+    endpoint.includes("/forgot") ||
+    endpoint.includes("/otp/") ||
+    endpoint.includes("/refresh")
+  );
+}
+
 export async function fetchClient(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> {
   /** Routes publiques : pas de Bearer (logout/me nécessitent le JWT). */
-  const isAuthRequest =
-    endpoint.includes("/auth/login") ||
-    endpoint.includes("/auth/forgot-password") ||
-    endpoint.includes("/auth/otp/") ||
-    endpoint.includes("/auth/refresh");
+  const isAuthRequest = isPublicAuthEndpoint(endpoint);
 
   try {
     const headers = await createHeaders(

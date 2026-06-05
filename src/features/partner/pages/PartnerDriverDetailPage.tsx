@@ -27,6 +27,7 @@ import type {
   PartnerDriverWalletTransaction,
 } from "../api/partnerDriverDetail.service";
 import { PartnerDriverLiveMap } from "../components/PartnerDriverLiveMap";
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 
 interface PartnerDriverDetailPageProps {
   driverId: string;
@@ -47,15 +48,7 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
   const uploadDoc = useUploadPartnerDriverDocument(driverId);
 
   if (isLoading) {
-    return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-20 rounded-card bg-border" />
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="h-64 rounded-card bg-border lg:col-span-2" />
-          <div className="h-64 rounded-card bg-border" />
-        </div>
-      </div>
-    );
+    return <DetailPageSkeleton title="Chauffeur" breadcrumb={["Partenaire", "Flotte"]} />;
   }
 
   if (isError || !driver) {
@@ -291,7 +284,7 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
             {showWallet && (
               <div className="mt-4 border-t border-border pt-4">
                 {walletLoading ? (
-                  <div className="h-24 animate-pulse rounded bg-border" />
+                  <div className="h-24 animate-pulse rounded bg-navy/10" />
                 ) : (
                   <DataTable
                     columns={walletColumns}

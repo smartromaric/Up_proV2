@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { adminPaths } from "@/core/routes/adminPaths";
-import type { LiveMapData, LiveMapDriver } from "@/shared/types";
+import type { LiveMapData, LiveMapDriver, LiveMapHotZone } from "@/shared/types";
 import {
   projectDriver,
   WORLD_HUB_LABELS,
 } from "../lib/liveMapProjection";
+
+const HOT_ZONE_STYLE: Record<number, string> = {
+  1: "bg-amber-400/30 ring-amber-500/50",
+  2: "bg-orange-500/35 ring-orange-600/55",
+  3: "bg-red-500/40 ring-red-600/60",
+};
 
 const PIN_COLORS: Record<LiveMapDriver["availability"], string> = {
   online: "bg-teal",
@@ -24,10 +30,14 @@ const FRANCHISE_PIN_RING: Record<number, string> = {
 
 interface LiveMapCanvasLegacyProps {
   data: LiveMapData;
+  hotZones?: LiveMapHotZone[];
 }
 
 /** Carte CSS (fallback sans token Mapbox). */
-export function LiveMapCanvasLegacy({ data }: LiveMapCanvasLegacyProps) {
+export function LiveMapCanvasLegacy({
+  data,
+  hotZones = [],
+}: LiveMapCanvasLegacyProps) {
   const isGlobal = data.scope === "global";
 
   return (
@@ -79,6 +89,21 @@ export function LiveMapCanvasLegacy({ data }: LiveMapCanvasLegacyProps) {
         {data.zone_name}
         <span className="text-muted"> · {data.city}</span>
       </p>
+
+      {hotZones.map((zone) => {
+        const pos = projectDriver({ lat: zone.lat, lng: zone.lng }, data.bounds);
+        const heat = Math.min(3, Math.max(1, zone.heatLevel));
+        const size =
+          heat >= 3 ? "h-14 w-14" : heat >= 2 ? "h-11 w-11" : "h-9 w-9";
+        return (
+          <div
+            key={zone.id}
+            className={`pointer-events-none absolute z-[2] -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ${size} ${HOT_ZONE_STYLE[heat] ?? HOT_ZONE_STYLE[1]}`}
+            style={pos}
+            title={`${zone.name} · chaleur ${zone.heatLevel}`}
+          />
+        );
+      })}
 
       {data.drivers.map((driver) => {
         const pos = projectDriver(driver, data.bounds);
@@ -146,7 +171,11 @@ export function LiveMapCanvasLegacy({ data }: LiveMapCanvasLegacyProps) {
         );
       })}
 
-      <LiveMapLegend isGlobal={isGlobal} showOrders={Boolean(data.order_markers?.length)} />
+      <LiveMapLegend
+        isGlobal={isGlobal}
+        showOrders={Boolean(data.order_markers?.length)}
+        showHotZones={hotZones.length > 0}
+      />
     </div>
   );
 }
@@ -154,9 +183,11 @@ export function LiveMapCanvasLegacy({ data }: LiveMapCanvasLegacyProps) {
 export function LiveMapLegend({
   isGlobal,
   showOrders,
+  showHotZones,
 }: {
   isGlobal?: boolean;
   showOrders?: boolean;
+  showHotZones?: boolean;
 }) {
   return (
     <div className="absolute bottom-4 left-4 flex flex-wrap gap-3 rounded-lg border border-border-subtle bg-elevated/95 px-3 py-2 text-[10px] text-muted shadow-md backdrop-blur">
@@ -169,6 +200,12 @@ export function LiveMapLegend({
       <span className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-amber-400" /> Pause
       </span>
+      {showHotZones && (
+        <span className="flex items-center gap-1.5 border-l border-border pl-3">
+          <span className="h-3 w-3 rounded-full bg-orange-500/50 ring-2 ring-orange-500/70" />
+          Zone chaude
+        </span>
+      )}
       {showOrders && (
         <>
           <span className="flex items-center gap-1.5 border-l border-border pl-3">

@@ -1,4 +1,20 @@
-# Générer le PDF du document d'intégration API
+# Générer des PDF — documentation UpJunoo Pro
+
+## Rapport d'activité (écrans + captures)
+
+- HTML : `docs/RAPPORT-ACTIVITE-UPJUNOO-PRO.html`
+- Captures : `docs/rapport-activite/captures/` (01 à 08)
+- PDF : `docs/RAPPORT-ACTIVITE-UPJUNOO-PRO.pdf`
+
+```bash
+node docs/generate-rapport-pdf.mjs
+```
+
+(Chrome ou Edge headless sous Windows ; sinon Puppeteer via `npx -p puppeteer`.)
+
+---
+
+## Document d'intégration API
 
 Fichier source : `docs/API-INTEGRATION-BACKOFFICE.md`
 

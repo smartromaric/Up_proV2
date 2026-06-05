@@ -26,6 +26,7 @@ export function mapApiServiceType(code?: string | null): Trip["service"] {
 
 const STATUS_MAP: Record<string, TripStatus> = {
   requested: "requested",
+  dispatching: "matching",
   matching: "matching",
   assigned: "assigned",
   accepted: "assigned",

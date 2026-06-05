@@ -16,20 +16,24 @@ import {
 import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
 
 type StoredPolygon = NonNullable<(typeof zoneDetail)["polygon_geojson"]>;
-const zonePolygonsStore: Record<number, StoredPolygon> = {};
+type MapOverviewZoneRow = Omit<(typeof zonesMapOverviewSeed.zones)[number], "id"> & {
+  id: number | string;
+};
+const zonePolygonsStore: Record<string, StoredPolygon> = {};
 
 function buildMapOverview() {
-  const fromSeed = zonesMapOverviewSeed.zones.map((z) => ({ ...z }));
-  const byId = new Map(fromSeed.map((z) => [z.id, z]));
+  const fromSeed: MapOverviewZoneRow[] = zonesMapOverviewSeed.zones.map((z) => ({ ...z }));
+  const byId = new Map<number | string, MapOverviewZoneRow>(
+    fromSeed.map((z) => [z.id, z])
+  );
   for (const [id, polygon] of Object.entries(zonePolygonsStore)) {
-    const numId = Number(id);
-    const existing = byId.get(numId);
+    const existing = byId.get(Number(id)) ?? byId.get(id as unknown as number);
     if (existing) {
       existing.polygon_geojson = polygon;
     } else {
-      const row = zonesState.data.find((z) => z.id === numId);
+      const row = zonesState.data.find((z) => String(z.id) === id);
       if (row) {
-        byId.set(numId, {
+        byId.set(row.id, {
           id: row.id,
           name: row.name,
           type: row.type,
@@ -46,9 +50,11 @@ function buildMapOverview() {
   };
 }
 
-function polygonForZone(id: number): StoredPolygon | undefined {
-  if (zonePolygonsStore[id]) return zonePolygonsStore[id];
-  const fromOverview = zonesMapOverviewSeed.zones.find((z) => z.id === id);
+function polygonForZone(id: number | string): StoredPolygon | undefined {
+  if (zonePolygonsStore[String(id)]) return zonePolygonsStore[String(id)];
+  const fromOverview = zonesMapOverviewSeed.zones.find(
+    (z) => String(z.id) === String(id)
+  );
   if (fromOverview?.polygon_geojson) return fromOverview.polygon_geojson;
   if (id === zoneDetail.id) return zoneDetail.polygon_geojson;
   return undefined;
@@ -224,7 +230,7 @@ export const networkHandlers = [
     zonesState.data.push(row);
     zonesState.meta.total = zonesState.data.length;
     if (body.polygon_geojson) {
-      zonePolygonsStore[row.id] = body.polygon_geojson;
+      zonePolygonsStore[String(row.id)] = body.polygon_geojson;
     }
     const fIdx = franchisesState.data.findIndex((f) => f.id === body.franchise_id);
     if (fIdx >= 0) {
@@ -267,7 +273,7 @@ export const networkHandlers = [
     if (!zonesState.data.some((z) => z.id === id)) {
       return HttpResponse.json({ message: "Zone introuvable" }, { status: 404 });
     }
-    zonePolygonsStore[id] = body.polygon_geojson!;
+    zonePolygonsStore[String(id)] = body.polygon_geojson!;
     const fromList = zonesState.data.find((z) => z.id === id);
     return HttpResponse.json({
       ...zoneDetail,

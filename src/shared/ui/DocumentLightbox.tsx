@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isRemoteKycPreviewUrl } from "@/shared/lib/documentPreview";
 import { Button } from "./Button";
 
 const ZOOM_LEVELS = [1, 1.25, 1.5, 2] as const;
@@ -128,14 +129,31 @@ export function DocumentLightbox({
               </a>
             </div>
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src}
-              alt={title}
-              className="max-h-[calc(100vh-8rem)] rounded-lg shadow-2xl transition-transform duration-200"
-              style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}
-              draggable={false}
-            />
+            <div className="flex flex-col items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={title}
+                referrerPolicy="no-referrer"
+                className="max-h-[calc(100vh-8rem)] rounded-lg shadow-2xl transition-transform duration-200"
+                style={{
+                  transform: `scale(${scale})`,
+                  transformOrigin: "center center",
+                }}
+                draggable={false}
+              />
+              {isRemoteKycPreviewUrl(src) && (
+                <a
+                  href={src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Ouvrir le fichier dans un nouvel onglet
+                </a>
+              )}
+            </div>
           )}
         </div>
       </button>

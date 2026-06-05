@@ -29,7 +29,20 @@ export function SettingsIntegrationsPage() {
       <PageHeader title="Intégrations" breadcrumb={["Admin", "Paramètres"]} />
 
       {isLoading ? (
-        <div className="h-48 animate-pulse rounded-card bg-border" />
+        <ul className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <li
+              key={i}
+              className="flex animate-pulse items-center justify-between gap-4 rounded-card border border-border bg-surface p-5 shadow-card"
+            >
+              <div className="space-y-2">
+                <div className="h-4 w-40 rounded bg-navy/10" />
+                <div className="h-3 w-56 rounded bg-navy/8" />
+              </div>
+              <div className="h-9 w-24 rounded-lg bg-navy/10" />
+            </li>
+          ))}
+        </ul>
       ) : (
         <ul className="space-y-3">
           {(data?.data ?? []).map((item) => (

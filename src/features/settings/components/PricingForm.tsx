@@ -6,15 +6,15 @@ import { ZoneTypePill } from "@/shared/ui/ZoneTypePill";
 import type { ZoneMapItem } from "@/features/network/components/AbidjanZonesMap";
 
 export interface PricingFranchiseOption {
-  id: number;
+  id: number | string;
   name: string;
   city: string;
 }
 
 export interface PricingFormValues {
-  franchise_id: number | null;
+  franchise_id: number | string | null;
   franchise_name?: string;
-  zone_id: number | null;
+  zone_id: number | string | null;
   zone_name: string;
   service: PricingRule["service"];
   base_fare_fcfa: number;

@@ -10,22 +10,25 @@ import { KycDocumentCard } from "@/shared/ui/KycDocumentCard";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmModal } from "@/shared/ui/ConfirmModal";
+import { RejectReasonModal } from "@/shared/ui/RejectReasonModal";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getTripStatusLabel } from "@/shared/lib/tripLabels";
 import type { TripMatchingOutcome } from "@/shared/types";
 import type { DriverTripRow, DriverWalletTransaction } from "../api/driverDetail.service";
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import {
   useDriverDetail,
   useDriverTrips,
   useDriverWalletTransactions,
   useApproveDriverKyc,
   useRejectDriverKyc,
+  useApproveKycDocument,
+  useRejectKycDocument,
   useSuspendDriver,
   useActivateDriver,
 } from "../api/driverDetail.queries";
-import { notificationService } from "@/core/http/notificationService";
 
 interface DriverDetailPageProps {
   driverId: string;
@@ -37,6 +40,7 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
   const [confirmApprove, setConfirmApprove] = useState(false);
   const [confirmReject, setConfirmReject] = useState(false);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const [rejectDocTarget, setRejectDocTarget] = useState<string | null>(null);
 
   const { data: driver, isLoading, isError } = useDriverDetail(driverId);
   const { data: tripsData, isLoading: tripsLoading } = useDriverTrips(driverId);
@@ -46,18 +50,14 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
   );
   const approveKyc = useApproveDriverKyc(driverId);
   const rejectKyc = useRejectDriverKyc(driverId);
+  const approveDoc = useApproveKycDocument(driverId);
+  const rejectDoc = useRejectKycDocument(driverId);
   const suspendDriver = useSuspendDriver(driverId);
   const activateDriver = useActivateDriver(driverId);
 
   if (isLoading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-24 rounded-card bg-border" />
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="h-64 rounded-card bg-border lg:col-span-2" />
-          <div className="h-64 rounded-card bg-border" />
-        </div>
-      </div>
+      <DetailPageSkeleton title="Chauffeur" breadcrumb={["Admin", "Flotte"]} />
     );
   }
 
@@ -225,20 +225,35 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
 
           <div className="mt-6">
             {tab === "kyc" && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {driver.kyc_documents.map((doc) => (
-                  <KycDocumentCard
-                    key={doc.id}
-                    document={doc}
-                    canReview={isPending}
-                    onApprove={() =>
-                      notificationService.success(`${doc.label} validé (mock)`)
-                    }
-                    onReject={() =>
-                      notificationService.warning(`${doc.label} — rejet mock`)
-                    }
-                  />
-                ))}
+              <div className="space-y-4">
+                {driver.kyc_documents.length === 0 ? (
+                  <div className="rounded-card border border-dashed border-border bg-surface p-8 text-center">
+                    <p className="font-medium text-foreground">
+                      Aucun document KYC
+                    </p>
+                    <p className="mt-2 text-sm text-muted">
+                      Les documents soumis par le chauffeur apparaîtront ici
+                      (CNI, permis, selfie) avec aperçu et actions de validation.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {driver.kyc_documents.map((doc) => (
+                      <KycDocumentCard
+                        key={doc.id}
+                        document={doc}
+                        canReview={
+                          isPending &&
+                          doc.status === "pending" &&
+                          Boolean(doc.uploaded_at) &&
+                          !doc.id.startsWith("slot-")
+                        }
+                        onApprove={() => approveDoc.mutate(doc.id)}
+                        onReject={() => setRejectDocTarget(doc.id)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -304,7 +319,7 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
             {showWallet && (
               <div className="mt-4 border-t border-border pt-4">
                 {walletLoading ? (
-                  <div className="h-24 animate-pulse rounded bg-border" />
+                  <div className="h-24 animate-pulse rounded bg-navy/10" />
                 ) : (
                   <DataTable
                     columns={walletColumns}
@@ -332,8 +347,23 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
                 </div>
               )}
               <div className="flex justify-between gap-2">
-                <dt>Partenaire ID</dt>
-                <dd className="text-foreground">{driver.owner_id ?? "—"}</dd>
+                <dt>Partenaire</dt>
+                <dd className="text-right text-foreground">
+                  {driver.owner_name ? (
+                    driver.owner_id ? (
+                      <Link
+                        href={`/admin/network/partners/${driver.owner_id}`}
+                        className="font-medium text-teal hover:underline"
+                      >
+                        {driver.owner_name}
+                      </Link>
+                    ) : (
+                      driver.owner_name
+                    )
+                  ) : (
+                    "—"
+                  )}
+                </dd>
               </div>
             </dl>
           </div>
@@ -388,6 +418,20 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
           setConfirmReject(false);
         }}
         onCancel={() => setConfirmReject(false)}
+      />
+
+      <RejectReasonModal
+        open={rejectDocTarget !== null}
+        title="Rejeter ce document ?"
+        message="Indiquez le motif du rejet. Le chauffeur pourra soumettre un nouveau document."
+        confirmLabel="Rejeter le document"
+        onConfirm={(reason) => {
+          if (rejectDocTarget) {
+            rejectDoc.mutate({ documentId: rejectDocTarget, reason });
+          }
+          setRejectDocTarget(null);
+        }}
+        onCancel={() => setRejectDocTarget(null)}
       />
 
       <ConfirmModal

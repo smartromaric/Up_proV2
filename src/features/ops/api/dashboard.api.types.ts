@@ -27,6 +27,18 @@ export interface ApiDashboardAlert {
   actionUrl?: string;
 }
 
+export interface ApiDashboardFilterFranchise {
+  id: string;
+  name: string;
+  city?: string | null;
+}
+
+export interface ApiDashboardFilterPartner {
+  id: string;
+  name: string;
+  franchiseId?: string | null;
+}
+
 export interface ApiAdminDashboardPayload {
   generatedAt?: string;
   filters?: {
@@ -34,6 +46,10 @@ export interface ApiAdminDashboardPayload {
       franchiseId?: string | null;
       partnerId?: string | null;
       cityId?: string | null;
+    };
+    options?: {
+      franchises?: ApiDashboardFilterFranchise[];
+      partners?: ApiDashboardFilterPartner[];
     };
   };
   summary: {

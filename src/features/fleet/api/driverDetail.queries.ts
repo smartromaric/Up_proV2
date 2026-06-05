@@ -5,6 +5,8 @@ import { useScopeQueryKey } from "@/core/auth/scopeQueryKey";
 import { driverDetailKeys } from "./driverDetail.keys";
 import { driverDetailService } from "./driverDetail.service";
 import { driversKeys } from "./drivers.keys";
+import { kycKeys } from "./kyc.keys";
+import { kycService } from "./kyc.service";
 import { notificationService } from "@/core/http/notificationService";
 
 export function useDriverDetail(id: string) {
@@ -64,6 +66,34 @@ export function useSuspendDriver(id: string) {
       void qc.invalidateQueries({ queryKey: driverDetailKeys.detail(id) });
       void qc.invalidateQueries({ queryKey: driversKeys.all(scopeKey) });
       notificationService.success(data.message);
+    },
+  });
+}
+
+export function useApproveKycDocument(driverId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (documentId: string) => kycService.approveDocument(documentId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: driverDetailKeys.detail(driverId) });
+      void qc.invalidateQueries({ queryKey: kycKeys.all });
+    },
+  });
+}
+
+export function useRejectKycDocument(driverId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      reason,
+    }: {
+      documentId: string;
+      reason: string;
+    }) => kycService.rejectDocument(documentId, reason),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: driverDetailKeys.detail(driverId) });
+      void qc.invalidateQueries({ queryKey: kycKeys.all });
     },
   });
 }

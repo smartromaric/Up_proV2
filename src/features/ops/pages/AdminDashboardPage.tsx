@@ -11,25 +11,12 @@ import { RecentTripsTable } from "../components/RecentTripsTable";
 import { AdminNetworkActivityPanel } from "../components/AdminNetworkActivityPanel";
 import { AdminDashboardAlerts } from "../components/AdminDashboardAlerts";
 import { AdminDashboardFranchiseSelect } from "../components/AdminDashboardFranchiseSelect";
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-40 rounded-hero bg-navy/10" />
-      <div className="grid gap-4 md:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-28 rounded-card bg-gradient-to-br from-navy/10 via-teal/10 to-border animate-pulse"
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
+import { AdminDashboardSkeleton } from "../components/AdminDashboardSkeleton";
+import type { AdminDashboardFranchiseFilter } from "../api/dashboard.types";
 
 export function AdminDashboardPage() {
-  const [franchiseId, setFranchiseId] = useState<number | null>(null);
+  const [franchiseId, setFranchiseId] =
+    useState<AdminDashboardFranchiseFilter>(null);
   const { data, isLoading, isError, isFetching } = useAdminDashboard(franchiseId);
 
   const scopeLabel =
@@ -38,7 +25,7 @@ export function AdminDashboardPage() {
       : data?.franchise_options.find((f) => f.id === franchiseId)?.name ??
         "Franchise";
 
-  if (isLoading && !data) return <DashboardSkeleton />;
+  if (isLoading && !data) return <AdminDashboardSkeleton />;
   if (isError || !data) {
     return (
       <p className="text-sm text-red-600">
@@ -56,7 +43,7 @@ export function AdminDashboardPage() {
           data.franchise_options.length > 0 ? (
             <AdminDashboardFranchiseSelect
               options={data.franchise_options}
-              value={typeof franchiseId === "number" ? franchiseId : null}
+              value={franchiseId}
               onChange={setFranchiseId}
               disabled={isFetching}
             />

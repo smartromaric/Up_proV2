@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -71,7 +72,7 @@ export function DispatcherDetailPage({ dispatcherId }: DispatcherDetailPageProps
   const zones = zonesData?.data ?? [];
 
   if (!isNew && isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (!isNew && (isError || !data)) {

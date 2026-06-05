@@ -27,6 +27,21 @@ export function resolveKycPreviewUrl(
   return doc.preview_url ?? KYC_PREVIEW[doc.type];
 }
 
+/** Détecte un PDF depuis l’URL (y compris URLs signées Supabase). */
+export function isPdfPreviewUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    return pathname.endsWith(".pdf");
+  } catch {
+    return url.toLowerCase().includes(".pdf");
+  }
+}
+
+export function isRemoteKycPreviewUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 export function resolveVehicleDocumentPreview(type: VehicleDocumentType): string {
   return VEHICLE_PREVIEW[type];
 }

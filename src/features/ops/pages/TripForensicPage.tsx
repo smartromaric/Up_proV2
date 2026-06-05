@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
@@ -15,7 +16,7 @@ export function TripForensicPage({ tripId }: TripForensicPageProps) {
   const { data, isLoading, isError } = useTripForensic(tripId);
 
   if (isLoading) {
-    return <div className="h-96 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !data) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { SimplePageSkeleton } from "@/shared/ui/skeletons";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
@@ -28,7 +29,7 @@ export function CrisisModePage() {
   }, [data]);
 
   if (isLoading || !draft) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <SimplePageSkeleton />;
   }
 
   if (isError) {

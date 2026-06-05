@@ -18,6 +18,7 @@ import {
 } from "@/shared/hooks/useServerTableState";
 import type { PricingRule, TripService } from "@/shared/types";
 import { AdminFranchiseScopeFilter } from "@/features/ops/components/AdminFranchiseScopeFilter";
+import type { ScopeId } from "@/shared/lib/scopeId";
 import { usePricingList } from "../api/pricing.queries";
 
 const STATUS_FILTERS = [
@@ -41,7 +42,7 @@ export function PricingListPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | PricingRule["status"]>("all");
   const [zoneFilter, setZoneFilter] =
     useState<(typeof ZONE_OPTIONS)[number]["value"]>("all");
-  const [franchiseId, setFranchiseId] = useState<number | null>(null);
+  const [franchiseId, setFranchiseId] = useState<ScopeId | null>(null);
 
   const table = useServerTableState([statusFilter, zoneFilter, franchiseId], {
     status: statusFilter !== "all" ? statusFilter : undefined,

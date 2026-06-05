@@ -17,8 +17,8 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  devtools(
-    persist(
+  persist(
+    devtools(
       (set, get) => ({
         token: null,
         refreshToken: null,
@@ -40,8 +40,8 @@ export const useAuthStore = create<AuthState>()(
           return perms.includes(permission);
         },
       }),
-      { name: "upjunoo-auth" }
+      { name: "UpJunooAuth", ...zustandDevtoolsOptions }
     ),
-    { name: "UpJunooAuth", ...zustandDevtoolsOptions }
+    { name: "upjunoo-auth" }
   )
 );

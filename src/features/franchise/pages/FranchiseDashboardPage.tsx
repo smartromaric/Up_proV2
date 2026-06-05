@@ -8,12 +8,18 @@ import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
 import { formatFCFA, formatPercent } from "@/shared/lib/format";
 import { useFranchiseDashboard } from "../api/dashboard.queries";
 import { FranchisePendingWithdrawalsKpi } from "../components/FranchisePendingWithdrawalsKpi";
+import { PortalDashboardSkeleton } from "@/shared/ui/skeletons";
 
 export function FranchiseDashboardPage() {
   const { data, isLoading, isError } = useFranchiseDashboard();
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return (
+      <PortalDashboardSkeleton
+        title="Tableau de bord"
+        breadcrumb={["Franchise"]}
+      />
+    );
   }
 
   if (isError || !data) {

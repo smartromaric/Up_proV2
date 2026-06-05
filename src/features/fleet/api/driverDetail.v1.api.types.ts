@@ -1,5 +1,7 @@
 /** GET /v1/drivers/:id — fiche chauffeur (viewer admin) */
 
+import type { ApiAdminKycDocumentItem } from "./adminKyc.api.types";
+
 export interface ApiV1DriverDetailResponse {
   status: string;
   generatedAt?: string;
@@ -10,11 +12,17 @@ export interface ApiV1DriverDetailResponse {
   vehicles?: ApiV1DriverVehicle[];
   location?: ApiV1DriverLocation | null;
   partner?: ApiV1DriverPartner | null;
+  partnerName?: string | null;
   city?: ApiV1DriverCity | null;
+  zoneName?: string | null;
+  vehicleLabel?: string | null;
   performance?: ApiV1DriverPerformance | null;
   summary?: ApiV1DriverSummary | null;
   preferences?: Record<string, unknown> | null;
   serviceClasses?: unknown[];
+  /** KYC-03 — documents embarqués (juin 2026) */
+  kyc_documents?: ApiAdminKycDocumentItem[];
+  kycDocuments?: ApiAdminKycDocumentItem[];
 }
 
 export interface ApiV1DriverRecord {

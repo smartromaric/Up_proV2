@@ -24,6 +24,12 @@ import {
   mapApiV1DriverDetailToDriverDetail,
   mapLiveMapDriverToDetail,
 } from "./driverDetail.mapper";
+import { fetchAdminKycDocuments } from "./kyc.service";
+import type { ApiV1PartnerDetailResponse } from "@/features/network/api/adminPartnerDetail.api.types";
+import {
+  mapApiKycItemsForDriver,
+  mergeExpectedDriverKycSlots,
+} from "./kycDocument.mapper";
 
 export interface DriverTripRow {
   id: string;
@@ -76,6 +82,58 @@ function mapOrdersToDriverTrips(
   };
 }
 
+async function enrichDriverPartnerName(
+  detail: DriverDetail
+): Promise<DriverDetail> {
+  if (detail.owner_name?.trim()) return detail;
+  const partnerId = detail.owner_id;
+  if (!partnerId) return detail;
+
+  try {
+    const response = await apiClient.get<ApiV1PartnerDetailResponse>(
+      LINKS.admin.partners.getById(String(partnerId))
+    );
+    const partner = response.partner;
+    const name =
+      partner.name?.trim() ||
+      partner.trade_name?.trim() ||
+      partner.legal_name?.trim();
+    if (name) return { ...detail, owner_name: name };
+  } catch {
+    // Partenaire introuvable — garder le détail sans nom
+  }
+
+  return detail;
+}
+
+async function attachDriverKycDocuments(
+  detail: DriverDetail,
+  driverId: string
+): Promise<DriverDetail> {
+  const showMissingSlots = detail.account_status === "pending";
+  if (detail.kyc_documents.length > 0) {
+    return {
+      ...detail,
+      kyc_documents: mergeExpectedDriverKycSlots(detail.kyc_documents, {
+        showMissingSlots,
+      }),
+    };
+  }
+
+  try {
+    const items = await fetchAdminKycDocuments();
+    const documents = mapApiKycItemsForDriver(items, driverId);
+    return {
+      ...detail,
+      kyc_documents: mergeExpectedDriverKycSlots(documents, {
+        showMissingSlots,
+      }),
+    };
+  } catch {
+    return detail;
+  }
+}
+
 async function fetchDriverDetailFallback(
   id: string
 ): Promise<DriverDetail> {
@@ -85,15 +143,17 @@ async function fetchDriverDetailFallback(
   }
 
   if (driver.profile?.displayName || driver.profile?.phone) {
-    return mapLiveMapDriverToDetail(driver);
+    return attachDriverKycDocuments(mapLiveMapDriverToDetail(driver), id);
   }
 
   const list = await apiClient.get<ApiAdminDriversResponse>(
     LINKS.admin.v1.drivers
   );
   const item = (list.items ?? []).find((d) => d.id === id);
-  if (item) return mapAdminDriverItemToDetail(item);
-  return mapLiveMapDriverToDetail(driver);
+  if (item) {
+    return attachDriverKycDocuments(mapAdminDriverItemToDetail(item), id);
+  }
+  return attachDriverKycDocuments(mapLiveMapDriverToDetail(driver), id);
 }
 
 export const driverDetailService = {
@@ -108,7 +168,9 @@ export const driverDetailService = {
       const response = await apiClient.get<ApiV1DriverDetailResponse>(
         LINKS.v1.drivers.getById(driverId)
       );
-      return mapApiV1DriverDetailToDriverDetail(response);
+      const detail = mapApiV1DriverDetailToDriverDetail(response);
+      const withPartner = await enrichDriverPartnerName(detail);
+      return attachDriverKycDocuments(withPartner, driverId);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         return fetchDriverDetailFallback(driverId);

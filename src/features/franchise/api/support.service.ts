@@ -1,6 +1,17 @@
 import { apiClient } from "@/core/http/apiClient";
+import { AppError } from "@/core/http/errorHandler";
+import { LINKS } from "@/core/api/links";
+import { useLegacyPortalApi } from "@/core/api/portalApiMode";
 import type { Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
+
+function chatApiUnavailable(): never {
+  throw new AppError(
+    "Le chat support franchise n'est pas disponible via l'API v1.",
+    "FRANCHISE_SUPPORT_CHAT_UNAVAILABLE",
+    501
+  );
+}
 
 export type SupportReporterType = "partner" | "driver" | "client";
 
@@ -43,6 +54,20 @@ export interface FranchiseSupportChatDetail extends FranchiseSupportChat {
   messages: FranchiseSupportMessage[];
 }
 
+function emptyChatsPage(params?: ListParams): Paginated<FranchiseSupportChat> {
+  const per_page = params?.per_page ?? 50;
+  const page = params?.page ?? 1;
+  return {
+    data: [],
+    meta: {
+      total: 0,
+      per_page,
+      current_page: page,
+      last_page: 1,
+    },
+  };
+}
+
 export const franchiseSupportService = {
   listTickets: (params?: ListParams) =>
     apiClient.get<Paginated<FranchiseSupportTicket>>(
@@ -57,16 +82,27 @@ export const franchiseSupportService = {
       body,
     }),
 
-  listChats: (params?: ListParams) =>
-    apiClient.get<Paginated<FranchiseSupportChat>>(
-      `/franchise/support/chat${buildListQuery(params)}`
-    ),
+  listChats: (params?: ListParams) => {
+    if (!useLegacyPortalApi()) {
+      return Promise.resolve(emptyChatsPage(params));
+    }
+    return apiClient.get<Paginated<FranchiseSupportChat>>(
+      `${LINKS.franchise.support.chat.list}${buildListQuery(params)}`
+    );
+  },
 
-  getChat: (id: string) =>
-    apiClient.get<FranchiseSupportChatDetail>(`/franchise/support/chat/${id}`),
+  getChat: (id: string) => {
+    if (!useLegacyPortalApi()) return Promise.reject(chatApiUnavailable());
+    return apiClient.get<FranchiseSupportChatDetail>(
+      LINKS.franchise.support.chat.getById(id)
+    );
+  },
 
-  replyChat: (id: string, body: string) =>
-    apiClient.post<FranchiseSupportMessage>(`/franchise/support/chat/${id}/messages`, {
-      body,
-    }),
+  replyChat: (id: string, body: string) => {
+    if (!useLegacyPortalApi()) return Promise.reject(chatApiUnavailable());
+    return apiClient.post<FranchiseSupportMessage>(
+      LINKS.franchise.support.chat.reply(id),
+      { body }
+    );
+  },
 };

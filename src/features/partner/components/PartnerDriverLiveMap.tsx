@@ -26,7 +26,9 @@ export function PartnerDriverLiveMap({
 
   if (isLoading) {
     return (
-      <div className="h-52 animate-pulse rounded-card bg-border sm:h-56" />
+      <div className="relative h-52 overflow-hidden rounded-card border border-border bg-map shadow-card sm:h-56">
+        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-navy/8 via-transparent to-teal/5" />
+      </div>
     );
   }
 

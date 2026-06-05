@@ -8,7 +8,7 @@ export interface PricingListResponse extends Paginated<PricingRule> {
 }
 
 export interface CreatePricingPayload {
-  franchise_id: number;
+  franchise_id: number | string;
   zone_name: string;
   service?: PricingRule["service"];
   base_fare_fcfa?: number;

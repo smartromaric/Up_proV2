@@ -8,26 +8,7 @@ import { LiveMapStatsBar } from "../components/LiveMapStatsBar";
 import { LiveMapDriversPanel } from "../components/LiveMapDriversPanel";
 import { LiveMapScopeFilters } from "../components/LiveMapScopeFilters";
 import type { LiveMapScopeFiltersValue } from "../api/liveMap.types";
-
-function MapSkeleton() {
-  return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="space-y-3">
-        <div className="h-14 animate-pulse rounded-card bg-border/60" />
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-[5.5rem] animate-pulse rounded-card bg-gradient-to-br from-[#1e2838] to-navy/30"
-            />
-          ))}
-        </div>
-        <div className="h-[min(520px,70vh)] animate-pulse rounded-card bg-map" />
-      </div>
-      <div className="h-[min(560px,72vh)] animate-pulse rounded-card bg-border" />
-    </div>
-  );
-}
+import { MapPageSkeleton } from "@/shared/ui/skeletons";
 
 export function LiveMapPage() {
   const [filters, setFilters] = useState<LiveMapScopeFiltersValue>({
@@ -52,7 +33,7 @@ export function LiveMapPage() {
     return [...base, "Vue mondiale"];
   }, [filters, data?.zone_name]);
 
-  if (isLoading) return <MapSkeleton />;
+  if (isLoading) return <MapPageSkeleton />;
   if (isError || !data) {
     return (
       <p className="text-sm text-red-600">Impossible de charger la carte.</p>
@@ -94,8 +75,9 @@ export function LiveMapPage() {
       />
 
       <p className="mb-4 max-w-3xl text-sm text-muted">
-        Tous les chauffeurs en ligne sur le réseau. Zoomez par pays (franchise) puis
-        par partenaire pour affiner la carte et la liste.
+        Tous les chauffeurs en ligne sur le réseau. Les halos orange/rouge indiquent
+        les zones chaudes (surge). Zoomez par pays (franchise) puis par partenaire pour
+        affiner la carte et la liste.
       </p>
 
       {data.filter_options && (
@@ -113,7 +95,7 @@ export function LiveMapPage() {
       <div className="animate-stagger grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3">
           <LiveMapStatsBar stats={data.stats} />
-          <LiveMapCanvas data={data} />
+          <LiveMapCanvas data={data} scopeFilters={filters} />
         </div>
         <LiveMapDriversPanel data={data} adminDriverLinks />
       </div>

@@ -71,7 +71,7 @@ function SkeletonRows({
         <tr key={i} className={`${rowClass} border-t border-border/50`}>
           {Array.from({ length: cols }).map((_, j) => (
             <td key={j} className="px-6">
-              <div className="h-4 w-full max-w-[120px] animate-pulse rounded bg-border" />
+              <div className="h-4 w-full max-w-[120px] animate-pulse rounded bg-navy/10 dark:bg-white/10" />
             </td>
           ))}
         </tr>

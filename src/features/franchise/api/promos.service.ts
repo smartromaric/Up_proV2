@@ -39,7 +39,7 @@ export type FranchisePromoPayload = Omit<
   FranchisePromo,
   "id" | "uses_count" | "assigned_users"
 > & {
-  assigned_user_ids?: number[];
+  assigned_user_ids?: (string | number)[];
 };
 
 export const franchisePromosService = {

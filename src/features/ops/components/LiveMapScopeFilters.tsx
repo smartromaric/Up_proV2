@@ -1,6 +1,7 @@
 "use client";
 
 import type { LiveMapData } from "@/shared/types";
+import { parseScopeId } from "@/shared/lib/scopeId";
 
 import type { LiveMapScopeFiltersValue } from "../api/liveMap.types";
 
@@ -34,7 +35,7 @@ export function LiveMapScopeFilters({
               return;
             }
             onChange({
-              franchiseId: Number(v),
+              franchiseId: parseScopeId(v),
               partnerId: null,
             });
           }}
@@ -62,8 +63,10 @@ export function LiveMapScopeFilters({
               onChange({ franchiseId: value.franchiseId, partnerId: null });
               return;
             }
-            const partnerId = Number(v);
-            const partner = options.partners.find((p) => p.id === partnerId);
+            const partnerId = parseScopeId(v);
+            const partner = options.partners.find(
+              (p) => String(p.id) === String(partnerId)
+            );
             onChange({
               franchiseId: partner?.franchise_id ?? value.franchiseId,
               partnerId,

@@ -1,5 +1,7 @@
+import type { ScopeId } from "@/shared/lib/scopeId";
+
 export interface FranchiseLiveMapFiltersValue {
-  partnerId: number | null;
+  partnerId: ScopeId | null;
 }
 
 export function franchiseLiveMapQueryParams(

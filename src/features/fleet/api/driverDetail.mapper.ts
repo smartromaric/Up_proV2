@@ -4,6 +4,7 @@ import { isDriverOnTripStatus } from "@/features/ops/api/liveMap.labels";
 import type { ApiAdminDriverItem } from "./adminDrivers.api.types";
 import type { ApiV1DriverDetailResponse } from "./driverDetail.v1.api.types";
 import { splitDisplayName } from "@/features/admin/api/adminOrder.shared";
+import { mapApiKycItemToKycDocument } from "./kycDocument.mapper";
 
 function mapAccountStatus(
   approval?: string | null,
@@ -231,7 +232,13 @@ export function mapApiV1DriverDetailToDriverDetail(
   const plateLabel = readPlate(vehicle);
   const category = driver.ride_category_code?.trim() ?? "";
   const vehicleLabel =
-    [plateLabel, category].filter(Boolean).join(" · ") || category || "—";
+    response.vehicleLabel?.trim() ||
+    [plateLabel, category].filter(Boolean).join(" · ") ||
+    category ||
+    "—";
+
+  const embeddedKyc = response.kyc_documents ?? response.kycDocuments ?? [];
+  const kyc_documents = embeddedKyc.map(mapApiKycItemToKycDocument);
 
   const approvedAt =
     String(driver.approval_status ?? "").toLowerCase() === "approved"
@@ -248,9 +255,12 @@ export function mapApiV1DriverDetailToDriverDetail(
       "—",
     email: profile?.email ?? undefined,
     rating: typeof rating === "number" ? rating : 0,
-    zone: city?.name ?? city?.label ?? "—",
+    zone: response.zoneName ?? city?.name ?? city?.label ?? "—",
     owner_name:
-      partner?.tradeName ?? partner?.trade_name ?? undefined,
+      partner?.tradeName ??
+      partner?.trade_name ??
+      response.partnerName ??
+      undefined,
     vehicle_label: vehicleLabel,
     account_status: mapAccountStatus(
       driver.approval_status,
@@ -269,7 +279,7 @@ export function mapApiV1DriverDetailToDriverDetail(
       wallet_balance_fcfa: 0,
     },
     timeline: buildTimelineFromV1(driver),
-    kyc_documents: [],
+    kyc_documents,
   };
 }
 

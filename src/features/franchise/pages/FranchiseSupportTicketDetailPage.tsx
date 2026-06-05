@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { formatDateTime } from "@/shared/lib/format";
@@ -33,7 +34,7 @@ export function FranchiseSupportTicketDetailPage({
   const reply = useReplyFranchiseTicket(ticketId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !data) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { SimplePageSkeleton } from "@/shared/ui/skeletons";
 import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { HeroKpi } from "@/features/ops/components/HeroKpi";
@@ -22,7 +23,7 @@ export function FranchiseFinancePage() {
   const { data: partnerRechargeStats } = useFranchisePartnerRechargeStats();
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <SimplePageSkeleton />;
   }
 
   if (isError || !data) {

@@ -117,7 +117,7 @@ export function FranchisePartnerTransfersPage() {
           value={formatFCFA(available)}
         />
         {statsLoading ? (
-          <div className="h-24 animate-pulse rounded-card bg-border sm:col-span-2" />
+          <div className="kpi-card kpi-card--slate kpi-card--compact relative h-24 animate-pulse rounded-card p-4 sm:col-span-2" />
         ) : stats ? (
           <>
             <KpiCard

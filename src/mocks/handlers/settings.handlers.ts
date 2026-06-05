@@ -89,7 +89,7 @@ function defaultPermissionGroups(): AdminRole["permission_groups"] {
   ];
 }
 
-function zoneNames(ids: number[]): string[] {
+function zoneNames(ids: Array<number | string>): string[] {
   return ids
     .map((id) => zonesList.data.find((z) => z.id === id)?.name)
     .filter((n): n is string => Boolean(n));

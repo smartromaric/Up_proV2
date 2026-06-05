@@ -7,6 +7,7 @@ interface DocumentPreviewThumbnailProps {
   src: string;
   alt: string;
   isPdf?: boolean;
+  fallbackSrc?: string;
   subtitle?: string;
   className?: string;
 }
@@ -15,6 +16,7 @@ export function DocumentPreviewThumbnail({
   src,
   alt,
   isPdf = false,
+  fallbackSrc,
   subtitle,
   className = "",
 }: DocumentPreviewThumbnailProps) {
@@ -51,7 +53,15 @@ export function DocumentPreviewThumbnail({
           <img
             src={src}
             alt={alt}
+            referrerPolicy="no-referrer"
             className="h-28 w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.02] md:h-32"
+            onError={(e) => {
+              if (!fallbackSrc) return;
+              const img = e.currentTarget;
+              if (img.dataset.fallbackApplied === "1") return;
+              img.dataset.fallbackApplied = "1";
+              img.src = fallbackSrc;
+            }}
           />
         )}
         <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/70 to-transparent px-3 py-2 text-left text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">

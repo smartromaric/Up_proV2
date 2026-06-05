@@ -1,8 +1,10 @@
 import type {
   DashboardAdminAlert,
+  DashboardAdminFranchiseOption,
   DashboardAdminKpi,
   Trip,
   TripStatus,
+  TripsScopeFilterOptions,
 } from "@/shared/types";
 import type {
   ApiAdminDashboardResponse,
@@ -84,6 +86,40 @@ function mapAlerts(
   });
 }
 
+function mapFranchiseOptions(
+  response: ApiAdminDashboardResponse
+): DashboardAdminFranchiseOption[] {
+  return (response.dashboard.filters?.options?.franchises ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    city: f.city ?? "—",
+  }));
+}
+
+/** Options de filtre courses / carte depuis le dashboard v1. */
+export function mapDashboardFilterOptions(
+  response: ApiAdminDashboardResponse | null | undefined
+): TripsScopeFilterOptions {
+  if (!response) {
+    return { franchises: [], partners: [] };
+  }
+  const opts = response.dashboard.filters?.options;
+  return {
+    franchises: (opts?.franchises ?? []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      city: f.city ?? "—",
+    })),
+    partners: (opts?.partners ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      franchise_id: p.franchiseId ?? "",
+      franchise_name: "—",
+      city: "—",
+    })),
+  };
+}
+
 /** Mappe GET /v1/admin/dashboard vers le modèle UI back-office. */
 export function mapApiAdminDashboardToKpi(
   response: ApiAdminDashboardResponse
@@ -107,7 +143,7 @@ export function mapApiAdminDashboardToKpi(
 
   return {
     selected_franchise_id: null,
-    franchise_options: [],
+    franchise_options: mapFranchiseOptions(response),
     net_profit_today_fcfa: d.finance.revenueTodayXof,
     net_profit_trend_pct: trendToPercent(summary.ridesToday.vsYesterday),
     trips_today: summary.ridesToday.total,

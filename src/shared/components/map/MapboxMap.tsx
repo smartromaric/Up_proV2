@@ -4,9 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { env } from "@/core/config/env";
-import type { LiveMapTripRoute } from "@/shared/types";
+import type { LiveMapTripRoute, LiveMapHotZone } from "@/shared/types";
 import { resolveTripRoutesGeometry } from "./mapboxDirections";
 import { createLiveMapMarkerElement } from "./mapboxMarkerElement";
+import {
+  HOT_ZONES_CORE,
+  HOT_ZONES_GLOW,
+  hotZonePopupHtml,
+  syncHotZonesLayers,
+} from "./mapboxHotZones";
 import {
   clearAllDriverMotions,
   removeDriverMotion,
@@ -39,6 +45,7 @@ function isValidMapCoord(lng: number, lat: number): boolean {
 interface MapboxMapProps {
   features: MapboxPointFeature[];
   tripRoutes?: LiveMapTripRoute[];
+  hotZones?: LiveMapHotZone[];
   bounds?: [[number, number], [number, number]];
   zoneLabel?: string;
   cityLabel?: string;
@@ -67,6 +74,7 @@ function routesToGeoJson(
 export function MapboxMap({
   features,
   tripRoutes = [],
+  hotZones = [],
   bounds,
   zoneLabel,
   cityLabel,
@@ -76,12 +84,15 @@ export function MapboxMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersByIdRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const hotZonesRef = useRef(hotZones);
   const didFitBoundsRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [routeCoords, setRouteCoords] = useState<Map<string, [number, number][]>>(
     () => new Map()
   );
   const routesRequestRef = useRef(0);
+
+  hotZonesRef.current = hotZones;
 
   useEffect(() => {
     if (!env.mapboxToken || !containerRef.current || mapRef.current) return;
@@ -169,6 +180,64 @@ export function MapboxMap({
       });
     }
   }, [tripRoutes, routeCoords, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    syncHotZonesLayers(map, hotZones);
+  }, [hotZones, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    const popup = new mapboxgl.Popup({
+      closeButton: true,
+      closeOnClick: true,
+      maxWidth: "280px",
+      className: "mapbox-live-popup",
+    });
+
+    const onHotZoneClick = (
+      e: mapboxgl.MapMouseEvent & {
+        features?: mapboxgl.MapboxGeoJSONFeature[];
+      }
+    ) => {
+      const props = e.features?.[0]?.properties;
+      const id = props?.id as string | undefined;
+      if (!id) return;
+      const zone = hotZonesRef.current.find((z) => z.id === id);
+      if (!zone) return;
+      popup
+        .setLngLat(e.lngLat)
+        .setHTML(hotZonePopupHtml(zone))
+        .addTo(map);
+    };
+
+    const setPointer = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const resetPointer = () => {
+      map.getCanvas().style.cursor = "";
+    };
+
+    map.on("click", HOT_ZONES_GLOW, onHotZoneClick);
+    map.on("click", HOT_ZONES_CORE, onHotZoneClick);
+    map.on("mouseenter", HOT_ZONES_GLOW, setPointer);
+    map.on("mouseenter", HOT_ZONES_CORE, setPointer);
+    map.on("mouseleave", HOT_ZONES_GLOW, resetPointer);
+    map.on("mouseleave", HOT_ZONES_CORE, resetPointer);
+
+    return () => {
+      map.off("click", HOT_ZONES_GLOW, onHotZoneClick);
+      map.off("click", HOT_ZONES_CORE, onHotZoneClick);
+      map.off("mouseenter", HOT_ZONES_GLOW, setPointer);
+      map.off("mouseenter", HOT_ZONES_CORE, setPointer);
+      map.off("mouseleave", HOT_ZONES_GLOW, resetPointer);
+      map.off("mouseleave", HOT_ZONES_CORE, resetPointer);
+      popup.remove();
+    };
+  }, [ready]);
 
   useEffect(() => {
     const map = mapRef.current;

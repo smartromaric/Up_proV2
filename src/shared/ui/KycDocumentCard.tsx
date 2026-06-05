@@ -2,7 +2,10 @@
 
 import { useRef } from "react";
 import type { KycDocument } from "@/shared/types";
-import { resolveKycPreviewUrl } from "@/shared/lib/documentPreview";
+import {
+  isPdfPreviewUrl,
+  resolveKycPreviewUrl,
+} from "@/shared/lib/documentPreview";
 import { formatDateTime } from "@/shared/lib/format";
 import { DocumentPreviewThumbnail } from "./DocumentPreviewThumbnail";
 import { Button } from "./Button";
@@ -42,6 +45,11 @@ export function KycDocumentCard({
   const hasUpload = Boolean(document.uploaded_at);
   const needsUpload = canUpload && (document.status === "rejected" || !hasUpload);
   const previewUrl = resolveKycPreviewUrl(document);
+  const isPdf = isPdfPreviewUrl(previewUrl);
+  const fallbackSrc = resolveKycPreviewUrl({
+    type: document.type,
+    preview_url: undefined,
+  });
 
   return (
     <div className="rounded-card border border-border bg-surface p-4 shadow-card">
@@ -95,6 +103,8 @@ export function KycDocumentCard({
           <DocumentPreviewThumbnail
             src={previewUrl}
             alt={document.label}
+            isPdf={isPdf}
+            fallbackSrc={fallbackSrc}
             subtitle={`Soumis le ${formatDateTime(document.uploaded_at)}`}
           />
         ) : (

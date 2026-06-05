@@ -130,7 +130,14 @@ export function AdminDriverTransfersPage() {
       </p>
 
       {statsLoading ? (
-        <div className="mb-6 h-24 animate-pulse rounded-card bg-border" />
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="kpi-card kpi-card--charcoal kpi-card--compact relative h-24 animate-pulse rounded-card p-4"
+            />
+          ))}
+        </div>
       ) : stats ? (
         <div className="animate-stagger mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard

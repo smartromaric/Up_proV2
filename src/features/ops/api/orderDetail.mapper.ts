@@ -181,7 +181,11 @@ export function mapApiOrderToTripDetail(
     to_label: order.dropoff_address ?? "Destination",
     from_coords: readCoord(order.pickup_latitude, order.pickup_longitude),
     to_coords: readCoord(order.dropoff_latitude, order.dropoff_longitude),
-    client_name: "Client",
+    client_name:
+      order.client?.displayName?.trim() ??
+      (order.client_id
+        ? `Client ${String(order.client_id).slice(0, 8)}`
+        : "Client"),
     driver_id: order.driver_id ?? undefined,
     driver_name: order.driver_id
       ? driverNameById(order.driver_id, driversById)

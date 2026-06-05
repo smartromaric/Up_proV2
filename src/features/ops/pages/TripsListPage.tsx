@@ -43,17 +43,29 @@ export function TripsListPage() {
     franchiseId: null,
     partnerId: null,
   });
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const table = useServerTableState(
-    [statusFilter, serviceFilter, scope.franchiseId, scope.partnerId],
+    [
+      statusFilter,
+      serviceFilter,
+      scope.franchiseId,
+      scope.partnerId,
+      dateFrom,
+      dateTo,
+    ],
     {
       service: serviceFilter !== "all" ? serviceFilter : undefined,
       franchise_id: scope.franchiseId ?? undefined,
       partner_id: scope.partnerId ?? undefined,
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
     }
   );
 
   const scopeActive = scope.franchiseId != null || scope.partnerId != null;
+  const dateFilterActive = Boolean(dateFrom || dateTo);
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
@@ -64,6 +76,14 @@ export function TripsListPage() {
         value: scopeActive,
         defaultValue: false,
         reset: () => setScope({ franchiseId: null, partnerId: null }),
+      },
+      {
+        value: dateFilterActive,
+        defaultValue: false,
+        reset: () => {
+          setDateFrom("");
+          setDateTo("");
+        },
       },
     ],
   });
@@ -192,6 +212,11 @@ export function TripsListPage() {
             options={filterOptions}
             value={scope}
             onChange={setScope}
+            showDateFilters
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
           />
         </div>
       )}

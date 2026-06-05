@@ -22,7 +22,10 @@ const ZONE_TYPE_LABELS: Record<Zone["type"], string> = {
   surge: "Surge",
   airport: "Aéroport",
 };
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { useFranchiseDetail } from "../api/franchiseDetail.queries";
+import { useZonesByFranchise } from "../api/zones.queries";
+import { AbidjanZonesMap } from "../components/AbidjanZonesMap";
 
 interface FranchiseDetailPageProps {
   franchiseId: string;
@@ -31,9 +34,17 @@ interface FranchiseDetailPageProps {
 export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
   const [tab, setTab] = useState("overview");
   const { data, isLoading, isError } = useFranchiseDetail(franchiseId);
+  const { data: franchiseZones = [], isLoading: zonesMapLoading } =
+    useZonesByFranchise(franchiseId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return (
+      <DetailPageSkeleton
+        title="Franchise"
+        breadcrumb={["Admin", "Réseau", "Franchises"]}
+        kpiCount={4}
+      />
+    );
   }
 
   if (isError || !data) {
@@ -157,12 +168,23 @@ export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
             )}
 
             {tab === "zones" && (
-              <DataTable
-                columns={zoneCols}
-                data={data.zones}
-                rowKey={(z) => z.id}
-                exportFileName="zones-franchise-detail"
-              />
+              <div className="space-y-6">
+                {zonesMapLoading ? (
+                  <div className="h-[min(320px,45vh)] animate-pulse rounded-card border border-border bg-surface" />
+                ) : (
+                  <AbidjanZonesMap
+                    mode="select"
+                    zones={franchiseZones}
+                    cityLabel={data.city !== "—" ? data.city : "Zones franchise"}
+                  />
+                )}
+                <DataTable
+                  columns={zoneCols}
+                  data={data.zones}
+                  rowKey={(z) => z.id}
+                  exportFileName="zones-franchise-detail"
+                />
+              </div>
             )}
           </div>
         </div>

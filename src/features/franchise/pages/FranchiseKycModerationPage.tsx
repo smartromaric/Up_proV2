@@ -43,8 +43,8 @@ export function FranchiseKycModerationPage() {
   });
 
   const { data, isLoading, isError } = useFranchiseKycQueue(table.listParams);
-  const [approveId, setApproveId] = useState<number | null>(null);
-  const [rejectId, setRejectId] = useState<number | null>(null);
+  const [approveId, setApproveId] = useState<number | string | null>(null);
+  const [rejectId, setRejectId] = useState<number | string | null>(null);
 
   const approveMutation = useApproveFranchiseDriverKyc();
   const rejectMutation = useRejectFranchiseDriverKyc();

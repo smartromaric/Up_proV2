@@ -1,15 +1,20 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { Zone } from "@/shared/types";
+import { env } from "@/core/config/env";
 import {
+  boundsFromGeoPoints,
   ringLngLatToSvgPoints,
   svgPointToLatLng,
+  type MapBounds,
 } from "@/shared/lib/mapProjection";
 import { ZoneTypePill } from "@/shared/ui/ZoneTypePill";
 import { Button } from "@/shared/ui/Button";
+import { ZonesMapboxMap } from "./ZonesMapboxMap";
 
 export interface ZoneMapItem {
-  id: number;
+  id: number | string;
   name: string;
   type: Zone["type"];
   city?: string;
@@ -18,6 +23,10 @@ export interface ZoneMapItem {
     type: "Polygon";
     coordinates: number[][][];
   };
+  center_lng?: number;
+  center_lat?: number;
+  heatLevel?: number;
+  surge_multiplier?: number;
 }
 
 const ZONE_COLORS = [
@@ -28,16 +37,39 @@ const ZONE_COLORS = [
   "rgba(236,72,153,0.18)",
 ];
 
+export function computeZonesMapBounds(zones: ZoneMapItem[]): MapBounds {
+  const points: Array<{ lng: number; lat: number }> = [];
+  for (const zone of zones) {
+    const ring = zone.polygon_geojson?.coordinates?.[0];
+    if (ring?.length) {
+      for (const [lng, lat] of ring) {
+        if (Number.isFinite(lng) && Number.isFinite(lat)) {
+          points.push({ lng, lat });
+        }
+      }
+    } else if (
+      zone.center_lng != null &&
+      zone.center_lat != null &&
+      Number.isFinite(zone.center_lng) &&
+      Number.isFinite(zone.center_lat)
+    ) {
+      points.push({ lng: zone.center_lng, lat: zone.center_lat });
+    }
+  }
+  return boundsFromGeoPoints(points);
+}
+
 interface AbidjanZonesMapProps {
   mode: "select" | "draw";
   zones: ZoneMapItem[];
   cityLabel?: string;
-  selectedZoneId?: number | null;
+  selectedZoneId?: number | string | null;
   onSelectZone?: (zone: ZoneMapItem) => void;
   draftRing?: number[][];
   onDraftPoint?: (lng: number, lat: number) => void;
   onUndoDraftPoint?: () => void;
   onClearDraft?: () => void;
+  mapBounds?: MapBounds;
 }
 
 export function AbidjanZonesMap({
@@ -50,23 +82,93 @@ export function AbidjanZonesMap({
   onDraftPoint,
   onUndoDraftPoint,
   onClearDraft,
+  mapBounds,
 }: AbidjanZonesMapProps) {
+  const [drawBounds, setDrawBounds] = useState<MapBounds | null>(null);
+
+  useEffect(() => {
+    if (mode === "draw") {
+      setDrawBounds(
+        (prev) => prev ?? mapBounds ?? computeZonesMapBounds(zones)
+      );
+    } else {
+      setDrawBounds(null);
+    }
+  }, [mode, mapBounds, zones]);
+
+  const bounds = useMemo(
+    () =>
+      mode === "draw" && drawBounds
+        ? drawBounds
+        : mapBounds ?? computeZonesMapBounds(zones),
+    [mode, drawBounds, mapBounds, zones]
+  );
+
   const handleMapClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (mode !== "draw" || !onDraftPoint) return;
     const svg = e.currentTarget;
     const rect = svg.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-    const { lat, lng } = svgPointToLatLng(xPct, yPct);
+    const { lat, lng } = svgPointToLatLng(xPct, yPct, bounds);
     onDraftPoint(lng, lat);
   };
 
   const draftPoints =
-    draftRing.length >= 2 ? ringLngLatToSvgPoints(draftRing) : "";
+    draftRing.length >= 2 ? ringLngLatToSvgPoints(draftRing, bounds) : "";
   const closedDraft =
     draftRing.length >= 3
-      ? ringLngLatToSvgPoints([...draftRing, draftRing[0]])
+      ? ringLngLatToSvgPoints([...draftRing, draftRing[0]], bounds)
       : draftPoints;
+
+  if (env.mapboxToken) {
+    return (
+      <div className="space-y-3">
+        <ZonesMapboxMap
+          zones={zones}
+          cityLabel={cityLabel}
+          selectedZoneId={selectedZoneId}
+          onSelectZone={onSelectZone}
+          mode={mode}
+          draftRing={draftRing}
+          onDraftPoint={onDraftPoint}
+          mapBounds={bounds}
+        />
+        {mode === "draw" && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="!text-xs"
+              disabled={draftRing.length === 0}
+              onClick={onUndoDraftPoint}
+            >
+              Annuler le dernier point
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="!text-xs"
+              disabled={draftRing.length === 0}
+              onClick={onClearDraft}
+            >
+              Effacer le tracé
+            </Button>
+            <p className="self-center text-xs text-muted">
+              Cliquez sur la carte pour placer au moins 3 points et délimiter la zone.
+            </p>
+          </div>
+        )}
+        {mode === "select" && (
+          <ZonesMapLegend
+            zones={zones}
+            selectedZoneId={selectedZoneId}
+            onSelectZone={onSelectZone}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -100,32 +202,78 @@ export function AbidjanZonesMap({
         >
           {zones.map((zone, i) => {
             const ring = zone.polygon_geojson?.coordinates?.[0];
-            if (!ring) return null;
-            const points = ringLngLatToSvgPoints(ring);
-            const selected = selectedZoneId === zone.id;
+            const selected = String(selectedZoneId) === String(zone.id);
             const isReference = mode === "draw";
-            return (
-              <polygon
-                key={zone.id}
-                points={points}
-                fill={ZONE_COLORS[i % ZONE_COLORS.length]}
-                stroke={selected ? "#0ab39c" : "#405189"}
-                strokeWidth={selected ? 1.2 : 0.5}
-                className={
-                  isReference
-                    ? "pointer-events-none opacity-35"
-                    : "cursor-pointer transition-opacity hover:opacity-90"
-                }
-                onClick={
-                  isReference
-                    ? undefined
-                    : (ev) => {
-                        ev.stopPropagation();
-                        onSelectZone?.(zone);
-                      }
-                }
-              />
-            );
+            const color = ZONE_COLORS[i % ZONE_COLORS.length];
+
+            if (ring?.length) {
+              const points = ringLngLatToSvgPoints(ring, bounds);
+              return (
+                <polygon
+                  key={zone.id}
+                  points={points}
+                  fill={color}
+                  stroke={selected ? "#0ab39c" : "#405189"}
+                  strokeWidth={selected ? 1.2 : 0.5}
+                  className={
+                    isReference
+                      ? "pointer-events-none opacity-35"
+                      : "cursor-pointer transition-opacity hover:opacity-90"
+                  }
+                  onClick={
+                    isReference
+                      ? undefined
+                      : (ev) => {
+                          ev.stopPropagation();
+                          onSelectZone?.(zone);
+                        }
+                  }
+                />
+              );
+            }
+
+            if (
+              zone.center_lng != null &&
+              zone.center_lat != null &&
+              Number.isFinite(zone.center_lng) &&
+              Number.isFinite(zone.center_lat)
+            ) {
+              const pt = ringLngLatToSvgPoints(
+                [[zone.center_lng, zone.center_lat]],
+                bounds
+              );
+              const [cx, cy] = pt.split(",");
+              return (
+                <g key={zone.id}>
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={selected ? 2.4 : 1.8}
+                    fill={color}
+                    stroke={selected ? "#0ab39c" : "#405189"}
+                    strokeWidth={selected ? 0.9 : 0.5}
+                    className={
+                      isReference
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                    onClick={
+                      isReference
+                        ? undefined
+                        : (ev) => {
+                            ev.stopPropagation();
+                            onSelectZone?.(zone);
+                          }
+                    }
+                  />
+                  {!isReference && (
+                    <title>{zone.name}</title>
+                  )}
+                </g>
+              );
+            }
+
+            return null;
           })}
 
           {mode === "draw" && draftRing.length >= 2 && (
@@ -149,7 +297,7 @@ export function AbidjanZonesMap({
           )}
           {mode === "draw" &&
             draftRing.map(([lng, lat], idx) => {
-              const pt = ringLngLatToSvgPoints([[lng, lat]]);
+              const pt = ringLngLatToSvgPoints([[lng, lat]], bounds);
               const [x, y] = pt.split(",");
               return (
                 <circle
@@ -216,7 +364,7 @@ export function ZonesMapLegend({
   onSelectZone,
 }: {
   zones: ZoneMapItem[];
-  selectedZoneId?: number | null;
+  selectedZoneId?: number | string | null;
   onSelectZone?: (zone: ZoneMapItem) => void;
 }) {
   return (
@@ -227,7 +375,7 @@ export function ZonesMapLegend({
             type="button"
             onClick={() => onSelectZone?.(zone)}
             className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-              selectedZoneId === zone.id
+              String(selectedZoneId) === String(zone.id)
                 ? "border-teal bg-teal/5 ring-1 ring-teal/30"
                 : "border-border bg-surface hover:border-teal/30"
             }`}

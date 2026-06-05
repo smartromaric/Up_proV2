@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/core/auth/authStore";
 import { clearAuthCookie, setAuthCookie } from "@/core/auth/authCookie";
-import { AppError } from "@/core/http/errorHandler";
+import { AppError, resolveUserFacingMessage } from "@/core/http/errorHandler";
 import { notificationService } from "@/core/http/notificationService";
 import { DASHBOARD_BY_PORTAL } from "@/core/auth/authRoutes";
 import { authService, type LoginPayload } from "./auth.service";
@@ -30,6 +30,12 @@ export function useLoginMutation(portal: LoginPayload["portal"]) {
     mutationFn: (payload: Omit<LoginPayload, "portal">) =>
       authService.login({ ...payload, portal }),
     onSuccess: (data) => {
+      if (data.user.role !== portal) {
+        notificationService.error(
+          "Ce compte n'est pas autorisé sur ce portail. Utilisez le portail correspondant."
+        );
+        return;
+      }
       setSession(data.token, data.user, data.refreshToken);
       setAuthCookie();
       notificationService.success("Connexion réussie");
@@ -38,10 +44,10 @@ export function useLoginMutation(portal: LoginPayload["portal"]) {
     onError: (error: unknown) => {
       const message =
         error instanceof AppError
-          ? error.message
+          ? resolveUserFacingMessage(error.code, error.message)
           : error instanceof Error
-            ? error.message
-            : "Email ou mot de passe incorrect";
+            ? resolveUserFacingMessage(undefined, error.message)
+            : "Email ou mot de passe incorrect.";
       notificationService.error(message);
     },
   });

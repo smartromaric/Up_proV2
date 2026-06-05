@@ -81,8 +81,34 @@ function extractRefreshToken(data: ApiAuthLoginResponse): string | null {
 
 type ApiAuthUserPayload = Pick<
   ApiAuthLoginResponse,
-  "profile" | "user" | "userType" | "role"
+  "profile" | "user" | "userType" | "role" | "franchiseMember" | "partner" | "franchise"
 >;
+
+function readScopedId(
+  payload: Record<string, unknown> | undefined,
+  keys: string[]
+): string | undefined {
+  if (!payload) return undefined;
+  for (const key of keys) {
+    const value = payload[key];
+    if (value != null && String(value).trim()) return String(value);
+  }
+  return undefined;
+}
+
+function extractFranchiseId(data: ApiAuthUserPayload): string | undefined {
+  const member = data.franchiseMember as Record<string, unknown> | undefined;
+  const franchise = data.franchise as Record<string, unknown> | undefined;
+  return (
+    readScopedId(member, ["franchise_id", "franchiseId", "id"]) ??
+    readScopedId(franchise, ["id"])
+  );
+}
+
+function extractOwnerId(data: ApiAuthUserPayload): string | undefined {
+  const partner = data.partner as Record<string, unknown> | undefined;
+  return readScopedId(partner, ["id", "partner_id", "partnerId"]);
+}
 
 function buildUserFromApi(
   data: ApiAuthUserPayload,
@@ -91,14 +117,13 @@ function buildUserFromApi(
   const userType = data.userType ?? data.profile?.user_type ?? data.role;
   const portal = resolvePortal(expectedPortal, userType);
 
-  if (
-    expectedPortal === "admin" &&
-    userType &&
-    String(userType).toUpperCase() !== "ADMIN"
-  ) {
-    throw new Error(
-      "Ce compte n'est pas un administrateur. Utilisez le portail correspondant."
-    );
+  if (userType) {
+    const mapped = PORTAL_BY_USER_TYPE[String(userType).toUpperCase()];
+    if (mapped && mapped !== expectedPortal) {
+      throw new Error(
+        "Ce compte n'est pas autorisé sur ce portail. Utilisez le portail correspondant."
+      );
+    }
   }
 
   const profile = data.profile;
@@ -112,12 +137,17 @@ function buildUserFromApi(
     [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
     email;
 
+  const franchiseId = extractFranchiseId(data);
+  const ownerId = extractOwnerId(data);
+
   return {
     id: profile?.id ?? "unknown",
     name,
     email,
     role: portal,
     scope: SCOPE_BY_PORTAL[portal],
+    franchise_id: franchiseId as unknown as number | undefined,
+    owner_id: ownerId as unknown as number | undefined,
     permissions: defaultPermissions(portal),
   };
 }

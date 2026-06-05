@@ -22,9 +22,13 @@ function buildLegacyQuery(filters?: LiveMapScopeFiltersValue): string {
   return qs ? `?${qs}` : "";
 }
 
-function buildV1Endpoint(_filters?: LiveMapScopeFiltersValue): string {
+function buildV1Endpoint(filters?: LiveMapScopeFiltersValue): string {
   return createUrl(LINKS.admin.v1.liveMap, {
     includeWithoutLocation: "true",
+    franchiseId:
+      filters?.franchiseId != null ? String(filters.franchiseId) : undefined,
+    partnerId:
+      filters?.partnerId != null ? String(filters.partnerId) : undefined,
   });
 }
 

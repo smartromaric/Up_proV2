@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -35,7 +36,7 @@ export function FranchiseDriverDetailPage({ driverId }: FranchiseDriverDetailPag
   const rejectDoc = useRejectFranchiseDocument(driverId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !driver) {

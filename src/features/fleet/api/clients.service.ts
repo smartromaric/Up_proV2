@@ -1,9 +1,20 @@
 import { apiClient } from "@/core/http/apiClient";
+import { LINKS } from "@/core/api/links";
+import { buildV1ListQuery } from "@/core/api/v1Pagination";
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import type { Paginated, TripStatus } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
+import type {
+  ApiAdminUserDetailResponse,
+  ApiAdminUsersResponse,
+} from "./adminUsers.api.types";
+import {
+  mapAdminUserDetailToFleetClientDetail,
+  mapAdminUsersToPaginated,
+} from "./adminUsers.mapper";
 
 export interface FleetClient {
-  id: number;
+  id: string | number;
   full_name: string;
   phone: string;
   email: string | null;
@@ -36,13 +47,42 @@ export interface FleetClientDetail extends FleetClient {
 }
 
 export const clientsService = {
-  list: (params?: ListParams) =>
-    apiClient.get<Paginated<FleetClient>>(
-      `/admin/fleet/clients${buildListQuery(params)}`
-    ),
-  get: (id: string) => apiClient.get<FleetClientDetail>(`/admin/fleet/clients/${id}`),
+  list: async (params?: ListParams): Promise<Paginated<FleetClient>> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.get<Paginated<FleetClient>>(
+        `/admin/fleet/clients${buildListQuery(params)}`
+      );
+    }
+
+    const response = await apiClient.get<ApiAdminUsersResponse>(
+      `${LINKS.admin.v1.users}${buildV1ListQuery(params)}`
+    );
+    const users = response.users ?? response.items ?? [];
+    return mapAdminUsersToPaginated(users, params, response.pagination);
+  },
+  get: async (id: string): Promise<FleetClientDetail> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.get<FleetClientDetail>(`/admin/fleet/clients/${id}`);
+    }
+    const response = await apiClient.get<ApiAdminUserDetailResponse>(
+      LINKS.admin.v1.userById(id)
+    );
+    return mapAdminUserDetailToFleetClientDetail(response);
+  },
   suspend: (id: string) =>
-    apiClient.post<{ ok: boolean; message: string }>(`/admin/fleet/clients/${id}/suspend`),
+    useLegacyAdminApi()
+      ? apiClient.post<{ ok: boolean; message: string }>(
+          `/admin/fleet/clients/${id}/suspend`
+        )
+      : apiClient.post<{ ok: boolean; message: string }>(
+          LINKS.admin.v1.userSuspend(id)
+        ),
   activate: (id: string) =>
-    apiClient.post<{ ok: boolean; message: string }>(`/admin/fleet/clients/${id}/activate`),
+    useLegacyAdminApi()
+      ? apiClient.post<{ ok: boolean; message: string }>(
+          `/admin/fleet/clients/${id}/activate`
+        )
+      : apiClient.post<{ ok: boolean; message: string }>(
+          LINKS.admin.v1.userActivate(id)
+        ),
 };

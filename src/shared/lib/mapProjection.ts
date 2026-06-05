@@ -1,10 +1,56 @@
+export interface MapBounds {
+  lat_min: number;
+  lat_max: number;
+  lng_min: number;
+  lng_max: number;
+}
+
 /** Zone cartographique Abidjan pour projection lat/lng ↔ % */
-export const ABIDJAN_MAP_BOUNDS = {
+export const ABIDJAN_MAP_BOUNDS: MapBounds = {
   lat_min: 5.25,
   lat_max: 5.43,
   lng_min: -4.1,
   lng_max: -3.88,
 };
+
+/** Vue nationale — zones hors Abidjan (Bouaké, Korhogo, etc.) */
+export const IVORY_COAST_MAP_BOUNDS: MapBounds = {
+  lat_min: 4.2,
+  lat_max: 10.8,
+  lng_min: -8.6,
+  lng_max: -2.5,
+};
+
+const MIN_BOUNDS_SPAN = 0.08;
+
+export function boundsFromGeoPoints(
+  points: Array<{ lng: number; lat: number }>,
+  fallback: MapBounds = IVORY_COAST_MAP_BOUNDS
+): MapBounds {
+  if (points.length === 0) return fallback;
+
+  let latMin = points[0]!.lat;
+  let latMax = points[0]!.lat;
+  let lngMin = points[0]!.lng;
+  let lngMax = points[0]!.lng;
+
+  for (const p of points) {
+    latMin = Math.min(latMin, p.lat);
+    latMax = Math.max(latMax, p.lat);
+    lngMin = Math.min(lngMin, p.lng);
+    lngMax = Math.max(lngMax, p.lng);
+  }
+
+  const padLat = Math.max(MIN_BOUNDS_SPAN, (latMax - latMin) * 0.15);
+  const padLng = Math.max(MIN_BOUNDS_SPAN, (lngMax - lngMin) * 0.15);
+
+  return {
+    lat_min: latMin - padLat,
+    lat_max: latMax + padLat,
+    lng_min: lngMin - padLng,
+    lng_max: lngMax + padLng,
+  };
+}
 
 export interface MapCoords {
   lat: number;
@@ -19,7 +65,7 @@ export interface MapPosition {
 export function latLngToPercent(
   lat: number,
   lng: number,
-  bounds = ABIDJAN_MAP_BOUNDS
+  bounds: MapBounds = ABIDJAN_MAP_BOUNDS
 ): MapPosition {
   const latPct =
     ((lat - bounds.lat_min) / (bounds.lat_max - bounds.lat_min)) * 100;
@@ -34,7 +80,7 @@ export function latLngToPercent(
 export function percentToLatLng(
   leftPct: number,
   topPct: number,
-  bounds = ABIDJAN_MAP_BOUNDS
+  bounds: MapBounds = ABIDJAN_MAP_BOUNDS
 ): MapCoords {
   const lat = bounds.lat_max - (topPct / 100) * (bounds.lat_max - bounds.lat_min);
   const lng = bounds.lng_min + (leftPct / 100) * (bounds.lng_max - bounds.lng_min);
@@ -44,7 +90,7 @@ export function percentToLatLng(
 export function clampCoordsToBounds(
   lat: number,
   lng: number,
-  bounds = ABIDJAN_MAP_BOUNDS
+  bounds: MapBounds = ABIDJAN_MAP_BOUNDS
 ): MapCoords {
   return {
     lat: Math.min(bounds.lat_max, Math.max(bounds.lat_min, lat)),
@@ -55,7 +101,7 @@ export function clampCoordsToBounds(
 /** Ring GeoJSON [lng, lat][] → attribut points SVG (viewBox 0–100) */
 export function ringLngLatToSvgPoints(
   ring: number[][],
-  bounds = ABIDJAN_MAP_BOUNDS
+  bounds: MapBounds = ABIDJAN_MAP_BOUNDS
 ): string {
   return ring
     .map(([lng, lat]) => {
@@ -72,7 +118,7 @@ export function ringLngLatToSvgPoints(
 export function svgPointToLatLng(
   xPct: number,
   yPct: number,
-  bounds = ABIDJAN_MAP_BOUNDS
+  bounds: MapBounds = ABIDJAN_MAP_BOUNDS
 ): MapCoords {
   const lat =
     bounds.lat_max - (yPct / 100) * (bounds.lat_max - bounds.lat_min);

@@ -27,7 +27,7 @@ export interface FranchiseCommissionsListResponse extends Paginated<FranchisePar
 }
 
 export const franchiseCommissionsService = {
-  list: (params?: ListParams & { partner_id?: number }) =>
+  list: (params?: ListParams & { partner_id?: number | string }) =>
     apiClient.get<FranchiseCommissionsListResponse>(
       `/franchise/finance/commissions${buildListQuery(params)}`
     ),

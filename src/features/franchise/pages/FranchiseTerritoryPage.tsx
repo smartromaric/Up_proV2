@@ -1,5 +1,6 @@
 "use client";
 
+import { ZoneMapSkeleton } from "@/shared/ui/skeletons";
 import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -16,7 +17,7 @@ export function FranchiseTerritoryPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   if (isLoading) {
-    return <div className="h-96 animate-pulse rounded-card bg-border" />;
+    return <ZoneMapSkeleton />;
   }
 
   if (isError || !data) {

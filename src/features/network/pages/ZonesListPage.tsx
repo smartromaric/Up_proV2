@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
@@ -15,7 +16,8 @@ import {
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
 import type { Zone } from "@/shared/types";
-import { useZonesList } from "../api/zones.queries";
+import { useZonesList, useZonesMapOverview } from "../api/zones.queries";
+import { AbidjanZonesMap } from "../components/AbidjanZonesMap";
 
 const ZONE_TYPE_LABELS: Record<Zone["type"], string> = {
   standard: "Standard",
@@ -32,7 +34,11 @@ const TYPE_OPTIONS = [
 
 export function ZonesListPage() {
   const router = useRouter();
+  const legacyApi = useLegacyAdminApi();
   const [typeFilter, setTypeFilter] = useState<(typeof TYPE_OPTIONS)[number]["value"]>("all");
+  const [selectedMapZoneId, setSelectedMapZoneId] = useState<number | string | null>(
+    null
+  );
 
   const table = useServerTableState([typeFilter], {
     type: typeFilter !== "all" ? typeFilter : undefined,
@@ -46,6 +52,7 @@ export function ZonesListPage() {
   });
 
   const { data, isLoading, isError } = useZonesList(table.listParams);
+  const { data: mapOverview, isLoading: mapLoading } = useZonesMapOverview();
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
@@ -109,11 +116,33 @@ export function ZonesListPage() {
         title="Zones"
         breadcrumb={["Admin", "Réseau"]}
         actions={
-          <Button variant="primary" onClick={() => router.push("/admin/network/zones/new")}>
-            Nouvelle zone
-          </Button>
+          legacyApi ? (
+            <Button
+              variant="primary"
+              onClick={() => router.push("/admin/network/zones/new")}
+            >
+              Nouvelle zone
+            </Button>
+          ) : undefined
         }
       />
+
+      <div className="mb-6">
+        {mapLoading ? (
+          <div className="h-[min(380px,50vh)] animate-pulse rounded-card border border-border bg-surface" />
+        ) : (
+          <AbidjanZonesMap
+            mode="select"
+            zones={mapOverview?.zones ?? []}
+            cityLabel={mapOverview?.city ?? "Zones"}
+            selectedZoneId={selectedMapZoneId}
+            onSelectZone={(zone) => {
+              setSelectedMapZoneId(zone.id);
+              router.push(`/admin/network/zones/${zone.id}`);
+            }}
+          />
+        )}
+      </div>
 
       <TableFiltersBar
         search={table.search}

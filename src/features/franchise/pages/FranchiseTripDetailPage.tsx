@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { StatusPill } from "@/shared/ui/StatusPill";
@@ -20,7 +21,7 @@ export function FranchiseTripDetailPage({ tripId }: FranchiseTripDetailPageProps
   const { data: trip, isLoading, isError } = useFranchiseTripDetail(tripId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !trip) {

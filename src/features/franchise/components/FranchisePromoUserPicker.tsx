@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useFranchiseClientsList } from "../api/clients.queries";
 
 export interface PromoUserSelection {
-  id: number;
+  id: string | number;
   full_name: string;
   phone: string;
 }

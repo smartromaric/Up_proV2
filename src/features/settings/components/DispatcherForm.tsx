@@ -14,7 +14,7 @@ export interface DispatcherFormValues {
   phone: string;
   password: string;
   franchise_id: number | "";
-  zone_ids: number[];
+  zone_ids: Array<number | string>;
   shift_label: string;
   status: DispatcherStatus;
   permissions: DispatcherPermissions;
@@ -46,11 +46,12 @@ export function DispatcherForm({
   const set = (patch: Partial<DispatcherFormValues>) =>
     onChange({ ...values, ...patch });
 
-  const toggleZone = (zoneId: number) => {
-    const has = values.zone_ids.includes(zoneId);
+  const toggleZone = (zoneId: number | string) => {
+    const key = String(zoneId);
+    const has = values.zone_ids.some((id) => String(id) === key);
     set({
       zone_ids: has
-        ? values.zone_ids.filter((id) => id !== zoneId)
+        ? values.zone_ids.filter((id) => String(id) !== key)
         : [...values.zone_ids, zoneId],
     });
   };
@@ -170,7 +171,7 @@ export function DispatcherForm({
                 >
                   <input
                     type="checkbox"
-                    checked={values.zone_ids.includes(z.id)}
+                    checked={values.zone_ids.some((id) => String(id) === String(z.id))}
                     onChange={() => toggleZone(z.id)}
                     className="h-4 w-4 rounded border-border text-teal focus:ring-teal"
                   />

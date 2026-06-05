@@ -16,6 +16,7 @@ CONTEXTE.md
 
 # testing
 /coverage
+docs/
 
 # next.js
 /.next/
@@ -42,3 +43,5 @@ yarn-error.log*
 
 # msw
 public/mockServiceWorker.js
+
+.vercel

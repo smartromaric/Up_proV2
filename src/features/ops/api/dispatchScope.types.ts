@@ -1,6 +1,8 @@
+import type { ScopeId } from "@/shared/lib/scopeId";
+
 export interface DispatchScopeFiltersValue {
-  franchiseId: number | null;
-  partnerId: number | null;
+  franchiseId: ScopeId | null;
+  partnerId: ScopeId | null;
 }
 
 export function dispatchScopeQueryParams(

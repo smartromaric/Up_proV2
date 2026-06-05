@@ -8,18 +8,21 @@ import { HeroKpi } from "@/features/ops/components/HeroKpi";
 import { AdminDashboardFranchiseSelect } from "@/features/ops/components/AdminDashboardFranchiseSelect";
 import { formatFCFA, formatPercent } from "@/shared/lib/format";
 import { useAdminFinanceDashboard } from "../api/financeDashboard.queries";
+import type { AdminDashboardFranchiseFilter } from "@/features/ops/api/dashboard.types";
 import { FinanceChartWeekly } from "../components/FinanceChartWeekly";
 import { FinanceAlertsPanel } from "../components/FinanceAlertsPanel";
 import { FinanceFranchiseBreakdown } from "../components/FinanceFranchiseBreakdown";
 import { FinancePaymentMix } from "../components/FinancePaymentMix";
 import { FinanceQuickLinks } from "../components/FinanceQuickLinks";
+import { FinanceDashboardSkeleton } from "@/shared/ui/skeletons";
 
 function trendHint(pct: number) {
   return `${formatPercent(pct)} vs M-1`;
 }
 
 export function AdminFinanceDashboardPage() {
-  const [franchiseId, setFranchiseId] = useState<number | null>(null);
+  const [franchiseId, setFranchiseId] =
+    useState<AdminDashboardFranchiseFilter>(null);
   const { data, isLoading, isError, isFetching } = useAdminFinanceDashboard(franchiseId);
 
   const scopeLabel =
@@ -28,7 +31,7 @@ export function AdminFinanceDashboardPage() {
       : data?.franchise_options.find((f) => f.id === franchiseId)?.name ?? "Franchise";
 
   if (isLoading && !data) {
-    return <div className="h-96 animate-pulse rounded-card bg-border" />;
+    return <FinanceDashboardSkeleton title="Tableau de bord financier" />;
   }
 
   if (isError || !data) {

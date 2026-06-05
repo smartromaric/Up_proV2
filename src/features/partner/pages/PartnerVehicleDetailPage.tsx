@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { VehicleApprovalPill } from "@/shared/ui/VehicleApprovalPill";
@@ -20,7 +21,7 @@ export function PartnerVehicleDetailPage({ vehicleId }: PartnerVehicleDetailPage
   const uploadRegistration = useUploadVehicleRegistration(vehicleId);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card bg-border" />;
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !vehicle) {

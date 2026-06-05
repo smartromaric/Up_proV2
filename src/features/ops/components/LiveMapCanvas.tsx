@@ -8,13 +8,17 @@ import {
   boundsToMapboxLngLatBounds,
   liveMapDataToMapFeatures,
 } from "@/shared/components/map/mapboxMarkers";
+import { useLiveMapHotZones } from "../api/liveMapHotZones.queries";
+import type { LiveMapScopeFiltersValue } from "../api/liveMap.types";
 import { LiveMapCanvasLegacy, LiveMapLegend } from "./LiveMapCanvasLegacy";
 
 interface LiveMapCanvasProps {
   data: LiveMapData;
+  scopeFilters?: LiveMapScopeFiltersValue;
 }
 
-export function LiveMapCanvas({ data }: LiveMapCanvasProps) {
+export function LiveMapCanvas({ data, scopeFilters }: LiveMapCanvasProps) {
+  const { data: hotZones = [] } = useLiveMapHotZones(scopeFilters);
   const features = useMemo(() => liveMapDataToMapFeatures(data), [data]);
   const bounds = useMemo(
     () => boundsToMapboxLngLatBounds(data.bounds),
@@ -27,6 +31,7 @@ export function LiveMapCanvas({ data }: LiveMapCanvasProps) {
         <MapboxMap
           features={features}
           tripRoutes={data.trip_routes}
+          hotZones={hotZones}
           bounds={bounds}
           zoneLabel={data.zone_name}
           cityLabel={data.city}
@@ -37,6 +42,7 @@ export function LiveMapCanvas({ data }: LiveMapCanvasProps) {
             <LiveMapLegend
               isGlobal={data.scope === "global"}
               showOrders={Boolean(data.order_markers?.length)}
+              showHotZones={hotZones.length > 0}
             />
           </div>
         </div>
@@ -44,5 +50,5 @@ export function LiveMapCanvas({ data }: LiveMapCanvasProps) {
     );
   }
 
-  return <LiveMapCanvasLegacy data={data} />;
+  return <LiveMapCanvasLegacy data={data} hotZones={hotZones} />;
 }

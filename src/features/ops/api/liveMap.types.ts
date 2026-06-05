@@ -1,4 +1,6 @@
+import type { ScopeId } from "@/shared/lib/scopeId";
+
 export interface LiveMapScopeFiltersValue {
-  franchiseId: number | null;
-  partnerId: number | null;
+  franchiseId: ScopeId | null;
+  partnerId: ScopeId | null;
 }

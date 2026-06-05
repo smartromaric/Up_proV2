@@ -3,7 +3,8 @@ import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 /**
  * Répertoire des chemins API.
  *
- * - Préfixe `/v1/` → `{apiUrl}/v1/...` (auth Supabase, Swagger)
+ * - Préfixe `/v1/` → `{apiUrl}/v1/...` (auth Supabase, Swagger live)
+ * - Source routes : https://api.upjunoo-dev.tech/docs — voir docs/API-SWAGGER-CONTEXT.md
  * - Autres chemins → `{apiUrl}/api/v2/...` (back-office)
  *
  * @example
@@ -59,11 +60,9 @@ export const LINKS = {
 
   auth: {
     v1: {
-      /** Alias générique (body: email, password ; role déduit côté API) */
+      /** Connexion back-office (admin, partenaire, franchise) — role via `profiles.user_type` */
       login: `${AUTH_V1_BASE}/login`,
       adminLogin: `${AUTH_V1_BASE}/admin/login`,
-      partnerLogin: `${AUTH_V1_BASE}/partner/login`,
-      franchiseLogin: `${AUTH_V1_BASE}/franchise/login`,
       clientLogin: `${AUTH_V1_BASE}/client/login`,
       driverLogin: `${AUTH_V1_BASE}/driver/login`,
       me: `${AUTH_V1_BASE}/me`,
@@ -91,7 +90,55 @@ export const LINKS = {
       liveDrivers: `${ADMIN_V1_BASE}/live-drivers`,
       liveOrders: `${ADMIN_V1_BASE}/live-orders`,
       orders: `${ADMIN_V1_BASE}/orders`,
+      orderById: (id: string) => `${ADMIN_V1_BASE}/orders/${id}`,
+      orderEvents: (serviceType: string, orderId: string) =>
+        `/v1/orders/${serviceType}/${orderId}/events`,
+      dispatchStatus: (serviceType: string, orderId: string) =>
+        `/v1/dispatch/${serviceType}/${orderId}/status`,
+      dispatchLogs: (serviceType: string, orderId: string) =>
+        `/v1/dispatch/${serviceType}/${orderId}/logs`,
       drivers: `${ADMIN_V1_BASE}/drivers`,
+      kycDocuments: `${ADMIN_V1_BASE}/kyc/documents`,
+      kycQueue: `${ADMIN_V1_BASE}/kyc/queue`,
+      kycApprove: (id: string) =>
+        `${ADMIN_V1_BASE}/kyc/documents/${id}/approve`,
+      kycReject: (id: string) =>
+        `${ADMIN_V1_BASE}/kyc/documents/${id}/reject`,
+      franchises: `${ADMIN_V1_BASE}/franchises`,
+      partners: `${ADMIN_V1_BASE}/partners`,
+      withdrawals: `${ADMIN_V1_BASE}/withdrawals`,
+      withdrawalApprove: (id: string) =>
+        `${ADMIN_V1_BASE}/withdrawals/${id}/approve`,
+      withdrawalReject: (id: string) =>
+        `${ADMIN_V1_BASE}/withdrawals/${id}/reject`,
+      users: `${ADMIN_V1_BASE}/users`,
+      userById: (id: string) => `${ADMIN_V1_BASE}/users/${id}`,
+      userSuspend: (id: string) => `${ADMIN_V1_BASE}/users/${id}/suspend`,
+      userActivate: (id: string) => `${ADMIN_V1_BASE}/users/${id}/activate`,
+      vehicles: `${ADMIN_V1_BASE}/vehicles`,
+    },
+
+    /** Franchises — détail module 99 ; liste via `admin.v1.franchises` */
+    franchises: {
+      getById: (id: string) => `/v1/franchises/${id}`,
+      partners: (id: string) => `/v1/franchises/${id}/partners`,
+      drivers: (id: string) => `/v1/franchises/${id}/drivers`,
+      orders: (id: string) => `/v1/franchises/${id}/orders`,
+      revenue: (id: string) => `/v1/franchises/${id}/revenue`,
+    },
+
+    partners: {
+      getById: (id: string) => `/v1/partners/${id}`,
+    },
+
+    /** Zones géographiques — GET /v1/zones (Swagger § 99) */
+    zones: {
+      list: "/v1/zones",
+      hot: "/v1/zones/hot",
+      heatmap: "/v1/zones/heatmap",
+      getById: (id: string) => `/v1/zones/${id}`,
+      demand: (id: string) => `/v1/zones/${id}/demand`,
+      geoHot: "/v1/geo/hot-zones",
     },
 
     drivers: {
@@ -219,6 +266,11 @@ export const LINKS = {
   },
 
   franchise: {
+    v1: {
+      dashboard: "/v1/franchise/dashboard",
+      me: "/v1/franchises/me",
+    },
+
     dashboard: "/franchise/dashboard",
     territory: "/franchise/territory",
 

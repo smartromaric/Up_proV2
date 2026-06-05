@@ -1,5 +1,8 @@
 import { apiClient } from "@/core/http/apiClient";
 import { LINKS, createUrl } from "@/core/api/links";
+import { buildV1ListQuery } from "@/core/api/v1Pagination";
+import type { ListParams } from "@/shared/types/listParams";
+import type { ApiAdminOrderDetailResponse } from "@/features/ops/api/adminOrderDetail.api.types";
 import type { ApiAdminOrdersResponse } from "@/features/ops/api/adminOrders.api.types";
 import type { ApiAdminLiveMapResponse } from "@/features/ops/api/liveMap.api.types";
 import type { ApiAdminDriversResponse } from "@/features/fleet/api/adminDrivers.api.types";
@@ -17,12 +20,29 @@ export async function fetchAdminLiveMap(): Promise<ApiAdminLiveMapResponse> {
   return apiClient.get<ApiAdminLiveMapResponse>(LIVE_MAP_URL);
 }
 
-export async function fetchAdminOrdersList(): Promise<ApiAdminOrdersResponse> {
-  return apiClient.get<ApiAdminOrdersResponse>(LINKS.admin.v1.orders);
+export async function fetchAdminOrdersList(
+  params?: ListParams
+): Promise<ApiAdminOrdersResponse> {
+  return apiClient.get<ApiAdminOrdersResponse>(
+    `${LINKS.admin.v1.orders}${buildV1ListQuery(params)}`
+  );
 }
 
-export async function fetchAdminDriversList(): Promise<ApiAdminDriversResponse> {
-  return apiClient.get<ApiAdminDriversResponse>(LINKS.admin.v1.drivers);
+/** Détail course admin — préférer cette route à live-map + liste. */
+export async function fetchAdminOrderById(
+  id: string
+): Promise<ApiAdminOrderDetailResponse> {
+  return apiClient.get<ApiAdminOrderDetailResponse>(
+    LINKS.admin.v1.orderById(id)
+  );
+}
+
+export async function fetchAdminDriversList(
+  params?: ListParams
+): Promise<ApiAdminDriversResponse> {
+  return apiClient.get<ApiAdminDriversResponse>(
+    `${LINKS.admin.v1.drivers}${buildV1ListQuery(params)}`
+  );
 }
 
 export async function resolveAdminOrder(
@@ -68,8 +88,16 @@ export async function resolveAdminDriver(
     approvalStatus: item.approval_status,
     rideCategoryCode: item.ride_category_code ?? undefined,
     ratingAvg: item.rating_avg ?? undefined,
+    partnerName: item.partnerName ?? undefined,
+    zoneName: item.zoneName ?? undefined,
+    vehicleLabel: item.vehicleLabel ?? item.ride_category_code ?? undefined,
     profile: {
-      displayName: item.driver_code ?? `Chauffeur ${item.id.slice(0, 8)}`,
+      displayName:
+        item.profile?.displayName?.trim() ??
+        item.driver_code ??
+        `Chauffeur ${item.id.slice(0, 8)}`,
+      phone: item.profile?.phone ?? item.phone ?? undefined,
+      email: item.profile?.email ?? undefined,
     },
   };
 }

@@ -1,7 +1,8 @@
 # UpJunoo Pro — Intégration API back-office
 
 > Document de référence (juin 2026) — base API : `https://api.upjunoo-dev.tech`  
-> Source Swagger : `SWAGGER.md` · Code front : `src/core/api/links.ts`
+> **Swagger live (source de vérité)** : [api.upjunoo-dev.tech/docs](https://api.upjunoo-dev.tech/docs)  
+> Contexte intégration : `docs/API-SWAGGER-CONTEXT.md` · Export local : `SWAGGER.md` · Code : `src/core/api/links.ts`
 
 ---
 
@@ -42,9 +43,18 @@ X-Owner-Id: <optionnel>
 | POST | `/v1/auth/logout` | Déconnexion topbar | `auth.mutations.ts` |
 | GET | `/v1/admin/dashboard` | `/admin/dashboard` | `dashboard.service.ts` |
 | GET | `/v1/admin/live-map` | `/admin/ops/map` | `liveMap.service.ts` |
-| GET | `/v1/admin/orders` (+ live-map) | `/admin/ops/trips/[id]` | `tripDetail.service.ts` |
+| GET | **`/v1/admin/orders/{orderId}`** (détail) | `/admin/ops/trips/[id]` | `tripDetail.service.ts` |
+| GET | `/v1/admin/orders` (+ live-map, fallback détail) | `/admin/ops/trips/[id]` | `adminEntityLookup.service.ts` |
 | GET | `/v1/drivers/:id` (fiche) | `/admin/fleet/drivers/[id]` | `driverDetail.service.ts` |
 | GET | `/v1/admin/drivers` (+ live-map, fallback) | `/admin/fleet/drivers/[id]` | `driverDetail.service.ts` |
+| GET | `/v1/admin/orders` | `/admin/ops/trips` (liste) | `trips.service.ts` |
+| GET | `/v1/admin/drivers` | `/admin/fleet/drivers` (liste) | `drivers.service.ts` |
+| GET | `/v1/admin/kyc/documents` | `/admin/fleet/kyc` | `kyc.service.ts` |
+| GET | `/v1/admin/partners` | `/admin/network/partners` | `partners.service.ts` |
+| GET | `/v1/admin/withdrawals` | `/admin/finance/withdrawals` | `withdrawals.service.ts` |
+| POST | `/v1/admin/withdrawals/{id}/approve` \| `reject` | Retraits | `withdrawals.service.ts` |
+
+Écarts détaillés avec exemples : **`docs/ECARTS-API-V1-BACKOFFICE.md`** (synthèse : `docs/API-ECARTS-V1.md`).
 
 Query utiles déjà utilisées :
 
@@ -60,7 +70,8 @@ Correspondance indicative **page admin → route v1 cible** (à mapper + créer 
 
 | Page front | Route legacy (mock) | Route v1 Swagger | Priorité |
 |------------|---------------------|------------------|----------|
-| Courses liste/détail | `/admin/ops/trips` | `/v1/admin/orders` | P0 |
+| Courses liste | `/admin/ops/trips` | `GET /v1/admin/orders` | P0 ✓ |
+| Course détail | `/admin/ops/trips/[id]` | **`GET /v1/admin/orders/{orderId}`** | P0 ✓ |
 | Dispatch console | `/admin/ops/dispatch` | `/v1/admin/orders` + `/v1/admin/live-drivers` | P0 |
 | Carte live (polling orders) | — | `/v1/admin/live-orders` | P1 |
 | Chauffeurs carte seuls | — | `/v1/admin/live-drivers` | P1 |

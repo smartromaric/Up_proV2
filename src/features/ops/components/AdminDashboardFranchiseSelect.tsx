@@ -1,11 +1,12 @@
 "use client";
 
 import type { DashboardAdminFranchiseOption } from "@/shared/types";
+import { parseScopeId, type ScopeId } from "@/shared/lib/scopeId";
 
 interface AdminDashboardFranchiseSelectProps {
   options: DashboardAdminFranchiseOption[];
-  value: number | null;
-  onChange: (franchiseId: number | null) => void;
+  value: ScopeId | null;
+  onChange: (franchiseId: ScopeId | null) => void;
   disabled?: boolean;
 }
 
@@ -25,7 +26,7 @@ export function AdminDashboardFranchiseSelect({
         disabled={disabled}
         onChange={(e) => {
           const v = e.target.value;
-          onChange(v ? Number(v) : null);
+          onChange(v ? parseScopeId(v) : null);
         }}
         className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground outline-none ring-teal/30 focus:ring-2 disabled:opacity-60"
       >
