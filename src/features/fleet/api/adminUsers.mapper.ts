@@ -80,26 +80,66 @@ export function mapAdminUserDetailToFleetClientDetail(
   }
 
   const base = mapAdminUserItemToFleetClient(user);
-  const completed = response.profile?.orders_completed_count ?? base.trips_count;
-  const wallet = base.wallet_balance_fcfa;
+  const tripsTotal =
+    user.tripsCount ??
+    response.profile?.orders_completed_count ??
+    base.trips_count;
+  const wallet = user.walletBalanceXof ?? base.wallet_balance_fcfa;
+
+  const recent_trips = (response.recentOrders ?? []).map((order) => {
+    const amount =
+      order.amountXof ??
+      order.final_price_xof ??
+      order.estimated_price_xof ??
+      0;
+    const ref =
+      order.orderReference?.trim() ||
+      order.order_reference?.trim() ||
+      (order.id
+        ? orderRef({
+            id: order.id,
+            order_reference: order.orderReference ?? order.order_reference,
+          })
+        : "—");
+
+    return {
+      id: order.id ?? "",
+      ref,
+      from_label:
+        order.pickupAddress?.trim() ||
+        order.pickup_address?.trim() ||
+        "—",
+      to_label:
+        order.dropoffAddress?.trim() ||
+        order.dropoff_address?.trim() ||
+        "—",
+      status: mapApiOrderStatus(order.status),
+      amount_fcfa: amount,
+      created_at:
+        order.createdAt ?? order.created_at ?? new Date().toISOString(),
+    };
+  });
+
+  const pricedTrips = recent_trips.filter((t) => t.amount_fcfa > 0);
+  const avgFare =
+    pricedTrips.length > 0
+      ? Math.round(
+          pricedTrips.reduce((sum, t) => sum + t.amount_fcfa, 0) /
+            pricedTrips.length
+        )
+      : 0;
 
   return {
     ...base,
+    trips_count: tripsTotal,
+    wallet_balance_fcfa: wallet,
     stats: {
-      trips_total: completed,
+      trips_total: tripsTotal,
       trips_cancelled: 0,
       wallet_balance_fcfa: wallet,
       total_spent_fcfa: 0,
-      avg_fare_fcfa: 0,
+      avg_fare_fcfa: avgFare,
     },
-    recent_trips: (response.recentOrders ?? []).map((order) => ({
-      id: order.id ?? "",
-      ref: order.order_reference ?? (order.id ? orderRef(order as { id: string; order_reference?: string | null }) : "—"),
-      from_label: order.pickup_address ?? "—",
-      to_label: order.dropoff_address ?? "—",
-      status: mapApiOrderStatus(order.status),
-      amount_fcfa: order.final_price_xof ?? order.estimated_price_xof ?? 0,
-      created_at: order.created_at ?? new Date().toISOString(),
-    })),
+    recent_trips,
   };
 }

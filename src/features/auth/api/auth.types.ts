@@ -53,6 +53,10 @@ export interface ApiAuthLoginResponse {
   partner?: unknown;
   franchiseMember?: unknown;
   franchise?: unknown;
+  access?: {
+    partnerId?: string | null;
+    franchiseId?: string | null;
+  };
 }
 
 export interface ApiAuthLoginBody {

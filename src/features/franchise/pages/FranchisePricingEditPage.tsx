@@ -9,6 +9,7 @@ import {
   PricingForm,
   type PricingFormValues,
 } from "@/features/settings/components/PricingForm";
+import { useLegacyPortalApi } from "@/core/api/portalApiMode";
 import {
   useFranchisePricingDetail,
   useUpdateFranchisePricing,
@@ -20,6 +21,7 @@ interface FranchisePricingEditPageProps {
 
 export function FranchisePricingEditPage({ pricingId }: FranchisePricingEditPageProps) {
   const router = useRouter();
+  const legacy = useLegacyPortalApi();
   const { data, isLoading, isError } = useFranchisePricingDetail(pricingId);
   const updatePricing = useUpdateFranchisePricing(pricingId);
   const [values, setValues] = useState<PricingFormValues | null>(null);
@@ -31,6 +33,8 @@ export function FranchisePricingEditPage({ pricingId }: FranchisePricingEditPage
         franchise_name: data.franchise_name,
         zone_id: null,
         zone_name: data.zone_name,
+        rule_name: data.rule_name,
+        category_code: data.category_code,
         service: data.service,
         base_fare_fcfa: data.base_fare_fcfa,
         per_km_fcfa: data.per_km_fcfa,
@@ -59,13 +63,14 @@ export function FranchisePricingEditPage({ pricingId }: FranchisePricingEditPage
   return (
     <div className="animate-fade-up mx-auto w-full max-w-3xl px-4 pb-10">
       <PageHeader
-        title={data.zone_name}
+        title={data.rule_name ?? data.zone_name}
         breadcrumb={["Franchise", "Tarification", data.zone_name]}
       />
 
       <PricingForm
         mode="edit"
         hideFranchise
+        readOnly={!legacy}
         values={values}
         onChange={setValues}
         isSubmitting={updatePricing.isPending}

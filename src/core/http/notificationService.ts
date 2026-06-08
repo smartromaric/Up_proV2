@@ -23,6 +23,33 @@ const baseToastStyle: CSSProperties = {
   boxShadow: "var(--shadow-card)",
 };
 
+function extractApiErrorMessage(
+  errorData: Record<string, unknown>,
+  status: number,
+  statusText: string
+): string {
+  if (typeof errorData.message === "string" && errorData.message.trim()) {
+    return errorData.message;
+  }
+  const nested = errorData.error;
+  if (typeof nested === "string" && nested.trim()) {
+    return nested;
+  }
+  if (nested && typeof nested === "object") {
+    const obj = nested as { message?: unknown; code?: unknown };
+    if (typeof obj.message === "string" && obj.message.trim()) {
+      return obj.message;
+    }
+    if (typeof obj.code === "string" && obj.code.trim()) {
+      return obj.code;
+    }
+  }
+  if (typeof errorData.detail === "string" && errorData.detail.trim()) {
+    return errorData.detail;
+  }
+  return `Erreur ${status}: ${statusText}`;
+}
+
 class NotificationService {
   private defaultDuration = 5000;
   private defaultPosition = "top-center" as const;
@@ -99,12 +126,12 @@ class NotificationService {
 
   private async handleHttpError(response: Response) {
     try {
-      const errorData = await response.json();
-      const message =
-        errorData.message ||
-        errorData.error ||
-        errorData.detail ||
-        `Erreur ${response.status}: ${response.statusText}`;
+      const errorData = (await response.json()) as Record<string, unknown>;
+      const message = extractApiErrorMessage(
+        errorData,
+        response.status,
+        response.statusText
+      );
 
       switch (response.status) {
         case 400:
@@ -112,6 +139,7 @@ class NotificationService {
           this.warning(message);
           break;
         case 401:
+          
         case 403:
           this.error(
             response.status === 403

@@ -17,6 +17,10 @@ import {
 } from "../components/VehicleCreateDriverDocumentsSection";
 import type { CreateDriverPayload } from "../api/drivers.service";
 import type { VehicleCategory } from "@/shared/types";
+import {
+  isDriverComplete,
+  vehicleCreateSubmitLabel,
+} from "@/features/fleet/lib/vehicleCreateForm";
 import { useCreateVehicle } from "../api/vehicles.queries";
 
 const CATEGORIES: { value: VehicleCategory; label: string }[] = [
@@ -25,24 +29,6 @@ const CATEGORIES: { value: VehicleCategory; label: string }[] = [
   { value: "van", label: "Utilitaire" },
   { value: "premium", label: "Premium" },
 ];
-
-function isDriverComplete(driver: CreateDriverPayload | null): boolean {
-  if (!driver) return true;
-  return (
-    driver.first_name.trim().length > 0 &&
-    driver.last_name.trim().length > 0 &&
-    driver.phone.trim().length > 0 &&
-    driver.zone.trim().length > 0
-  );
-}
-
-function submitLabel(pieces: VehiclePieceFile[], hasDriver: boolean): string {
-  const parts: string[] = ["Créer le véhicule"];
-  if (hasDriver) parts.push("chauffeur");
-  if (pieces.length > 0) parts.push("pièces");
-  if (parts.length === 1) return "Créer (brouillon)";
-  return parts.join(" + ");
-}
 
 export function PartnerVehicleCreatePage() {
   const router = useRouter();
@@ -212,7 +198,7 @@ export function PartnerVehicleCreatePage() {
 
         <div className="flex flex-wrap gap-2 border-t border-border pt-6">
           <Button type="submit" disabled={create.isPending || (hasDriver && !driverValid)}>
-            {create.isPending ? "Création…" : submitLabel(pieces, hasDriver)}
+            {create.isPending ? "Création…" : vehicleCreateSubmitLabel(pieces, hasDriver)}
           </Button>
           <Link href="/partner/fleet">
             <Button type="button" variant="secondary">

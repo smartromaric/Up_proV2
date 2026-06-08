@@ -40,7 +40,8 @@ export function useCreateFranchisePricing() {
       void qc.invalidateQueries({ queryKey: franchisePricingKeys.all });
       notificationService.success("Grille tarifaire créée");
     },
-    onError: () => notificationService.error("Création impossible"),
+    onError: (error: Error) =>
+      notificationService.error(error.message || "Création impossible"),
   });
 }
 
@@ -54,6 +55,7 @@ export function useUpdateFranchisePricing(id: string) {
       void qc.invalidateQueries({ queryKey: franchisePricingKeys.detail(id) });
       notificationService.success("Grille tarifaire mise à jour");
     },
-    onError: () => notificationService.error("Mise à jour impossible"),
+    onError: (error: Error) =>
+      notificationService.error(error.message || "Mise à jour impossible"),
   });
 }

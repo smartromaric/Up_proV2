@@ -1,6 +1,7 @@
 import { apiClient } from "@/core/http/apiClient";
 import { env } from "@/core/config/env";
 import { LINKS, createUrl } from "@/core/api/links";
+import { fetchAdminFilterOptions } from "@/features/admin/api/adminFilterOptions.service";
 import type { LiveMapData } from "@/shared/types";
 import type { ApiAdminLiveMapResponse } from "./liveMap.api.types";
 import { mapApiLiveMapToData } from "./liveMap.mapper";
@@ -42,9 +43,18 @@ export const liveMapService = {
       );
     }
 
-    const data = await apiClient.get<ApiAdminLiveMapResponse>(
-      buildV1Endpoint(filters)
-    );
-    return mapApiLiveMapToData(data, filters);
+    const [data, filterOptions] = await Promise.all([
+      apiClient.get<ApiAdminLiveMapResponse>(buildV1Endpoint(filters)),
+      fetchAdminFilterOptions().catch(() => ({
+        franchises: [],
+        partners: [],
+      })),
+    ]);
+
+    const mapped = mapApiLiveMapToData(data, filters);
+    return {
+      ...mapped,
+      filter_options: filterOptions,
+    };
   },
 };

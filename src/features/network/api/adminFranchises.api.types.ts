@@ -1,4 +1,5 @@
 import type { ApiV1Pagination } from "@/core/api/v1Pagination";
+import type { ApiLiveMapOrderBase } from "@/features/ops/api/liveMap.api.types";
 import type { ApiAdminPartnerItem } from "./adminPartners.api.types";
 
 export interface ApiV1FranchiseItem {
@@ -53,6 +54,14 @@ export interface ApiV1FranchiseRevenueResponse {
     totalXof?: number;
     ordersCount?: number;
   };
+}
+
+/** GET /v1/franchises/{id}/orders */
+export interface ApiV1FranchiseOrdersResponse {
+  status?: string;
+  generatedAt?: string;
+  orders?: ApiLiveMapOrderBase[];
+  pagination?: ApiV1Pagination;
 }
 
 export interface ApiDashboardFranchiseOption {

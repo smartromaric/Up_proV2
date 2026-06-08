@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { isRemoteKycPreviewUrl } from "@/shared/lib/documentPreview";
-import { Button } from "./Button";
-
 const ZOOM_LEVELS = [1, 1.25, 1.5, 2] as const;
 
 interface DocumentLightboxProps {
@@ -45,26 +43,31 @@ export function DocumentLightbox({
 
   const scale = ZOOM_LEVELS[zoomIndex];
 
+  const toolbarBtn =
+    "inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-white/25 bg-white/15 text-base font-semibold text-white shadow-sm transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-40";
+
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-navy/90 backdrop-blur-sm">
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-4 py-3 text-white md:px-6">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-black/80 backdrop-blur-md">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/20 bg-zinc-950/90 px-4 py-3 text-white md:px-6">
         <div className="min-w-0">
-          <p className="truncate font-medium">{title}</p>
-          {subtitle && <p className="truncate text-xs text-white/70">{subtitle}</p>}
+          <p className="truncate font-medium text-white">{title}</p>
+          {subtitle && (
+            <p className="truncate text-xs text-zinc-300">{subtitle}</p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {!isPdf && (
-            <>
+            <div className="flex items-center gap-1 rounded-lg border border-white/20 bg-black/30 px-1 py-0.5">
               <button
                 type="button"
                 disabled={zoomIndex === 0}
                 onClick={() => setZoomIndex((i) => Math.max(0, i - 1))}
-                className="rounded-lg px-2.5 py-1.5 text-sm text-white/90 hover:bg-white/10 disabled:opacity-40"
+                className={toolbarBtn}
                 aria-label="Zoom arrière"
               >
                 −
               </button>
-              <span className="min-w-[3rem] text-center text-xs tabular-nums text-white/80">
+              <span className="min-w-[3.25rem] px-1 text-center text-sm font-medium tabular-nums text-white">
                 {Math.round(scale * 100)} %
               </span>
               <button
@@ -73,21 +76,20 @@ export function DocumentLightbox({
                 onClick={() =>
                   setZoomIndex((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))
                 }
-                className="rounded-lg px-2.5 py-1.5 text-sm text-white/90 hover:bg-white/10 disabled:opacity-40"
+                className={toolbarBtn}
                 aria-label="Zoom avant"
               >
                 +
               </button>
-            </>
+            </div>
           )}
-          <Button
+          <button
             type="button"
-            variant="secondary"
-            className="!py-1.5 !text-xs"
+            className="inline-flex items-center justify-center rounded-lg border border-white/25 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-100"
             onClick={onClose}
           >
             Fermer
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -147,7 +149,7 @@ export function DocumentLightbox({
                   href={src}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                  className="rounded-lg border border-white/25 bg-white/15 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-white/25"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Ouvrir le fichier dans un nouvel onglet

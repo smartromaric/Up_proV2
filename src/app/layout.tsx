@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+import { APP_LOGO_SRC } from "@/shared/brand/logo";
 import { AppProviders } from "./providers/AppProviders";
 import { themeInitScript } from "@/core/theme/ThemeProvider";
 import "./globals.css";
@@ -13,6 +14,10 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "UpJunoo Pro",
   description: "Back-office UpJunoo — Admin, Partenaire, Franchise",
+  icons: {
+    icon: APP_LOGO_SRC,
+    apple: APP_LOGO_SRC,
+  },
 };
 
 export default function RootLayout({
@@ -25,7 +30,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className={`${poppins.variable} font-sans`}>
+      <body
+        className={`${poppins.variable} font-sans`}
+        suppressHydrationWarning
+      >
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

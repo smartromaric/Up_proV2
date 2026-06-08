@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
 import { formatDateTime } from "@/shared/lib/format";
+import { PaydunyaConfigCard } from "../components/PaydunyaConfigCard";
+import { isLegacyPlatformSettings } from "../api/adminPlatformConfig.service";
 import {
   useIntegrationsList,
   useToggleIntegration,
@@ -17,6 +20,7 @@ const CATEGORY_LABELS: Record<PlatformIntegration["category"], string> = {
 };
 
 export function SettingsIntegrationsPage() {
+  const legacy = isLegacyPlatformSettings();
   const { data, isLoading, isError } = useIntegrationsList();
   const toggle = useToggleIntegration();
 
@@ -27,6 +31,27 @@ export function SettingsIntegrationsPage() {
   return (
     <div className="animate-fade-up mx-auto w-full max-w-3xl px-4 pb-10">
       <PageHeader title="Intégrations" breadcrumb={["Admin", "Paramètres"]} />
+
+      {!legacy && (
+        <div className="mb-8 space-y-4">
+          <PaydunyaConfigCard />
+          <div className="rounded-card border border-border bg-surface p-5 shadow-card">
+            <h2 className="text-sm font-semibold text-heading">Météo & zones chaudes</h2>
+            <p className="mt-1 text-xs text-muted">
+              Configuration du cache météo et refresh BullMQ pour le calcul surge.
+            </p>
+            <Link href="/admin/settings/weather" className="mt-3 inline-block">
+              <Button variant="secondary" className="!text-xs">
+                Ouvrir configuration météo →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      <h2 className="mb-3 text-sm font-semibold text-heading">
+        {legacy ? "Intégrations" : "Autres intégrations (mock v2)"}
+      </h2>
 
       {isLoading ? (
         <ul className="space-y-3">

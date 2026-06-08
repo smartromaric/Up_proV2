@@ -11,6 +11,7 @@ import {
   mapDashboardFranchisesToPaginated,
   mapV1FranchisesToPaginated,
 } from "./adminFranchises.mapper";
+import { registerFranchisePortalAccount } from "./franchiseRegister.service";
 
 export type FranchiseCreatePayload = {
   name: string;
@@ -20,9 +21,12 @@ export type FranchiseCreatePayload = {
   contact_phone: string;
   /** Mot de passe du compte admin franchise (portail /franchise) */
   admin_password: string;
+  /** Franchise cible — requis en API réelle (POST /v1/auth/franchise/register) */
+  franchise_id?: string;
 };
 
-export type FranchiseCreateResponse = Franchise & {
+export type FranchiseCreateResponse = Omit<Franchise, "id"> & {
+  id: string | number;
   contact_email: string;
   contact_phone: string;
   portal_login_email: string;
@@ -56,6 +60,13 @@ export const franchisesService = {
     return mapDashboardFranchisesToPaginated(items, params, cityById);
   },
 
-  create: (payload: FranchiseCreatePayload) =>
-    apiClient.post<FranchiseCreateResponse>("/admin/network/franchises", payload),
+  create: async (payload: FranchiseCreatePayload) => {
+    if (useLegacyAdminApi()) {
+      return apiClient.post<FranchiseCreateResponse>(
+        "/admin/network/franchises",
+        payload
+      );
+    }
+    return registerFranchisePortalAccount(payload);
+  },
 };

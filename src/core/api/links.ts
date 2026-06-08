@@ -55,9 +55,28 @@ export const LINKS = {
   v1: {
     drivers: {
       getById: (id: string) => `${DRIVERS_V1_BASE}/${id}`,
+      onboardingStart: "/v1/drivers/onboarding/start",
     },
     files: {
       getById: (id: string) => `/v1/files/${id}`,
+    },
+    vehicles: {
+      create: "/v1/vehicles",
+      me: "/v1/vehicles/me",
+      getById: (id: string) => `/v1/vehicles/${id}`,
+      assignDriver: (id: string) => `/v1/vehicles/${id}/assign-driver`,
+    },
+    partners: {
+      vehicles: (partnerId: string) => `/v1/partners/${partnerId}/vehicles`,
+      drivers: (partnerId: string) => `/v1/partners/${partnerId}/drivers`,
+      members: (partnerId: string) => `/v1/partners/${partnerId}/members`,
+    },
+    catalog: {
+      vehicleCategories: "/v1/catalog/vehicle-categories",
+      vehicleBrands: "/v1/catalog/vehicle-brands",
+      vehicleBrandModels: (brandCode: string) =>
+        `/v1/catalog/vehicle-brands/${brandCode}/models`,
+      vehicleColors: "/v1/catalog/vehicle-colors",
     },
   },
 
@@ -68,12 +87,15 @@ export const LINKS = {
       adminLogin: `${AUTH_V1_BASE}/admin/login`,
       clientLogin: `${AUTH_V1_BASE}/client/login`,
       driverLogin: `${AUTH_V1_BASE}/driver/login`,
+      driverRegister: `${AUTH_V1_BASE}/driver/register`,
       me: `${AUTH_V1_BASE}/me`,
       logout: `${AUTH_V1_BASE}/logout`,
       refresh: `${AUTH_V1_BASE}/refresh`,
       forgotPassword: `${AUTH_V1_BASE}/forgot-password`,
       otpSend: `${AUTH_V1_BASE}/otp/send`,
       otpVerify: `${AUTH_V1_BASE}/otp/verify`,
+      /** Inscription compte portail franchise (bootstrap membre — franchiseId requis) */
+      franchiseRegister: `${AUTH_V1_BASE}/franchise/register`,
     },
     /** MSW / back-office legacy (`/api/v2`) */
     legacy: {
@@ -122,6 +144,14 @@ export const LINKS = {
       driverApprove: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/approve`,
       driverReject: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/reject`,
       vehicles: `${ADMIN_V1_BASE}/vehicles`,
+      franchiseById: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
+      paydunyaConfig: `${ADMIN_V1_BASE}/paydunya-config`,
+      weatherConfig: `${ADMIN_V1_BASE}/weather-config`,
+      weatherRefresh: `${ADMIN_V1_BASE}/weather/refresh`,
+      paymentReconcile: (id: string) => `${ADMIN_V1_BASE}/payments/${id}/reconcile`,
+      paymentsReconcileBatch: `${ADMIN_V1_BASE}/payments/reconcile-batch`,
+      pricingRules: `${ADMIN_V1_BASE}/pricing-rules`,
+      pricingRuleById: (id: string) => `${ADMIN_V1_BASE}/pricing-rules/${id}`,
     },
 
     /** Franchises — détail module 99 ; liste via `admin.v1.franchises` */
@@ -131,10 +161,15 @@ export const LINKS = {
       drivers: (id: string) => `/v1/franchises/${id}/drivers`,
       orders: (id: string) => `/v1/franchises/${id}/orders`,
       revenue: (id: string) => `/v1/franchises/${id}/revenue`,
+      wallet: (id: string) => `/v1/franchises/${id}/wallet`,
+      ledger: (id: string) => `/v1/franchises/${id}/ledger`,
     },
 
     partners: {
       getById: (id: string) => `/v1/partners/${id}`,
+      drivers: (id: string) => `/v1/partners/${id}/drivers`,
+      wallet: (id: string) => `/v1/partners/${id}/wallet`,
+      ledger: (id: string) => `/v1/partners/${id}/ledger`,
     },
 
     /** Zones géographiques — GET /v1/zones (Swagger § 99) */
@@ -275,6 +310,8 @@ export const LINKS = {
     v1: {
       dashboard: "/v1/franchise/dashboard",
       me: "/v1/franchises/me",
+      pricingRules: (franchiseId: string) =>
+        `/v1/franchises/${franchiseId}/pricing-rules`,
     },
 
     dashboard: "/franchise/dashboard",

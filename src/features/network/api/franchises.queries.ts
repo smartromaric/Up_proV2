@@ -26,6 +26,7 @@ export function useCreateFranchise() {
         `Franchise créée. Connexion portail : ${data.portal_login_email}`
       );
     },
-    onError: () => notificationService.error("Création impossible"),
+    onError: (error: Error) =>
+      notificationService.error(error.message || "Création impossible"),
   });
 }

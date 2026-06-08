@@ -254,6 +254,49 @@ async function main() {
       : `HTTP ${adminFranchises.status} — contournement dashboard`
   );
 
+  // FR-CREATE-01 / FR-DELETE-01 — CRUD franchise admin
+  const specRes = await fetch(`${API_URL}/docs/json`);
+  let hasPostAdminFranchises = false;
+  let hasDeleteFranchise = false;
+  if (specRes.ok) {
+    const spec = await specRes.json();
+    const paths = spec.paths ?? {};
+    hasPostAdminFranchises = Boolean(paths["/v1/admin/franchises"]?.post);
+    hasDeleteFranchise = Boolean(
+      paths["/v1/admin/franchises/{id}"]?.delete ||
+        paths["/v1/franchises/{id}"]?.delete
+    );
+  }
+  add(
+    "FR-CREATE-01",
+    "Création franchise sans franchiseId (POST admin ou register)",
+    hasPostAdminFranchises ? "ok" : "missing",
+    hasPostAdminFranchises
+      ? "POST /v1/admin/franchises exposé"
+      : "register exige franchiseId (AUTH_FRANCHISE_ID_REQUIRED) — création sans UUID attendue"
+  );
+  add(
+    "FR-DELETE-01",
+    "DELETE franchise (admin ou module 99)",
+    hasDeleteFranchise ? "ok" : "missing",
+    hasDeleteFranchise
+      ? "route exposée"
+      : "absent du Swagger live"
+  );
+
+  // IMG-01 — seed Supabase profile-photo
+  const seedImg =
+    "https://wfajmgpahlpcmoxopwze.supabase.co/storage/v1/object/public/upjunoo-kyc/seed/profile-photo.jpg";
+  const seedProbe = await probeFileUrl(seedImg, token);
+  add(
+    "IMG-01",
+    "images seed Supabase accessibles (profile-photo.jpg)",
+    seedProbe.accessible ? "ok" : "missing",
+    seedProbe.accessible
+      ? `HTTP ${seedProbe.status}`
+      : `URL renvoyée par l'API mais fichier inaccessible (HTTP ${seedProbe.status ?? "?"})`
+  );
+
   // FR-DASH-01
   const frLogin = await request("/v1/auth/login", {
     method: "POST",
@@ -275,6 +318,97 @@ async function main() {
       ? "dashboard natif OK"
       : `${frDash.json?.error?.code ?? frDash.json?.code ?? "ERR"} — ${frDash.json?.error?.message ?? frDash.json?.message ?? ""}`
   );
+
+  // FR-PARTNERS-01 — driversCount sur partenaires d'une franchise
+  const frList = await request("/v1/admin/franchises?page=1&limit=5", { token });
+  const frItems = frList.json?.items ?? [];
+  const frSample = frItems[0];
+  if (frSample?.id) {
+    const frPartners = await request(
+      `/v1/franchises/${frSample.id}/partners?page=1&limit=20`,
+      { token }
+    );
+    const frPartnerItems = frPartners.json?.items ?? [];
+    const fp0 = frPartnerItems[0];
+    const withCount = frPartnerItems.filter(
+      (p) => (p.driversCount ?? p.drivers_count) != null
+    ).length;
+    const withPositive = frPartnerItems.filter(
+      (p) => (p.driversCount ?? p.drivers_count) > 0
+    ).length;
+    add(
+      "FR-PARTNERS-01",
+      "driversCount sur GET /v1/franchises/{id}/partners",
+      withPositive > 0 ? "ok" : withCount > 0 ? "partial" : "missing",
+      frPartnerItems.length
+        ? `${withCount}/${frPartnerItems.length} avec champ, ${withPositive} > 0` +
+            (fp0
+              ? ` — sample driversCount=${fp0.driversCount ?? fp0.drivers_count ?? "null"}`
+              : "")
+        : `HTTP ${frPartners.status}, 0 partenaire`
+    );
+  }
+
+  // PA-WALLET-01 — wallet embarqué + routes wallet/ledger partenaire
+  const partnerList = await request("/v1/admin/partners?page=1&limit=5", { token });
+  const partnerItemsForWallet =
+    partnerList.json?.items ?? partnerList.json?.partners ?? [];
+  const pwSample = partnerItemsForWallet.find((p) => p.wallet_id || p.id);
+  if (pwSample?.id) {
+    const partnerDetail = await request(`/v1/partners/${pwSample.id}`, { token });
+    const p = partnerDetail.json?.partner ?? partnerDetail.json;
+    const partnerWallet = await request(`/v1/partners/${pwSample.id}/wallet`, {
+      token,
+    });
+    const partnerLedger = await request(
+      `/v1/partners/${pwSample.id}/ledger?limit=5`,
+      { token }
+    );
+    const hasEmbeddedWallet =
+      p?.wallet != null && typeof p.wallet === "object" && p.wallet.id;
+    add(
+      "PA-WALLET-01",
+      "wallet objet sur GET /v1/partners/{id}",
+      hasEmbeddedWallet ? "ok" : "partial",
+      hasEmbeddedWallet
+        ? `wallet embarqué id=${p.wallet.id}`
+        : `wallet_id seul="${p?.wallet_id ?? "null"}" — routes /wallet=${partnerWallet.status} /ledger=${partnerLedger.status}`
+    );
+    if (partnerWallet.ok) {
+      add(
+        "PA-WALLET-01b",
+        "GET /v1/partners/{id}/wallet",
+        "ok",
+        `balance_cached_xof=${partnerWallet.json?.wallet?.balance_cached_xof ?? "null"}`
+      );
+    }
+    if (partnerLedger.ok) {
+      const ledgerItems = partnerLedger.json?.items ?? [];
+      add(
+        "PA-WALLET-01c",
+        "GET /v1/partners/{id}/ledger (transactions récentes)",
+        ledgerItems.length > 0 ? "ok" : "partial",
+        `${ledgerItems.length} mouvement(s) — sample="${ledgerItems[0]?.description ?? "—"}"`
+      );
+    }
+  }
+
+  // FR-WALLET-01 — wallet + ledger franchise
+  if (frSample?.id) {
+    const frWallet = await request(`/v1/franchises/${frSample.id}/wallet`, {
+      token,
+    });
+    const frLedger = await request(
+      `/v1/franchises/${frSample.id}/ledger?limit=5`,
+      { token }
+    );
+    add(
+      "FR-WALLET-01",
+      "GET /v1/franchises/{id}/wallet + /ledger",
+      frWallet.ok && frLedger.ok ? "ok" : "missing",
+      `wallet HTTP ${frWallet.status}, ledger HTTP ${frLedger.status}`
+    );
+  }
 
   // PA-01 à PA-03
   const partners = await request("/v1/admin/partners?page=1&limit=10", { token });
@@ -317,16 +451,372 @@ async function main() {
       userDetail.ok ? "ok" : "missing",
       userDetail.ok ? "fiche client exposée" : `HTTP ${userDetail.status}`
     );
+    const recent = userDetail.json?.recentOrders ?? [];
+    const r0 = recent[0];
+    if (r0) {
+      const hasRoute =
+        (r0.pickupAddress || r0.pickup_address) &&
+        (r0.dropoffAddress || r0.dropoff_address);
+      const hasPrice =
+        (r0.amountXof ?? r0.final_price_xof ?? r0.estimated_price_xof) > 0;
+      add(
+        "CL-02",
+        "trajets + prix sur recentOrders (GET /v1/admin/users/{id})",
+        hasRoute ? "ok" : hasPrice ? "partial" : "missing",
+        hasRoute
+          ? `pickup="${r0.pickupAddress ?? r0.pickup_address}"`
+          : `amountXof=${r0.amountXof ?? r0.final_price_xof ?? "null"} — pas de pickup/dropoff`
+      );
+    }
   }
 
-  // WD-01
+  // FN-DASH-01 — Finance générale
+  const finDash = await request("/v1/admin/finance/dashboard", { token });
+  const finReport = await request("/v1/admin/reports/finance", { token });
+  add(
+    "FN-DASH-01",
+    "GET /v1/admin/finance/dashboard",
+    finDash.ok ? "ok" : "missing",
+    finDash.ok
+      ? "dashboard finance natif OK"
+      : `HTTP ${finDash.status} — partiel via reports/finance=${finReport.status}`
+  );
+  if (finReport.ok) {
+    const f = finReport.json?.data?.finance ?? finReport.json?.finance ?? {};
+    const hasChart = Array.isArray(f.chart_weekly ?? f.chartWeekly);
+    add(
+      "FN-DASH-01b",
+      "GET /v1/admin/reports/finance (partiel)",
+      hasChart ? "partial" : "partial",
+      `revenueTodayXof=${f.revenueTodayXof ?? "null"}, commissionsTodayXof=${f.commissionsTodayXof ?? "null"}, withdrawalsPending=${f.withdrawalsPending ?? "null"}, chart_weekly=${hasChart ? "oui" : "non"}`
+    );
+  }
+
+  // FN-TX-01 — Transactions
+  const finTx = await request("/v1/admin/finance/transactions?page=1&limit=5", {
+    token,
+  });
+  const partnerLedger = await request(
+    "/v1/partners/39b37776-dcbb-4786-83d9-86ee9ac854c1/ledger?limit=3",
+    { token }
+  );
+  add(
+    "FN-TX-01",
+    "GET /v1/admin/finance/transactions",
+    finTx.ok ? "ok" : "missing",
+    finTx.ok ? "liste transactions OK" : `HTTP ${finTx.status}`
+  );
+  if (!finTx.ok && partnerLedger.ok) {
+    const ledgerItems = partnerLedger.json?.items ?? [];
+    add(
+      "FN-TX-01b",
+      "GET /v1/partners/{id}/ledger (partiel)",
+      ledgerItems.length ? "partial" : "partial",
+      `ledger partenaire OK — ${ledgerItems.length} mouvement(s), pas de vue plateforme`
+    );
+  }
+
+  // WD-01 — Retraits (v1 branché front)
   const wd = await request("/v1/admin/withdrawals?page=1&limit=5", { token });
   const wdItems = wd.json?.items ?? wd.json?.withdrawals ?? [];
+  const wdSummary = wd.json?.summary ?? {};
   add(
     "WD-01",
-    "franchiseName sur retraits",
-    wdItems.some((w) => w.franchiseName || w.franchise_name) ? "partial" : "missing",
-    `${wdItems.filter((w) => w.franchiseName || w.franchise_name).length}/${wdItems.length} avec franchiseName`
+    "GET /v1/admin/withdrawals",
+    wd.ok ? "ok" : "missing",
+    wd.ok
+      ? `${wdItems.length} retrait(s), summary.pendingCount=${wdSummary.pendingCount ?? wdSummary.pending_count ?? "null"}`
+      : `HTTP ${wd.status}`
+  );
+  if (wd.ok) {
+    const withFranchise = wdItems.filter(
+      (w) => w.franchiseName || w.franchise_name
+    ).length;
+    add(
+      "WD-01b",
+      "franchiseName sur retraits",
+      withFranchise ? "partial" : "missing",
+      `${withFranchise}/${wdItems.length} avec franchiseName`
+    );
+  }
+
+  // FN-WLT-01 — Portefeuilles
+  const finWlt = await request("/v1/admin/finance/wallets?page=1&limit=5", {
+    token,
+  });
+  const partnerWallet = await request(
+    "/v1/partners/39b37776-dcbb-4786-83d9-86ee9ac854c1/wallet",
+    { token }
+  );
+  add(
+    "FN-WLT-01",
+    "GET /v1/admin/finance/wallets",
+    finWlt.ok ? "ok" : "missing",
+    finWlt.ok ? "liste wallets OK" : `HTTP ${finWlt.status}`
+  );
+  if (!finWlt.ok && partnerWallet.ok) {
+    const w = partnerWallet.json?.wallet ?? {};
+    add(
+      "FN-WLT-01b",
+      "GET /v1/partners/{id}/wallet (partiel)",
+      "partial",
+      `wallet unitaire OK — balance_cached_xof=${w.balance_cached_xof ?? "null"}, pas de liste admin`
+    );
+  }
+
+  // FN-COM-01 — Commissions
+  const finCom = await request("/v1/admin/finance/commissions?page=1&limit=5", {
+    token,
+  });
+  const comRules = await request("/v1/admin/commission-rules", { token });
+  add(
+    "FN-COM-01",
+    "GET /v1/admin/finance/commissions",
+    finCom.ok ? "ok" : "missing",
+    finCom.ok ? "commissions perçues OK" : `HTTP ${finCom.status}`
+  );
+  if (!finCom.ok && comRules.ok) {
+    const rules = comRules.json?.items ?? [];
+    const sample = rules[0];
+    add(
+      "FN-COM-01b",
+      "GET /v1/admin/commission-rules (partiel)",
+      "partial",
+      `${rules.length} règle(s) — ex. platform_rate=${sample?.platform_rate ?? "null"} (taux, pas périodes perçues)`
+    );
+  }
+
+  // FN-REC-01 — Réconciliation
+  const finRec = await request(
+    "/v1/admin/finance/reconciliation?page=1&limit=5",
+    { token }
+  );
+  const cashRec = await request("/v1/admin/cash-reconciliations?page=1&limit=5", {
+    token,
+  });
+  add(
+    "FN-REC-01",
+    "GET /v1/admin/finance/reconciliation",
+    finRec.ok ? "ok" : "missing",
+    finRec.ok ? "réconciliation plateforme OK" : `HTTP ${finRec.status}`
+  );
+  if (!finRec.ok && cashRec.ok) {
+    const items = cashRec.json?.items ?? [];
+    const r0 = items[0];
+    add(
+      "FN-REC-01b",
+      "GET /v1/admin/cash-reconciliations (partiel)",
+      items.length ? "partial" : "partial",
+      items.length
+        ? `${items.length} ligne(s) — expected_amount_xof=${r0?.expected_amount_xof ?? "null"}, status=${r0?.status ?? "null"}`
+        : "route OK, 0 ligne — shape cash chauffeur ≠ UI réconciliation"
+    );
+  }
+
+  // FN-DTR-01 — Recharges chauffeurs
+  const dtrStats = await request("/v1/admin/finance/driver-transfers/stats", {
+    token,
+  });
+  const dtrList = await request(
+    "/v1/admin/finance/driver-transfers?page=1&limit=5",
+    { token }
+  );
+  const rechargeBatches = await request(
+    "/v1/wallets/recharge-batches?page=1&limit=5",
+    { token }
+  );
+  add(
+    "FN-DTR-01",
+    "GET /v1/admin/finance/driver-transfers/stats",
+    dtrStats.ok ? "ok" : "missing",
+    dtrStats.ok ? "stats recharges OK" : `HTTP ${dtrStats.status}`
+  );
+  add(
+    "FN-DTR-01c",
+    "GET /v1/admin/finance/driver-transfers",
+    dtrList.ok ? "ok" : "missing",
+    dtrList.ok ? "historique recharges OK" : `HTTP ${dtrList.status}`
+  );
+  if (!dtrStats.ok && rechargeBatches.ok) {
+    const batches = rechargeBatches.json?.batches ?? [];
+    add(
+      "FN-DTR-01b",
+      "GET /v1/wallets/recharge-batches (partiel)",
+      "partial",
+      `${batches.length} batch(es) — shape différente de driver-transfers UI`
+    );
+  }
+
+  // MK-PROMO-01 — Codes promo marketing
+  const mkPromoMock = await request(
+    "/v1/admin/marketing/promos?page=1&limit=5",
+    { token }
+  );
+  const mkPromo = await request("/v1/admin/promotions?page=1&limit=5", { token });
+  const promoItems = mkPromo.json?.items ?? [];
+  add(
+    "MK-PROMO-01",
+    "GET /v1/admin/promotions (codes promo)",
+    mkPromo.ok ? (promoItems.length ? "partial" : "partial") : "missing",
+    mkPromo.ok
+      ? `HTTP 200 — ${promoItems.length} promo(s), mock route=${mkPromoMock.status}`
+      : `HTTP ${mkPromo.status}`
+  );
+  if (promoItems[0]) {
+    const p = promoItems[0];
+    add(
+      "MK-PROMO-01b",
+      "shape promotion vs UI MarketingPromo",
+      p.code && (p.discount_type || p.discount_value != null) ? "partial" : "missing",
+      `code=${p.code}, discount_type=${p.discount_type}, uses_count=${p.uses_count ?? "absent"}`
+    );
+  }
+
+  // MK-CAMP-01 — Campagnes
+  const mkCampMock = await request(
+    "/v1/admin/marketing/campaigns?page=1&limit=5",
+    { token }
+  );
+  const mkCamp = await request("/v1/campaigns?page=1&limit=5", { token });
+  const campaigns = mkCamp.json?.campaigns ?? mkCamp.json?.items ?? [];
+  add(
+    "MK-CAMP-01",
+    "GET /v1/campaigns (campagnes)",
+    mkCamp.ok ? "partial" : "missing",
+    mkCamp.ok
+      ? `HTTP 200 — ${campaigns.length} campagne(s), admin mock=${mkCampMock.status}`
+      : `HTTP ${mkCamp.status}`
+  );
+
+  // MK-BAN-01 — Bannières
+  const mkBanMock = await request(
+    "/v1/admin/marketing/banners?page=1&limit=5",
+    { token }
+  );
+  const mkBan = await request("/v1/app-banners?page=1&limit=5", { token });
+  const banners = mkBan.json?.banners ?? mkBan.json?.items ?? [];
+  add(
+    "MK-BAN-01",
+    "GET /v1/app-banners (bannières)",
+    mkBan.ok ? "partial" : "missing",
+    mkBan.ok
+      ? `HTTP 200 — ${banners.length} bannière(s), admin mock=${mkBanMock.status}`
+      : `HTTP ${mkBan.status}`
+  );
+
+  // SP-TIX-01 — Support tickets
+  const spMock = await request("/v1/admin/support/tickets?page=1&limit=5", {
+    token,
+  });
+  const spTickets = await request("/v1/support/tickets?page=1&limit=5", { token });
+  const ticketItems = spTickets.json?.items ?? [];
+  add(
+    "SP-TIX-01",
+    "GET /v1/support/tickets",
+    spTickets.ok ? "partial" : "missing",
+    spTickets.ok
+      ? `HTTP 200 — ${ticketItems.length} ticket(s), admin mock=${spMock.status}`
+      : `HTTP ${spTickets.status}`
+  );
+
+  // ST-DISP-01 — Dispatchers
+  const stDisp = await request("/v1/admin/dispatchers?page=1&limit=5", { token });
+  add(
+    "ST-DISP-01",
+    "GET /v1/admin/dispatchers",
+    stDisp.ok ? "ok" : "missing",
+    stDisp.ok ? "dispatchers OK" : `HTTP ${stDisp.status}`
+  );
+
+  // ST-DRULE-01 — Règles dispatch
+  const stDruleMock = await request("/v1/admin/settings/dispatch-rules", { token });
+  const stDconfig = await request("/v1/admin/dispatch-config", { token });
+  add(
+    "ST-DRULE-01",
+    "GET /v1/admin/settings/dispatch-rules",
+    stDruleMock.ok ? "ok" : "missing",
+    stDruleMock.ok ? "mock OK" : `HTTP ${stDruleMock.status} — partiel dispatch-config=${stDconfig.status}`
+  );
+  if (!stDruleMock.ok && stDconfig.ok) {
+    const doc = stDconfig.json?.document ?? {};
+    add(
+      "ST-DRULE-01b",
+      "GET /v1/admin/dispatch-config (partiel)",
+      "partial",
+      `schemaVersion=${doc.schemaVersion ?? "null"}, global keys=${Object.keys(doc.global ?? {}).join(",") || "none"}`
+    );
+  }
+
+  // ST-ROLE-01 — Rôles
+  const stRoleMock = await request("/v1/admin/settings/roles?page=1&limit=5", {
+    token,
+  });
+  const stRoles = await request("/v1/admin/roles?page=1&limit=5", { token });
+  const roleItems = stRoles.json?.items ?? [];
+  add(
+    "ST-ROLE-01",
+    "GET /v1/admin/roles",
+    stRoles.ok ? "partial" : "missing",
+    stRoles.ok
+      ? `HTTP 200 — ${roleItems.length} rôle(s), mock route=${stRoleMock.status}`
+      : `HTTP ${stRoles.status}`
+  );
+
+  // ST-PRIC-01 — Tarification
+  const stPric = await request("/v1/admin/pricing-rules?page=1&limit=5", { token });
+  const pricItems = stPric.json?.items ?? [];
+  add(
+    "ST-PRIC-01",
+    "GET /v1/admin/pricing-rules",
+    stPric.ok ? "ok" : "missing",
+    stPric.ok ? `${pricItems.length} règle(s) pricing` : `HTTP ${stPric.status}`
+  );
+
+  // ST-INT-01 — Intégrations
+  const stIntMock = await request("/v1/admin/settings/integrations", { token });
+  const stPaydunya = await request("/v1/admin/paydunya-config", { token });
+  add(
+    "ST-INT-01",
+    "GET /v1/admin/settings/integrations",
+    stIntMock.ok ? "ok" : "missing",
+    stIntMock.ok
+      ? "liste intégrations OK"
+      : `HTTP ${stIntMock.status} — partiel paydunya-config=${stPaydunya.status}`
+  );
+
+  // ST-WTH-01 — Météo
+  const stWeather = await request("/v1/admin/weather-config", { token });
+  add(
+    "ST-WTH-01",
+    "GET /v1/admin/weather-config",
+    stWeather.ok ? "ok" : "missing",
+    stWeather.ok
+      ? `enabled=${stWeather.json?.document?.enabled ?? "null"}`
+      : `HTTP ${stWeather.status}`
+  );
+
+  // ST-AUD-01 — Audit
+  const stAudMock = await request("/v1/admin/settings/audit?page=1&limit=5", {
+    token,
+  });
+  const stAudit = await request("/v1/admin/audit-log?page=1&limit=5", { token });
+  const auditItems = stAudit.json?.items ?? [];
+  add(
+    "ST-AUD-01",
+    "GET /v1/admin/audit-log",
+    stAudit.ok ? "partial" : "missing",
+    stAudit.ok
+      ? `HTTP 200 — ${auditItems.length} entrée(s), mock route=${stAudMock.status}`
+      : `HTTP ${stAudit.status}`
+  );
+
+  // ST-GEN-01 — Général
+  const stGen = await request("/v1/admin/settings/general", { token });
+  add(
+    "ST-GEN-01",
+    "GET /v1/admin/settings/general",
+    stGen.ok ? "ok" : "missing",
+    stGen.ok ? "paramètres généraux OK" : `HTTP ${stGen.status}`
   );
 
   // Bug drivers search

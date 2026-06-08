@@ -17,6 +17,7 @@ import {
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
 import type { PricingRule, TripService } from "@/shared/types";
+import { useLegacyPortalApi } from "@/core/api/portalApiMode";
 import { useFranchisePricing } from "../api/pricing.queries";
 
 const STATUS_FILTERS = [
@@ -26,6 +27,7 @@ const STATUS_FILTERS = [
 ];
 
 export function FranchisePricingPage() {
+  const legacy = useLegacyPortalApi();
   const [statusFilter, setStatusFilter] = useState<"all" | PricingRule["status"]>("all");
 
   const table = useServerTableState([statusFilter], {
@@ -115,7 +117,7 @@ export function FranchisePricingPage() {
           href={`/franchise/pricing/${p.id}`}
           className="text-xs font-medium text-teal hover:underline"
         >
-          Modifier
+          {legacy ? "Modifier" : "Détail"}
         </Link>
       ),
       exportValue: () => "",
@@ -132,15 +134,24 @@ export function FranchisePricingPage() {
         title="Tarification"
         breadcrumb={["Franchise", "Tarification"]}
         actions={
-          <Link href="/franchise/pricing/new">
-            <Button>Nouvelle grille</Button>
-          </Link>
+          legacy ? (
+            <Link href="/franchise/pricing/new">
+              <Button>Nouvelle grille</Button>
+            </Link>
+          ) : undefined
         }
       />
 
       <p className="mb-6 text-sm text-muted">
         Grilles tarifaires de votre territoire ({summary?.franchise_name ?? "—"}).
       </p>
+
+      {!legacy && (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Lecture via <code className="text-xs">GET /v1/franchises/&#123;id&#125;/pricing-rules</code>.
+          Création et modification réservées au backoffice admin.
+        </p>
+      )}
 
       {summary && (
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

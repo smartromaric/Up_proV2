@@ -1,4 +1,15 @@
 import { apiClient } from "@/core/http/apiClient";
+import { useLegacyPortalApi } from "@/core/api/portalApiMode";
+import { buildV1ListQuery } from "@/core/api/v1Pagination";
+import { LINKS } from "@/core/api/links";
+import {
+  createDriverViaV1,
+  createDriverWithDocumentsViaV1,
+  type CreateDriverV1Context,
+} from "@/features/fleet/api/partnerDrivers.v1.service";
+import { mapAdminDriversToPaginated } from "@/features/fleet/api/adminDrivers.mapper";
+import type { ApiAdminDriversResponse } from "@/features/fleet/api/adminDrivers.api.types";
+import { useAuthStore } from "@/core/auth/authStore";
 import type { Driver, DriverDetail, Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
@@ -12,34 +23,84 @@ export interface CreateDriverPayload {
   email?: string;
 }
 
+function resolvePartnerIdForDrivers(): string | undefined {
+  const ownerId = useAuthStore.getState().user?.owner_id;
+  if (ownerId == null || !String(ownerId).trim()) return undefined;
+  return String(ownerId);
+}
+
 export const partnerDriversService = {
-  list: (params?: ListParams) =>
-    apiClient.get<Paginated<Driver>>(`/partner/drivers${buildListQuery(params)}`),
+  list: async (params?: ListParams) => {
+    if (useLegacyPortalApi()) {
+      return apiClient.get<Paginated<Driver>>(
+        `/partner/drivers${buildListQuery(params)}`
+      );
+    }
 
-  getById: (id: string) => apiClient.get<DriverDetail>(`/partner/drivers/${id}`),
+    const partnerId = resolvePartnerIdForDrivers();
+    if (!partnerId) {
+      return { data: [], meta: { total: 0, per_page: 25, current_page: 1, last_page: 1 } };
+    }
 
-  create: (data: CreateDriverPayload) =>
-    apiClient.post<DriverDetail>("/partner/drivers", data),
+    const response = await apiClient.get<ApiAdminDriversResponse>(
+      `${LINKS.v1.partners.drivers(partnerId)}${buildV1ListQuery(params)}`
+    );
+    return mapAdminDriversToPaginated(
+      response.items ?? [],
+      params,
+      response.pagination
+    );
+  },
 
-  uploadDocument: (driverId: number | string, type: KycDocument["type"], filename: string) =>
-    apiClient.post<DriverDetail>(`/partner/drivers/${driverId}/documents`, {
-      type,
-      filename,
-    }),
+  getById: async (id: string) => {
+    if (useLegacyPortalApi()) {
+      return apiClient.get<DriverDetail>(`/partner/drivers/${id}`);
+    }
+    return apiClient.get<DriverDetail>(LINKS.v1.drivers.getById(id));
+  },
+
+  create: (data: CreateDriverPayload, context?: CreateDriverV1Context) => {
+    if (useLegacyPortalApi()) {
+      return apiClient.post<DriverDetail>("/partner/drivers", data);
+    }
+    return createDriverViaV1(data, {
+      partnerId: context?.partnerId ?? resolvePartnerIdForDrivers(),
+      rideCategoryCode: context?.rideCategoryCode,
+    });
+  },
+
+  uploadDocument: (
+    driverId: number | string,
+    type: KycDocument["type"],
+    filename: string
+  ) =>
+    apiClient.post<DriverDetail>(
+      useLegacyPortalApi()
+        ? `/partner/drivers/${driverId}/documents`
+        : `/v1/drivers/${driverId}/documents`,
+      { type, filename }
+    ),
 
   createWithDocuments: async (
     data: CreateDriverPayload,
-    documents: DriverDocumentFile[] = []
+    documents: DriverDocumentFile[] = [],
+    context?: CreateDriverV1Context
   ): Promise<DriverDetail> => {
-    const driver = await partnerDriversService.create(data);
-    let current = driver;
-    for (const doc of documents) {
-      current = await partnerDriversService.uploadDocument(
-        driver.id,
-        doc.type,
-        doc.file.name
-      );
+    if (useLegacyPortalApi()) {
+      const driver = await apiClient.post<DriverDetail>("/partner/drivers", data);
+      let current = driver;
+      for (const doc of documents) {
+        current = await apiClient.post<DriverDetail>(
+          `/partner/drivers/${driver.id}/documents`,
+          { type: doc.type, filename: doc.file.name }
+        );
+      }
+      return current;
     }
-    return current;
+
+    return createDriverWithDocumentsViaV1(data, documents, {
+      partnerId: context?.partnerId ?? resolvePartnerIdForDrivers(),
+      rideCategoryCode: context?.rideCategoryCode,
+    });
   },
 };

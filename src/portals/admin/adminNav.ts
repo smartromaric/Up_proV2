@@ -71,6 +71,12 @@ export const ADMIN_NAV: NavGroup[] = [
         permission: "fleet.drivers.view",
       },
       {
+        label: "Véhicules",
+        path: "/admin/fleet/vehicles",
+        icon: "drivers",
+        permission: "fleet.drivers.view",
+      },
+      {
         label: "File KYC",
         path: "/admin/fleet/kyc",
         icon: "drivers-pending",
@@ -196,6 +202,12 @@ export const ADMIN_NAV: NavGroup[] = [
         label: "Intégrations",
         path: "/admin/settings/integrations",
         icon: "integrations",
+        permission: "settings.dispatchers.view",
+      },
+      {
+        label: "Météo",
+        path: "/admin/settings/weather",
+        icon: "map",
         permission: "settings.dispatchers.view",
       },
       {

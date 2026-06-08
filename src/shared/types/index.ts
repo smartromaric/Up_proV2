@@ -209,10 +209,19 @@ export interface FranchiseDetail extends Franchise {
     type: Zone["type"];
     drivers_active: number;
   }[];
+  wallet_id?: string | null;
+  wallet?: PartnerWallet;
   recent_transactions: {
     id: string;
     label: string;
     amount_fcfa: number;
+    created_at: string;
+  }[];
+  recent_orders: {
+    id: string;
+    ref: string;
+    amount_fcfa: number;
+    status: TripStatus;
     created_at: string;
   }[];
 }
@@ -220,6 +229,9 @@ export interface FranchiseDetail extends Franchise {
 export interface PartnerDetail extends Partner {
   address: string;
   created_at: string;
+  wallet_id?: string | null;
+  /** Portefeuille détaillé (solde, disponible, mouvements récents). */
+  wallet?: PartnerWallet;
   stats: {
     drivers_count: number;
     drivers_online: number;
@@ -229,7 +241,7 @@ export interface PartnerDetail extends Partner {
     pending_withdrawal_fcfa: number;
   };
   drivers: {
-    id: number;
+    id: string | number;
     name: string;
     availability: Driver["availability"];
     rating: number;
@@ -493,10 +505,14 @@ export interface FranchiseTerritory {
 }
 
 export interface PricingRule {
-  id: number;
-  franchise_id: number;
+  id: string | number;
+  franchise_id: string | number;
   franchise_name: string;
   zone_name: string;
+  rule_name?: string;
+  category_code?: string;
+  zone_id?: string;
+  city_id?: string;
   service: Trip["service"];
   base_fare_fcfa: number;
   per_km_fcfa: number;
@@ -599,7 +615,7 @@ export type VehicleApprovalStatus = "draft" | "pending" | "approved" | "rejected
 export type VehicleCategory = "taxi" | "delivery" | "van" | "premium";
 
 export interface Vehicle {
-  id: number;
+  id: number | string;
   label: string;
   plate: string;
   category: VehicleCategory;
@@ -608,13 +624,16 @@ export interface Vehicle {
   driver_name?: string | null;
   approval_status: VehicleApprovalStatus;
   created_at: string;
+  partner_id?: string | null;
+  partner_name?: string | null;
+  category_label?: string;
 }
 
 export interface VehicleDetail extends Vehicle {
   brand: string;
   model: string;
   seats: number;
-  owner_id: number;
+  owner_id: number | string;
   registration_document: KycDocument;
   approved_at?: string | null;
 }

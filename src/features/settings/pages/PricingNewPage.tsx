@@ -7,6 +7,7 @@ import {
   PricingForm,
   type PricingFormValues,
 } from "../components/PricingForm";
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import { useCreatePricingRule, usePricingList } from "../api/pricing.queries";
 import {
   AbidjanZonesMap,
@@ -18,6 +19,8 @@ const INITIAL: PricingFormValues = {
   franchise_id: null,
   zone_id: null,
   zone_name: "",
+  rule_name: "",
+  category_code: "ECO",
   service: "taxi",
   base_fare_fcfa: 500,
   per_km_fcfa: 350,
@@ -28,6 +31,7 @@ const INITIAL: PricingFormValues = {
 
 export function PricingNewPage() {
   const router = useRouter();
+  const legacy = useLegacyAdminApi();
   const createPricing = useCreatePricingRule();
   const { data: pricingMeta } = usePricingList({ per_page: 1 });
   const { data: mapData, isLoading: mapLoading } = useZonesMapOverview();
@@ -71,9 +75,16 @@ export function PricingNewPage() {
         breadcrumb={["Admin", "Paramètres", "Tarification", "Nouvelle"]}
       />
 
+      {!legacy && (
+        <p className="mb-4 rounded-lg border border-teal/20 bg-teal/5 px-4 py-3 text-sm text-foreground">
+          API v1 : création via <code className="text-xs">POST /v1/admin/pricing-rules</code>.
+          La zone est optionnelle — renseignez le nom de règle et la catégorie.
+        </p>
+      )}
+
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-semibold text-heading">
-          Choisir une zone sur la carte
+          {legacy ? "Choisir une zone sur la carte" : "Zone sur la carte (optionnel)"}
         </h2>
         {!values.franchise_id ? (
           <p className="rounded-lg border border-dashed border-border bg-canvas px-4 py-8 text-center text-sm text-muted">
@@ -102,15 +113,23 @@ export function PricingNewPage() {
         values={values}
         selectedZone={selectedZone}
         franchiseOptions={franchiseOptions}
+        requireZone={legacy}
         onChange={handleFranchiseChange}
         isSubmitting={createPricing.isPending}
         onCancel={() => router.push("/admin/settings/pricing")}
         onSubmit={() => {
           if (!values.franchise_id) return;
+          const franchise = franchiseOptions.find(
+            (f) => String(f.id) === String(values.franchise_id)
+          );
           createPricing.mutate(
             {
               franchise_id: values.franchise_id,
               zone_name: values.zone_name,
+              zone_id: values.zone_id,
+              rule_name: values.rule_name,
+              category_code: values.category_code,
+              city_label: franchise?.city,
               service: values.service,
               base_fare_fcfa: values.base_fare_fcfa,
               per_km_fcfa: values.per_km_fcfa,

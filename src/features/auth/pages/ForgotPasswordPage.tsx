@@ -4,10 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/shared/ui/Button";
+import { AppLogo } from "@/shared/ui/AppLogo";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { notificationService } from "@/core/http/notificationService";
 import { authService } from "../api/auth.service";
-import { env } from "@/core/config/env";
 
 type Portal = "admin" | "partner" | "franchise";
 
@@ -45,10 +45,8 @@ export function ForgotPasswordPage({ portal }: ForgotPasswordPageProps) {
       <ThemeToggle className="absolute right-6 top-6" />
       <div className="w-full max-w-md animate-fade-up rounded-hero border border-border bg-surface p-8 shadow-card">
         <div className="mb-8 text-center">
-          <p className="text-xs font-medium uppercase tracking-wider text-teal">
-            {env.appName}
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-heading">Mot de passe oublié</h1>
+          <AppLogo size="lg" className="mx-auto mb-4" />
+          <h1 className="text-2xl font-semibold text-heading">Mot de passe oublié</h1>
           <p className="mt-2 text-sm text-muted">
             Portail {PORTAL_LABELS[portal]}
           </p>

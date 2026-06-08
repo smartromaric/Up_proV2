@@ -1,3 +1,11 @@
+import type { ApiV1PartnerWalletItem } from "./adminPartnerWallet.api.types";
+
+export interface ApiV1PartnerStats {
+  driversCount?: number | null;
+  ordersCount?: number | null;
+  walletBalanceXof?: number | null;
+}
+
 export interface ApiV1PartnerItem {
   id: string;
   franchise_id?: string | null;
@@ -11,6 +19,10 @@ export interface ApiV1PartnerItem {
   contact_email?: string | null;
   commission_rate?: number | null;
   status?: string | null;
+  wallet_id?: string | null;
+  /** Demande PA-WALLET-01 : objet wallet embarqué (au lieu de wallet_id seul). */
+  wallet?: ApiV1PartnerWalletItem | Record<string, unknown> | null;
+  stats?: ApiV1PartnerStats | null;
   created_at?: string | null;
   updated_at?: string | null;
 }

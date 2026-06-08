@@ -11,6 +11,9 @@ import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
+import { Button } from "@/shared/ui/Button";
+import { useReconcilePaymentsBatch } from "@/features/settings/api/adminPlatformConfig.queries";
+import { isLegacyPlatformSettings } from "@/features/settings/api/adminPlatformConfig.service";
 import type { ReconciliationRow } from "../api/commissions.service";
 import { useReconciliationList } from "../api/commissions.queries";
 
@@ -22,6 +25,8 @@ const STATUS_FILTERS = [
 ];
 
 export function ReconciliationListPage() {
+  const legacy = isLegacyPlatformSettings();
+  const reconcileBatch = useReconcilePaymentsBatch();
   const [statusFilter, setStatusFilter] = useState<ReconciliationRow["status"] | "all">(
     "all"
   );
@@ -125,7 +130,30 @@ export function ReconciliationListPage() {
 
   return (
     <div className="animate-fade-up">
-      <PageHeader title="Réconciliation" breadcrumb={["Admin", "Finance"]} />
+      <PageHeader
+        title="Réconciliation"
+        breadcrumb={["Admin", "Finance"]}
+        actions={
+          !legacy ? (
+            <Button
+              variant="secondary"
+              disabled={reconcileBatch.isPending}
+              onClick={() => reconcileBatch.mutate()}
+            >
+              {reconcileBatch.isPending
+                ? "Réconciliation…"
+                : "Réconcilier PayDunya (batch)"}
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {!legacy && (
+        <p className="mb-4 text-sm text-muted">
+          POST /v1/admin/payments/reconcile-batch — relance les paiements PayDunya bloqués.
+          Le tableau ci-dessous reste alimenté par le mock v2 en attendant une liste admin payments.
+        </p>
+      )}
 
       <TableFiltersBar
         search={table.search}

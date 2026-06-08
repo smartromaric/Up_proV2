@@ -5,14 +5,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import type { Franchise } from "@/shared/types";
-import { useCreateFranchise } from "../api/franchises.queries";
+import { useCreateFranchise, useFranchisesList } from "../api/franchises.queries";
 
 export function FranchiseCreatePage() {
   const router = useRouter();
+  const legacy = useLegacyAdminApi();
   const create = useCreateFranchise();
+  const { data: franchisesList } = useFranchisesList({ page: 1, per_page: 100 });
   const [name, setName] = useState("");
   const [city, setCity] = useState("Abidjan");
+  const [franchiseId, setFranchiseId] = useState("");
   const [status, setStatus] = useState<Franchise["status"]>("pending");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -24,6 +28,11 @@ export function FranchiseCreatePage() {
     const next: string[] = [];
     if (!name.trim()) next.push("Le nom est requis.");
     if (!city.trim()) next.push("La ville est requise.");
+    if (!legacy && !franchiseId.trim()) {
+      next.push(
+        "Contournement temporaire : sélectionnez une franchise seed (l'API devrait accepter la création sans franchiseId)."
+      );
+    }
     if (!contactEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
       next.push("Un email de contact valide est requis.");
     }
@@ -44,6 +53,7 @@ export function FranchiseCreatePage() {
         contact_email: contactEmail.trim(),
         contact_phone: contactPhone.trim(),
         admin_password: adminPassword,
+        franchise_id: franchiseId.trim() || undefined,
       },
       {
         onSuccess: (data) => {
@@ -62,6 +72,20 @@ export function FranchiseCreatePage() {
         </Link>
       </p>
 
+      {!legacy && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-medium">Limitation API — création franchise (FR-CREATE-01)</p>
+          <p className="mt-1 text-amber-800">
+            La création d&apos;une <strong>nouvelle</strong> franchise ne doit pas exiger un{" "}
+            <code className="text-xs">franchiseId</code> existant. Aujourd&apos;hui{" "}
+            <code className="text-xs">POST /v1/auth/franchise/register</code> renvoie{" "}
+            <code className="text-xs">AUTH_FRANCHISE_ID_REQUIRED</code> sans UUID — comportement
+            backend à corriger. Contournement temporaire : sélectionner une franchise seed.
+            Voir <code className="text-xs">docs/DEMANDES-2026-06-08.md</code>.
+          </p>
+        </div>
+      )}
+
       {errors.length > 0 && (
         <ul className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errors.map((e) => (
@@ -77,12 +101,40 @@ export function FranchiseCreatePage() {
           submit();
         }}
       >
+        {!legacy && (
+          <label className="block">
+            <span className="text-sm font-medium">Franchise cible</span>
+            <select
+              value={franchiseId}
+              onChange={(e) => setFranchiseId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
+              required
+            >
+              <option value="">— Choisir une franchise —</option>
+              {(franchisesList?.data ?? []).map((f) => (
+                <option key={String(f.id)} value={String(f.id)}>
+                  {f.name} · {f.city}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted">
+              Workaround temporaire — la création ne devrait pas exiger un UUID existant (demande
+              FR-CREATE-01).
+            </p>
+          </label>
+        )}
         <label className="block">
-          <span className="text-sm font-medium">Pays ou région</span>
+          <span className="text-sm font-medium">
+            {legacy ? "Pays ou région" : "Nom affiché (contact admin)"}
+          </span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ex. Côte d'Ivoire, Canada, Espace euro"
+            placeholder={
+              legacy
+                ? "Ex. Côte d'Ivoire, Canada, Espace euro"
+                : "Ex. Admin · UPJUNOO Côte d'Ivoire"
+            }
             className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
             required
           />
@@ -121,8 +173,10 @@ export function FranchiseCreatePage() {
             Accès portail franchise
           </legend>
           <p className="text-xs text-muted">
-            L&apos;email de contact servira d&apos;identifiant de connexion. Le mot de passe
-            est transmis une seule fois à la création (mock).
+            L&apos;email de contact servira d&apos;identifiant de connexion portail franchise.
+            {legacy
+              ? " Le mot de passe est transmis une seule fois à la création (mock)."
+              : " Route API : POST /v1/auth/franchise/register."}
           </p>
           <label className="block">
             <span className="text-sm font-medium">Mot de passe admin</span>
@@ -164,7 +218,11 @@ export function FranchiseCreatePage() {
             Annuler
           </Button>
           <Button type="submit" disabled={create.isPending}>
-            {create.isPending ? "Création…" : "Créer la franchise"}
+            {create.isPending
+              ? "Création…"
+              : legacy
+                ? "Créer la franchise"
+                : "Créer l'accès portail"}
           </Button>
         </div>
       </form>

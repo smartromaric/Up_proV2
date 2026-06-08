@@ -93,9 +93,10 @@ TEST_ADMIN_PASSWORD=Upjunoo@Dev2026!
 TEST_FRANCHISE_EMAIL=dev.franchise@upjunoo-dev.tech
 ```
 
-### Dernière audit — 6 juin 2026
+### Dernière audit — 8 juin 2026
 
-Source : `node scripts/audit-backend-demandes.mjs` + `node scripts/diff-swagger-live.mjs`
+Source : `node scripts/audit-backend-demandes.mjs` + `node scripts/diff-swagger-live.mjs`  
+Demandes du jour : [`docs/DEMANDES-2026-06-08.md`](docs/DEMANDES-2026-06-08.md) · Index : [`docs/BACKEND-DEMANDES-V1.md`](docs/BACKEND-DEMANDES-V1.md)
 
 #### Bilan demandes backend
 
@@ -103,7 +104,7 @@ Source : `node scripts/audit-backend-demandes.mjs` + `node scripts/diff-swagger-
 |--------|--------|--------|
 | OK | 11 | Corrections prises en compte |
 | Partiel | 9 | Enrichissements présents mais incomplets |
-| Manquant | 1 | Encore à livrer côté API |
+| Manquant | 4 | Images KYC, CRUD franchise, retraits |
 
 **Livré / OK (corrections intégrées)** :
 
@@ -130,7 +131,14 @@ Source : `node scripts/audit-backend-demandes.mjs` + `node scripts/diff-swagger-
 
 **Encore manquant côté API** :
 
+- `IMG-01` — URLs images Supabase seed (`upjunoo-kyc/seed/*.jpg`) → HTTP **400** (fichiers non servis ; ex. `profile-photo.jpg`)
+- `FR-CREATE-01` — création franchise **ne doit pas** exiger `franchiseId` ; aujourd’hui `register` renvoie `AUTH_FRANCHISE_ID_REQUIRED` sans UUID existant
+- `FR-DELETE-01` — pas de `DELETE /v1/admin/franchises/{id}` ni `DELETE /v1/franchises/{id}` dans le Swagger live
 - `WD-01` — `franchiseName` sur les retraits (`/v1/admin/withdrawals`)
+
+**Intégration front (8 juin 2026)** :
+
+- `/admin/network/franchises/new` → `POST /v1/auth/franchise/register` en mode API réelle (`USE_MOCKS=false`)
 
 #### Écarts Swagger live vs SWAGGER.md local
 

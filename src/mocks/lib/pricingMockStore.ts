@@ -41,17 +41,19 @@ export function listPricingFiltered(
   return paginatedList(list, query);
 }
 
-export function findPricingRule(id: number): PricingRule | undefined {
-  return pricingState.data.find((p) => p.id === id);
+export function findPricingRule(id: string | number): PricingRule | undefined {
+  return pricingState.data.find((p) => String(p.id) === String(id));
 }
 
 export function addPricingRule(
   rule: Omit<PricingRule, "id">
 ): PricingRule {
-  const ids = pricingState.data.map((p) => p.id);
+  const numericIds = pricingState.data
+    .map((p) => Number(p.id))
+    .filter((n) => Number.isFinite(n));
   const created: PricingRule = {
     ...rule,
-    id: ids.length ? Math.max(...ids) + 1 : 1,
+    id: numericIds.length ? Math.max(...numericIds) + 1 : 1,
   };
   setPricingState({
     ...pricingState,
@@ -62,10 +64,10 @@ export function addPricingRule(
 }
 
 export function updatePricingRule(
-  id: number,
+  id: string | number,
   patch: Partial<Omit<PricingRule, "id" | "franchise_id" | "franchise_name" | "zone_name">>
 ): PricingRule | null {
-  const idx = pricingState.data.findIndex((p) => p.id === id);
+  const idx = pricingState.data.findIndex((p) => String(p.id) === String(id));
   if (idx < 0) return null;
   const current = pricingState.data[idx];
   const updated: PricingRule = { ...current, ...patch };

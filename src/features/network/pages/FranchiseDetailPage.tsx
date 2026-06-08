@@ -10,6 +10,7 @@ import { ZoneTypePill } from "@/shared/ui/ZoneTypePill";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import type { Zone } from "@/shared/types";
+import { FranchiseDetailOrdersTab } from "../components/FranchiseDetailOrdersTab";
 
 const ENTITY_STATUS_LABELS = {
   active: "Actif",
@@ -136,6 +137,7 @@ export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
             tabs={[
               { id: "overview", label: "Aperçu" },
               { id: "partners", label: "Partenaires" },
+              { id: "orders", label: "Courses" },
               { id: "zones", label: "Zones" },
             ]}
             active={tab}
@@ -167,6 +169,10 @@ export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
               />
             )}
 
+            {tab === "orders" && (
+              <FranchiseDetailOrdersTab franchiseId={String(franchiseId)} />
+            )}
+
             {tab === "zones" && (
               <div className="space-y-6">
                 {zonesMapLoading ? (
@@ -191,28 +197,80 @@ export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
 
         <aside className="space-y-4">
           <div className="rounded-card border border-border bg-surface p-5 shadow-card">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Portefeuille
+            </p>
+            {data.wallet ? (
+              <>
+                <p className="mt-2 text-2xl font-semibold tabular-nums text-heading">
+                  {formatFCFA(data.wallet.balance_fcfa)}
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  Disponible : {formatFCFA(data.wallet.available_fcfa)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-semibold tabular-nums text-heading">
+                  {formatFCFA(data.stats.revenue_month_fcfa)}
+                </p>
+                <p className="mt-2 text-sm text-muted">
+                  Portefeuille franchise non exposé par l&apos;API (demande FR-WALLET-01).
+                  Revenus affichés en attendant.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="rounded-card border border-border bg-surface p-5 shadow-card">
             <h3 className="text-sm font-semibold">Transactions récentes</h3>
-            <ul className="mt-3 space-y-3">
-              {data.recent_transactions.map((tx) => (
-                <li
-                  key={tx.id}
-                  className="flex justify-between gap-2 border-b border-border/50 pb-2 text-sm last:border-0"
-                >
-                  <div>
-                    <p className="font-medium">{tx.label}</p>
-                    <p className="text-xs text-muted">{formatDateTime(tx.created_at)}</p>
-                  </div>
-                  <span
-                    className={`tabular-nums ${
-                      tx.amount_fcfa < 0 ? "text-red-600" : "text-teal-dark"
-                    }`}
+            {data.recent_transactions.length > 0 ? (
+              <ul className="mt-3 space-y-3">
+                {data.recent_transactions.map((tx) => (
+                  <li
+                    key={tx.id}
+                    className="flex justify-between gap-2 border-b border-border/50 pb-2 text-sm last:border-0"
                   >
-                    {tx.amount_fcfa < 0 ? "−" : "+"}
-                    {formatFCFA(Math.abs(tx.amount_fcfa))}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                    <div>
+                      <p className="font-medium">{tx.label}</p>
+                      <p className="text-xs text-muted">{formatDateTime(tx.created_at)}</p>
+                    </div>
+                    <span
+                      className={`tabular-nums ${
+                        tx.amount_fcfa < 0 ? "text-red-600" : "text-teal-dark"
+                      }`}
+                    >
+                      {tx.amount_fcfa < 0 ? "−" : "+"}
+                      {formatFCFA(Math.abs(tx.amount_fcfa))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : data.recent_orders.length > 0 ? (
+              <ul className="mt-3 space-y-3">
+                {data.recent_orders.slice(0, 5).map((order) => (
+                  <li
+                    key={order.id}
+                    className="flex justify-between gap-2 border-b border-border/50 pb-2 text-sm last:border-0"
+                  >
+                    <div>
+                      <Link
+                        href={`/admin/ops/trips/${order.id}`}
+                        className="font-medium text-foreground hover:text-teal"
+                      >
+                        {order.ref}
+                      </Link>
+                      <p className="text-xs text-muted">{formatDateTime(order.created_at)}</p>
+                    </div>
+                    <span className="tabular-nums text-teal-dark">
+                      {formatFCFA(order.amount_fcfa)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-muted">Aucune activité récente.</p>
+            )}
             <Link
               href="/admin/finance/transactions"
               className="mt-4 block text-center text-xs text-teal hover:underline"

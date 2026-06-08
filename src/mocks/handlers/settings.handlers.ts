@@ -31,7 +31,7 @@ const FRANCHISES = franchisesList.data as {
   city: string;
 }[];
 
-function resolveFranchise(franchiseId: number) {
+function resolveFranchise(franchiseId: string | number) {
   return FRANCHISES.find((f) => f.id === franchiseId);
 }
 
@@ -383,7 +383,7 @@ export const settingsHandlers = [
       return HttpResponse.json({ message: "Zone requise" }, { status: 422 });
     }
     const franchiseId = body.franchise_id;
-    if (franchiseId == null || !Number.isFinite(franchiseId)) {
+    if (franchiseId == null || String(franchiseId).trim() === "") {
       return HttpResponse.json({ message: "Franchise requise" }, { status: 422 });
     }
     const franchise = resolveFranchise(franchiseId);

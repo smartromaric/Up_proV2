@@ -107,7 +107,11 @@ function extractFranchiseId(data: ApiAuthUserPayload): string | undefined {
 
 function extractOwnerId(data: ApiAuthUserPayload): string | undefined {
   const partner = data.partner as Record<string, unknown> | undefined;
-  return readScopedId(partner, ["id", "partner_id", "partnerId"]);
+  const access = (data as { access?: Record<string, unknown> }).access;
+  return (
+    readScopedId(partner, ["id", "partner_id", "partnerId"]) ??
+    readScopedId(access, ["partnerId", "partner_id"])
+  );
 }
 
 function buildUserFromApi(

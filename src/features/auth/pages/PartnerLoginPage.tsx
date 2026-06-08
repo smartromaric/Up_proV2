@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/Button";
+import { AppLogo } from "@/shared/ui/AppLogo";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { useLoginMutation } from "../api/auth.mutations";
-import { env } from "@/core/config/env";
 
 export function PartnerLoginPage() {
   const [email, setEmail] = useState("contact@cocodyexpress.ci");
@@ -17,10 +17,8 @@ export function PartnerLoginPage() {
       <ThemeToggle className="absolute right-6 top-6" />
       <div className="w-full max-w-md animate-fade-up rounded-hero border border-border bg-surface p-8 shadow-card">
         <div className="mb-8 text-center">
-          <p className="text-xs font-medium uppercase tracking-wider text-teal">
-            {env.appName}
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-heading">
+          <AppLogo size="lg" className="mx-auto mb-4" />
+          <h1 className="text-2xl font-semibold text-heading">
             Connexion partenaire
           </h1>
           <p className="mt-2 text-sm text-muted">

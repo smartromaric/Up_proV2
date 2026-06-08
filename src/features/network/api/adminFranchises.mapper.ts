@@ -1,6 +1,8 @@
 import type { ApiV1Pagination } from "@/core/api/v1Pagination";
 import { mapV1PaginationToMeta } from "@/core/api/v1Pagination";
-import type { Franchise, FranchiseDetail, Paginated } from "@/shared/types";
+import { mapApiOrderStatus, orderRef } from "@/features/admin/api/adminOrder.shared";
+import type { ApiLiveMapOrderBase } from "@/features/ops/api/liveMap.api.types";
+import type { Franchise, FranchiseDetail, Paginated, TripStatus } from "@/shared/types";
 import type { ListParams } from "@/shared/types/listParams";
 import { paginateClientList } from "@/shared/lib/clientList";
 import type {
@@ -87,13 +89,31 @@ export function mapDashboardFranchisesToPaginated(
   return paginateClientList(rows, params);
 }
 
+function mapFranchiseOrderToRecent(
+  order: ApiLiveMapOrderBase
+): FranchiseDetail["recent_orders"][0] {
+  return {
+    id: order.id,
+    ref: orderRef(order),
+    amount_fcfa: order.final_price_xof ?? order.estimated_price_xof ?? 0,
+    status: mapApiOrderStatus(order.status) as TripStatus,
+    created_at: order.created_at ?? new Date().toISOString(),
+  };
+}
+
 export function mapV1FranchiseDetail(
   profile: ApiV1FranchiseDetailResponse,
   partners: ApiV1FranchisePartnersResponse,
   drivers: ApiV1FranchiseDriversResponse,
   revenue: ApiV1FranchiseRevenueResponse,
   lookups?: PartnerLookupMaps,
-  franchiseZones: ZoneMapItem[] = []
+  franchiseZones: ZoneMapItem[] = [],
+  options?: {
+    orders?: ApiLiveMapOrderBase[];
+    wallet?: FranchiseDetail["wallet"];
+    wallet_id?: string | null;
+    ledgerTransactions?: FranchiseDetail["recent_transactions"];
+  }
 ): FranchiseDetail {
   const f = profile.franchise;
   const partnerItems = partners.items ?? [];
@@ -138,7 +158,10 @@ export function mapV1FranchiseDetail(
       type: z.type,
       drivers_active: 0,
     })),
-    recent_transactions: [],
+    wallet_id: options?.wallet_id ?? null,
+    wallet: options?.wallet,
+    recent_transactions: options?.ledgerTransactions ?? [],
+    recent_orders: (options?.orders ?? []).map(mapFranchiseOrderToRecent),
   };
 }
 

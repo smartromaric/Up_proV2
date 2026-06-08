@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { NavGroup } from "@/portals/shared/navTypes";
 import { useAuthStore } from "@/core/auth/authStore";
+import { AppLogo } from "@/shared/ui/AppLogo";
 import { NavIcon } from "./NavIcon";
 import { isNavGroupActive, isNavItemActive } from "./navActive";
 
@@ -48,8 +49,7 @@ export function PortalSidebar({
   return (
     <aside className="sticky top-0 flex h-screen max-h-screen w-60 shrink-0 flex-col overflow-hidden border-r border-border bg-surface">
       <div className="shrink-0 border-b border-border px-5 py-5">
-        <p className="text-lg font-semibold text-heading">UpJunoo</p>
-        <p className="text-xs text-muted">Pro · {subtitle}</p>
+        <AppLogo size="md" subtitle={subtitle} />
       </div>
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">
         {nav.map((section) => {

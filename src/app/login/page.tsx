@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppLogo } from "@/shared/ui/AppLogo";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
 const portals = [
@@ -28,9 +29,9 @@ export default function LoginPortalPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-canvas p-6">
       <ThemeToggle className="absolute right-6 top-6" />
-      <div className="mb-10 text-center">
-        <h1 className="text-3xl font-semibold text-heading">UpJunoo Pro</h1>
-        <p className="mt-2 text-muted">Choisissez votre portail</p>
+      <div className="mb-10 flex flex-col items-center text-center">
+        <AppLogo size="lg" className="mb-4" />
+        <p className="text-muted">Choisissez votre portail</p>
       </div>
       <div className="grid w-full max-w-3xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {portals.map((portal) => (

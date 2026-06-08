@@ -12,6 +12,7 @@ import { AvailabilityPill } from "@/shared/ui/DriverPills";
 import { Button } from "@/shared/ui/Button";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getDriverAvailabilityLabel } from "@/shared/lib/driverLabels";
+import { getTripStatusLabel } from "@/shared/lib/tripLabels";
 import type { PartnerDetail } from "@/shared/types";
 import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { usePartnerDetail } from "../api/partnerDetail.queries";
@@ -43,6 +44,41 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
       </p>
     );
   }
+
+  const tripCols: Column<PartnerDetail["recent_trips"][0]>[] = [
+    {
+      id: "ref",
+      header: "Référence",
+      cell: (t) => (
+        <Link
+          href={`/admin/ops/trips/${t.id}`}
+          className="font-medium text-foreground hover:text-teal"
+        >
+          {t.ref}
+        </Link>
+      ),
+      exportValue: (t) => t.ref,
+    },
+    {
+      id: "created_at",
+      header: "Date",
+      cell: (t) => formatDateTime(t.created_at),
+      exportValue: (t) => t.created_at,
+    },
+    {
+      id: "amount",
+      header: "Montant",
+      className: "tabular-nums",
+      cell: (t) => formatFCFA(t.amount_fcfa),
+      exportValue: (t) => t.amount_fcfa,
+    },
+    {
+      id: "status",
+      header: "Statut",
+      cell: (t) => <StatusPill status={t.status} />,
+      exportValue: (t) => getTripStatusLabel(t.status),
+    },
+  ];
 
   const driverCols: Column<PartnerDetail["drivers"][0]>[] = [
     {
@@ -130,28 +166,14 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
             )}
 
             {tab === "trips" && (
-              <div className="space-y-3">
-                {data.recent_trips.map((trip) => (
-                  <Link
-                    key={trip.id}
-                    href={`/admin/ops/trips/${trip.id}`}
-                    className="flex items-center justify-between rounded-card border border-border bg-surface p-4 shadow-card transition-colors hover:bg-surface-hover/80"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{trip.ref}</p>
-                      <p className="text-xs text-muted">
-                        {formatDateTime(trip.created_at)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="tabular-nums font-medium">
-                        {formatFCFA(trip.amount_fcfa)}
-                      </span>
-                      <StatusPill status={trip.status} />
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <DataTable
+                columns={tripCols}
+                data={data.recent_trips}
+                rowKey={(t) => t.id}
+                exportFileName="courses-partenaire-detail"
+                emptyTitle="Aucune course"
+                emptyDescription="Aucune course récente pour ce partenaire."
+              />
             )}
           </div>
         </div>
@@ -162,13 +184,49 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
               Portefeuille
             </p>
             <p className="mt-2 text-2xl font-semibold tabular-nums text-heading">
-              {formatFCFA(data.stats.wallet_balance_fcfa)}
+              {formatFCFA(data.wallet?.balance_fcfa ?? data.stats.wallet_balance_fcfa)}
             </p>
-            {data.stats.pending_withdrawal_fcfa > 0 && (
+            {data.wallet ? (
+              <p className="mt-1 text-sm text-muted">
+                Disponible : {formatFCFA(data.wallet.available_fcfa)}
+              </p>
+            ) : data.wallet_id ? (
+              <p className="mt-1 text-xs text-muted">ID {data.wallet_id.slice(0, 8)}…</p>
+            ) : null}
+            {(data.wallet?.pending_withdrawal_fcfa ?? data.stats.pending_withdrawal_fcfa) > 0 && (
               <p className="mt-2 text-sm text-amber-700">
-                {formatFCFA(data.stats.pending_withdrawal_fcfa)} en attente de retrait
+                {formatFCFA(
+                  data.wallet?.pending_withdrawal_fcfa ??
+                    data.stats.pending_withdrawal_fcfa
+                )}{" "}
+                en attente de retrait
               </p>
             )}
+            {!data.wallet && !data.wallet_id ? (
+              <p className="mt-3 text-sm text-muted">
+                Aucun portefeuille associé à ce partenaire.
+              </p>
+            ) : null}
+            {data.wallet?.recent_movements?.length ? (
+              <ul className="mt-4 space-y-3 border-t border-border pt-4">
+                {data.wallet.recent_movements.slice(0, 5).map((m) => (
+                  <li key={m.id} className="flex items-start justify-between gap-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground">{m.label}</p>
+                      <p className="text-xs text-muted">{formatDateTime(m.created_at)}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 tabular-nums font-medium ${
+                        m.direction === "credit" ? "text-teal-dark" : "text-red-600"
+                      }`}
+                    >
+                      {m.direction === "debit" ? "−" : "+"}
+                      {formatFCFA(m.amount_fcfa)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <Link href="/admin/finance/withdrawals">
               <Button variant="secondary" className="mt-4 w-full !text-xs">
                 Voir les retraits

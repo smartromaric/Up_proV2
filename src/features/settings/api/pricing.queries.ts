@@ -6,7 +6,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { pricingKeys } from "./pricing.keys";
 
-import { pricingService, type CreatePricingPayload, type UpdatePricingPayload } from "./pricing.service";
+import {
+  pricingService,
+  type CreatePricingPayload,
+  type PricingListResponse,
+  type UpdatePricingPayload,
+} from "./pricing.service";
 
 import { notificationService } from "@/core/http/notificationService";
 
@@ -39,15 +44,33 @@ export function useCreatePricingRule() {
 
     },
 
+    onError: (error: Error) =>
+      notificationService.error(error.message || "Création impossible"),
+
   });
 
 }
 
 export function usePricingDetail(id: string) {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: pricingKeys.detail(id),
     queryFn: () => pricingService.get(id),
     enabled: Boolean(id),
+    initialData: () => {
+      const cached = qc
+        .getQueriesData<PricingListResponse>({ queryKey: pricingKeys.all })
+        .map(([, data]) => data?.data?.find((r) => String(r.id) === id))
+        .find(Boolean);
+      return cached;
+    },
+    initialDataUpdatedAt: () => {
+      const entry = qc
+        .getQueryCache()
+        .findAll({ queryKey: pricingKeys.all })
+        .find((q) => q.state.data != null);
+      return entry?.state.dataUpdatedAt;
+    },
   });
 }
 
@@ -60,6 +83,8 @@ export function useUpdatePricingRule(id: string) {
       void qc.invalidateQueries({ queryKey: pricingKeys.detail(id) });
       notificationService.success("Grille tarifaire mise à jour");
     },
+    onError: (error: Error) =>
+      notificationService.error(error.message || "Mise à jour impossible"),
   });
 }
 

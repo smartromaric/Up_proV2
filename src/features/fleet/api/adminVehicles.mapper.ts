@@ -1,0 +1,159 @@
+import type { ApiV1Pagination } from "@/core/api/v1Pagination";
+import { mapV1PaginationToMeta } from "@/core/api/v1Pagination";
+import type { Paginated, Vehicle, VehicleApprovalStatus, VehicleCategory, VehicleDetail } from "@/shared/types";
+import type { ListParams } from "@/shared/types/listParams";
+import { paginateClientList } from "@/shared/lib/clientList";
+import type { ApiV1VehicleItem } from "./adminVehicles.api.types";
+import type { VehicleCatalogLookups } from "./vehicleCatalog.service";
+
+const CATEGORY_CODE_TO_UI: Record<string, VehicleCategory> = {
+  ECO: "taxi",
+  CONFORT: "taxi",
+  CONFORT_PLUS: "taxi",
+  PREMIUM: "premium",
+};
+
+export function mapApiVehicleStatus(status?: string | null): VehicleApprovalStatus {
+  const key = String(status ?? "pending").toLowerCase();
+  if (key === "approved" || key === "active") return "approved";
+  if (key === "rejected") return "rejected";
+  if (key === "draft") return "draft";
+  return "pending";
+}
+
+function mapCategoryCode(code?: string): VehicleCategory {
+  if (!code) return "taxi";
+  return CATEGORY_CODE_TO_UI[code.toUpperCase()] ?? "taxi";
+}
+
+function readLabelParts(
+  item: ApiV1VehicleItem,
+  lookups?: VehicleCatalogLookups
+): { brand: string; model: string; color: string; categoryLabel: string; categoryCode?: string } {
+  const brand = item.brand_id
+    ? lookups?.brandById.get(item.brand_id)?.label ?? ""
+    : "";
+  const model = item.model_id
+    ? lookups?.modelById.get(item.model_id)?.label ?? ""
+    : "";
+  const color = item.color_id
+    ? lookups?.colorById.get(item.color_id)?.label ?? ""
+    : "";
+  const category = item.category_id
+    ? lookups?.categoryById.get(item.category_id)
+    : undefined;
+
+  return {
+    brand,
+    model,
+    color,
+    categoryLabel: category?.label ?? "—",
+    categoryCode: category?.code,
+  };
+}
+
+export function mapApiVehicleToVehicle(
+  item: ApiV1VehicleItem,
+  lookups?: VehicleCatalogLookups
+): Vehicle {
+  const parts = readLabelParts(item, lookups);
+  const label =
+    [parts.brand, parts.model].filter(Boolean).join(" ").trim() ||
+    (item.plate_number?.trim() ? `Véhicule ${item.plate_number}` : `Véhicule ${String(item.id).slice(0, 8)}`);
+
+  return {
+    id: item.id,
+    label,
+    plate: item.plate_number?.trim() ?? "",
+    category: mapCategoryCode(parts.categoryCode),
+    category_label: parts.categoryLabel,
+    year: item.manufacture_year ?? 0,
+    color: parts.color || "—",
+    driver_name: null,
+    approval_status: mapApiVehicleStatus(item.status),
+    created_at: item.created_at ?? new Date().toISOString(),
+    partner_id: item.partner_id ?? null,
+    partner_name: item.partner_id
+      ? lookups?.partnerNameById.get(item.partner_id) ?? null
+      : null,
+  };
+}
+
+export function mapApiVehicleToVehicleDetail(
+  item: ApiV1VehicleItem,
+  lookups?: VehicleCatalogLookups
+): VehicleDetail {
+  const base = mapApiVehicleToVehicle(item, lookups);
+  const parts = readLabelParts(item, lookups);
+
+  return {
+    ...base,
+    brand: parts.brand || "—",
+    model: parts.model || "—",
+    seats: item.seats_count ?? 0,
+    owner_id: item.partner_id ?? "",
+    registration_document: {
+      id: "pending",
+      type: "registration",
+      label: "Carte grise",
+      status: "pending",
+      uploaded_at: item.created_at ?? new Date().toISOString(),
+      reviewed_at: null,
+    },
+    approved_at: item.approved_at ?? null,
+  };
+}
+
+export function mapAdminVehiclesToPaginated(
+  items: ApiV1VehicleItem[],
+  params: ListParams | undefined,
+  pagination: ApiV1Pagination | undefined,
+  lookups?: VehicleCatalogLookups
+): Paginated<Vehicle> {
+  const mapped = items.map((item) => mapApiVehicleToVehicle(item, lookups));
+
+  if (pagination?.total != null || pagination?.page != null) {
+    return {
+      data: mapped,
+      meta: mapV1PaginationToMeta(pagination, params),
+    };
+  }
+
+  return paginateClientList(mapped, params);
+}
+
+/** Mappe les catégories UI partenaire (mock) vers les codes catalogue v1. */
+export function mapUiCategoryToApiCode(category: VehicleCategory): string {
+  switch (category) {
+    case "premium":
+      return "PREMIUM";
+    case "delivery":
+      return "ECO";
+    case "van":
+      return "CONFORT";
+    default:
+      return "ECO";
+  }
+}
+
+export interface PartnerFreeTextVehiclePayload {
+  partnerId: string;
+  category: VehicleCategory;
+  brand: string;
+  model: string;
+  year: number;
+  color: string;
+  plate?: string;
+}
+
+export function mapPartnerFreeTextToApiBody(payload: PartnerFreeTextVehiclePayload) {
+  return {
+    partnerId: payload.partnerId,
+    categoryCode: mapUiCategoryToApiCode(payload.category),
+    brand: payload.brand.trim(),
+    model: payload.model.trim(),
+    color: payload.color.trim(),
+    manufactureYear: payload.year,
+    plateNumber: payload.plate?.trim() || undefined,
+  };
+}

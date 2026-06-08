@@ -30,6 +30,8 @@ export function PricingEditPage({ pricingId }: PricingEditPageProps) {
         franchise_name: data.franchise_name,
         zone_id: null,
         zone_name: data.zone_name,
+        rule_name: data.rule_name,
+        category_code: data.category_code ?? "ECO",
         service: data.service,
         base_fare_fcfa: data.base_fare_fcfa,
         per_km_fcfa: data.per_km_fcfa,
@@ -79,6 +81,8 @@ export function PricingEditPage({ pricingId }: PricingEditPageProps) {
           updatePricing.mutate(
             {
               service: values.service,
+              rule_name: values.rule_name,
+              category_code: values.category_code,
               base_fare_fcfa: values.base_fare_fcfa,
               per_km_fcfa: values.per_km_fcfa,
               min_fare_fcfa: values.min_fare_fcfa,
