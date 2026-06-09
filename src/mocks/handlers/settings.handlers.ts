@@ -270,7 +270,7 @@ export const settingsHandlers = [
     if (rolesState.data.some((r) => r.slug === slug)) {
       return HttpResponse.json({ message: "Ce slug existe déjà" }, { status: 422 });
     }
-    const ids = rolesState.data.map((r) => r.id);
+    const ids = rolesState.data.map((r) => Number(r.id)).filter((n) => !Number.isNaN(n));
     const role: AdminRole = {
       id: ids.length ? Math.max(...ids) + 1 : 1,
       name: body.name.trim(),

@@ -8,7 +8,7 @@ async function parseJson<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
-/** Fastify rejette un POST `application/json` sans corps — envoyer `{}` par défaut. */
+/** Fastify rejette `application/json` sans corps — envoyer `{}` par défaut sur POST/PUT/PATCH. */
 function jsonRequestBody(data?: unknown): string {
   return JSON.stringify(data ?? {});
 }
@@ -106,22 +106,30 @@ export async function requestWithToken<T>(
 ): Promise<T> {
   const { data, ...rest } = init ?? {};
   const method = rest.method ?? (data !== undefined ? "POST" : "GET");
+  const body =
+    data !== undefined && method !== "GET" && method !== "HEAD"
+      ? jsonRequestBody(data)
+      : rest.body;
+  const hasJsonBody =
+    body != null &&
+    body !== "" &&
+    !(typeof body === "string" && body.trim() === "");
+
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     Accept: "application/json",
     "X-Client-Type": "back-office",
     Authorization: `Bearer ${token}`,
     ...(rest.headers as Record<string, string> | undefined),
   };
+  if (hasJsonBody && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
 
   const response = await fetch(resolveApiUrl(endpoint), {
     ...rest,
     method,
     headers,
-    body:
-      data !== undefined && method !== "GET" && method !== "HEAD"
-        ? jsonRequestBody(data)
-        : rest.body,
+    body,
   });
 
   if (!response.ok) {

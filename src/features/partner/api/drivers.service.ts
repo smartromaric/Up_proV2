@@ -60,7 +60,7 @@ export const partnerDriversService = {
   },
 
   create: (data: CreateDriverPayload, context?: CreateDriverV1Context) => {
-    if (useLegacyPortalApi()) {
+    if (useLegacyPortalApi() && !context?.partnerId) {
       return apiClient.post<DriverDetail>("/partner/drivers", data);
     }
     return createDriverViaV1(data, {
@@ -86,7 +86,7 @@ export const partnerDriversService = {
     documents: DriverDocumentFile[] = [],
     context?: CreateDriverV1Context
   ): Promise<DriverDetail> => {
-    if (useLegacyPortalApi()) {
+    if (useLegacyPortalApi() && !context?.partnerId) {
       const driver = await apiClient.post<DriverDetail>("/partner/drivers", data);
       let current = driver;
       for (const doc of documents) {

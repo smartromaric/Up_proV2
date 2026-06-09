@@ -21,6 +21,7 @@ import {
 } from "@/shared/hooks/useServerTableState";
 import type { Vehicle, VehicleApprovalStatus } from "@/shared/types";
 import { usePartnersList } from "@/features/network/api/partners.queries";
+import { buildAdminVehicleDetailPath } from "../lib/vehicleRoutes";
 import { useAdminVehiclesList } from "../api/vehicles.queries";
 
 const STATUS_FILTERS: { value: VehicleApprovalStatus | "all"; label: string }[] = [
@@ -68,7 +69,12 @@ export function VehiclesListPage() {
       header: "Véhicule",
       cell: (v) => (
         <div>
-          <p className="font-medium text-foreground">{v.label}</p>
+          <Link
+            href={buildAdminVehicleDetailPath(v.id, v.partner_id)}
+            className="font-medium text-foreground hover:text-teal"
+          >
+            {v.label}
+          </Link>
           <p className="text-xs text-muted">
             {v.plate || "Plaque à renseigner"} ·{" "}
             {v.category_label ?? getVehicleCategoryLabel(v.category)}
@@ -118,7 +124,7 @@ export function VehiclesListPage() {
         breadcrumb={["Admin", "Flotte", "Véhicules"]}
         actions={
           <Link href="/admin/fleet/vehicles/new">
-            <Button>Nouveau véhicule</Button>
+            <Button>Nouveau chauffeur + véhicule</Button>
           </Link>
         }
       />

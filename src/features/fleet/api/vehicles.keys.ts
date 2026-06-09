@@ -2,6 +2,8 @@ import type { ListParams } from "@/shared/types/listParams";
 
 export const adminVehiclesKeys = {
   all: ["admin", "fleet", "vehicles"] as const,
+  detail: (vehicleId: string, partnerId?: string) =>
+    [...adminVehiclesKeys.all, "detail", vehicleId, partnerId ?? ""] as const,
   list: (filters?: ListParams) =>
     [...adminVehiclesKeys.all, "list", filters] as const,
   catalog: {

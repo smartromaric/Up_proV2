@@ -4,7 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Tabs } from "@/shared/ui/Tabs";
+import { organizeDriverKycDocuments } from "@/features/fleet/api/kycDocument.mapper";
 import { KycDocumentCard } from "@/shared/ui/KycDocumentCard";
+import { KycDocumentGroupCard } from "@/shared/ui/KycDocumentGroupCard";
 import { AccountStatusPill, AvailabilityPill } from "@/shared/ui/DriverPills";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { Button } from "@/shared/ui/Button";
@@ -64,6 +66,7 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
 
   const fullName = `${driver.first_name} ${driver.last_name}`;
   const showLiveMap = driver.account_status === "approved";
+  const kycDisplayItems = organizeDriverKycDocuments(driver.kyc_documents);
 
   const tripColumns: Column<PartnerDriverTripRow>[] = [
     {
@@ -233,26 +236,36 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
 
             {tab === "kyc" && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {driver.kyc_documents.map((doc) => (
-                  <KycDocumentCard
-                    key={doc.id}
-                    document={doc}
-                    canUpload={canUploadDoc(doc)}
-                    uploadHint="PDF ou image · max 5 Mo"
-                    onUpload={(file) => {
-                      uploadDoc.mutate(
-                        { type: doc.type, file },
-                        {
-                          onSuccess: () =>
-                            notificationService.success(
-                              "Document envoyé — validation en cours"
-                            ),
-                          onError: () => notificationService.error("Échec de l'envoi"),
-                        }
-                      );
-                    }}
-                  />
-                ))}
+                {kycDisplayItems.map((item) =>
+                  item.kind === "group" ? (
+                    <div key={item.groupId} className="sm:col-span-2">
+                      <KycDocumentGroupCard
+                        label={item.label}
+                        documents={item.documents}
+                      />
+                    </div>
+                  ) : (
+                    <KycDocumentCard
+                      key={item.document.id}
+                      document={item.document}
+                      canUpload={canUploadDoc(item.document)}
+                      uploadHint="PDF ou image · max 5 Mo"
+                      onUpload={(file) => {
+                        uploadDoc.mutate(
+                          { type: item.document.type, file },
+                          {
+                            onSuccess: () =>
+                              notificationService.success(
+                                "Document envoyé — validation en cours"
+                              ),
+                            onError: () =>
+                              notificationService.error("Échec de l'envoi"),
+                          }
+                        );
+                      }}
+                    />
+                  )
+                )}
               </div>
             )}
           </div>

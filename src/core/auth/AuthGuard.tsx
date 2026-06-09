@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "./authStore";
 import { clearAuthCookie, hasAuthCookie, setAuthCookie } from "./authCookie";
 import { LOGIN_BY_PORTAL } from "./authRoutes";
+import { buildLoginUrlWithReturn } from "./returnUrl";
 import { useAuthHydrated } from "./useAuthHydrated";
 import { useAuthMeQuery } from "@/features/auth/api/auth.queries";
 import type { PortalRole } from "@/shared/types";
@@ -24,6 +25,7 @@ function AuthLoading() {
 
 export function AuthGuard({ portal, children }: AuthGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const hydrated = useAuthHydrated();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -33,8 +35,8 @@ export function AuthGuard({ portal, children }: AuthGuardProps) {
     if (!meFailed) return;
     useAuthStore.getState().clearSession();
     clearAuthCookie();
-    router.replace(LOGIN_BY_PORTAL[portal]);
-  }, [meFailed, portal, router]);
+    router.replace(buildLoginUrlWithReturn(LOGIN_BY_PORTAL[portal], pathname));
+  }, [meFailed, portal, router, pathname]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -43,13 +45,13 @@ export function AuthGuard({ portal, children }: AuthGuardProps) {
       setAuthCookie();
     }
     if (!token || !user) {
-      router.replace(LOGIN_BY_PORTAL[portal]);
+      router.replace(buildLoginUrlWithReturn(LOGIN_BY_PORTAL[portal], pathname));
       return;
     }
     if (user.role !== portal) {
       router.replace(LOGIN_BY_PORTAL[user.role] ?? "/login");
     }
-  }, [hydrated, token, user, portal, router]);
+  }, [hydrated, token, user, portal, router, pathname]);
 
   if (!hydrated || !token || !user) {
     return <AuthLoading />;

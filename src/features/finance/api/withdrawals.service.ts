@@ -5,8 +5,15 @@ import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import { fetchFranchiseNameMap } from "@/features/admin/api/adminFilterOptions.service";
 import type { WithdrawalsResponse } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
-import type { ApiAdminWithdrawalsResponse } from "./adminWithdrawals.api.types";
-import { mapAdminWithdrawalsToResponse } from "./adminWithdrawals.mapper";
+import type {
+  ApiAdminWithdrawalDetailResponse,
+  ApiAdminWithdrawalsResponse,
+} from "./adminWithdrawals.api.types";
+import {
+  mapAdminWithdrawalDetail,
+  mapAdminWithdrawalsToResponse,
+  type WithdrawalDetail,
+} from "./adminWithdrawals.mapper";
 
 export const withdrawalsService = {
   listAdmin: async (params?: ListParams): Promise<WithdrawalsResponse> => {
@@ -29,6 +36,27 @@ export const withdrawalsService = {
       response.pagination,
       franchiseMap
     );
+  },
+
+  getById: async (id: string): Promise<WithdrawalDetail> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.get<WithdrawalDetail>(
+        `/admin/finance/withdrawals/${id}`
+      );
+    }
+
+    const [response, franchiseMap] = await Promise.all([
+      apiClient.get<ApiAdminWithdrawalDetailResponse>(
+        LINKS.admin.v1.withdrawalById(id)
+      ),
+      fetchFranchiseNameMap(),
+    ]);
+
+    if (!response.withdrawal?.id) {
+      throw new Error("WITHDRAWAL_NOT_FOUND");
+    }
+
+    return mapAdminWithdrawalDetail(response.withdrawal, franchiseMap);
   },
 
   approve: (id: string) => {

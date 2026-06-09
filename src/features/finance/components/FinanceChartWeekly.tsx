@@ -5,6 +5,7 @@ interface FinanceChartWeeklyProps {
 }
 
 export function FinanceChartWeekly({ data }: FinanceChartWeeklyProps) {
+  const hasData = data.length > 0;
   const max = Math.max(
     ...data.flatMap((d) => [d.gmv, d.commissions, d.payouts]),
     1
@@ -14,6 +15,15 @@ export function FinanceChartWeekly({ data }: FinanceChartWeeklyProps) {
     <div className="rounded-card border border-border bg-surface p-6 shadow-card">
       <h2 className="text-sm font-semibold text-foreground">Flux financier — 7 jours</h2>
       <p className="text-xs text-muted">GMV, commissions plateforme et sorties (retraits / payouts)</p>
+      {!hasData ? (
+        <div className="mt-6 flex h-52 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-canvas/50 text-center">
+          <p className="text-sm font-medium text-foreground">Pas encore de données</p>
+          <p className="mt-1 max-w-xs text-xs text-muted">
+            Le graphique s&apos;affichera dès que l&apos;API renverra des points sur{" "}
+            <code className="text-[10px]">chart_weekly</code>.
+          </p>
+        </div>
+      ) : (
       <div className="mt-6 flex h-52 items-end justify-between gap-1.5 sm:gap-2">
         {data.map((point, i) => (
           <div key={point.day} className="flex flex-1 flex-col items-center gap-1">
@@ -47,6 +57,7 @@ export function FinanceChartWeekly({ data }: FinanceChartWeeklyProps) {
           </div>
         ))}
       </div>
+      )}
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-sm bg-navy" /> GMV

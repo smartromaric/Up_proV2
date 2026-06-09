@@ -5,7 +5,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Tabs } from "@/shared/ui/Tabs";
+import { organizeDriverKycDocuments } from "@/features/fleet/api/kycDocument.mapper";
 import { KycDocumentCard } from "@/shared/ui/KycDocumentCard";
+import { KycDocumentGroupCard } from "@/shared/ui/KycDocumentGroupCard";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmModal } from "@/shared/ui/ConfirmModal";
@@ -52,6 +54,7 @@ export function FranchiseDriverDetailPage({ driverId }: FranchiseDriverDetailPag
 
   const fullName = `${driver.first_name} ${driver.last_name}`;
   const isPending = driver.account_status === "pending";
+  const kycDisplayItems = organizeDriverKycDocuments(driver.kyc_documents);
 
   return (
     <div className="animate-fade-up">
@@ -97,17 +100,41 @@ export function FranchiseDriverDetailPage({ driverId }: FranchiseDriverDetailPag
 
         {tab === "kyc" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            {driver.kyc_documents.map((doc) => (
-              <KycDocumentCard
-                key={doc.id}
-                document={doc}
-                canReview={canModerate && doc.status === "pending" && Boolean(doc.uploaded_at)}
-                onApprove={() => approveDoc.mutate(doc.id)}
-                onReject={() =>
-                  rejectDoc.mutate({ docId: doc.id, reason: "Document illisible ou incomplet" })
-                }
-              />
-            ))}
+            {kycDisplayItems.map((item) =>
+              item.kind === "group" ? (
+                <div key={item.groupId} className="sm:col-span-2">
+                  <KycDocumentGroupCard
+                    label={item.label}
+                    documents={item.documents}
+                    canReview={isPending && canModerate}
+                    onApprove={(documentId) => approveDoc.mutate(documentId)}
+                    onReject={(documentId) =>
+                      rejectDoc.mutate({
+                        docId: documentId,
+                        reason: "Document illisible ou incomplet",
+                      })
+                    }
+                  />
+                </div>
+              ) : (
+                <KycDocumentCard
+                  key={item.document.id}
+                  document={item.document}
+                  canReview={
+                    canModerate &&
+                    item.document.status === "pending" &&
+                    Boolean(item.document.uploaded_at)
+                  }
+                  onApprove={() => approveDoc.mutate(item.document.id)}
+                  onReject={() =>
+                    rejectDoc.mutate({
+                      docId: item.document.id,
+                      reason: "Document illisible ou incomplet",
+                    })
+                  }
+                />
+              )
+            )}
           </div>
         )}
       </div>

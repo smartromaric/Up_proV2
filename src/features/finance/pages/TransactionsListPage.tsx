@@ -67,7 +67,14 @@ export function TransactionsListPage() {
     {
       id: "id",
       header: "Réf.",
-      cell: (t) => <span className="font-medium text-foreground">{t.id}</span>,
+      cell: (t) => (
+        <Link
+          href={`/admin/finance/transactions/${t.id}`}
+          className="font-medium text-foreground hover:text-teal"
+        >
+          {t.id.slice(0, 8)}
+        </Link>
+      ),
       exportValue: (t) => t.id,
     },
     {

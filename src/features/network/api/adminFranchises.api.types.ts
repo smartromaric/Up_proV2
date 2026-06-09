@@ -13,6 +13,7 @@ export interface ApiV1FranchiseItem {
   support_email?: string | null;
   support_phone?: string | null;
   country_id?: string | null;
+  operating_country_id?: string | null;
   city?: string | null;
   cityLabel?: string | null;
   partnersCount?: number;
@@ -21,6 +22,13 @@ export interface ApiV1FranchiseItem {
   revenueMonthXof?: number;
   created_at?: string | null;
   updated_at?: string | null;
+  metadata?: {
+    cityId?: string | null;
+    contactEmail?: string | null;
+    contactPhone?: string | null;
+    createdFrom?: string | null;
+    [key: string]: unknown;
+  } | null;
 }
 
 export interface ApiAdminFranchisesListResponse {
@@ -68,4 +76,33 @@ export interface ApiDashboardFranchiseOption {
   id: string;
   name?: string | null;
   city?: string | null;
+}
+
+export interface ApiAdminFranchiseCreateBody {
+  name: string;
+  cityId: string;
+  contactEmail: string;
+  contactPhone: string;
+  adminPassword: string;
+  adminFirstName: string;
+  adminLastName: string;
+  status?: string;
+  countryCode?: string;
+}
+
+export interface ApiAdminFranchiseCreateResponse {
+  status?: string;
+  franchiseId?: string;
+  franchise?: ApiV1FranchiseItem;
+  memberId?: string;
+  portalLoginEmail?: string;
+  error?: { message?: string; code?: string };
+}
+
+export interface ApiAdminFranchiseUpdateBody {
+  name: string;
+  cityId: string;
+  contactEmail: string;
+  contactPhone: string;
+  status?: string;
 }

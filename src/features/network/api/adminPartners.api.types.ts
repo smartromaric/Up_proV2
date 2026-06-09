@@ -28,3 +28,34 @@ export interface ApiAdminPartnersResponse {
   items?: ApiAdminPartnerItem[];
   pagination?: ApiV1Pagination;
 }
+
+/** POST /v1/partners */
+export interface ApiPartnerCreateBody {
+  franchiseId: string;
+  legalName: string;
+  tradeName: string;
+  cityId: string;
+  contactEmail: string;
+  contactPhone?: string;
+  partnerType?: string;
+  address?: string;
+  status?: string;
+}
+
+export interface ApiPartnerCreateResponse {
+  status?: string;
+  generatedAt?: string;
+  partner?: ApiAdminPartnerItem;
+  error?: { message?: string; code?: string };
+}
+
+/** PATCH /v1/partners/{id} */
+export interface ApiPartnerUpdateBody {
+  legalName: string;
+  tradeName: string;
+  cityId: string;
+  contactEmail: string;
+  contactPhone?: string;
+  address?: string;
+  status?: string;
+}

@@ -66,7 +66,14 @@ export function WithdrawalsListPage() {
     {
       id: "id",
       header: "Réf.",
-      cell: (w) => <span className="font-medium text-foreground">{w.id}</span>,
+      cell: (w) => (
+        <Link
+          href={`/admin/finance/withdrawals/${w.id}`}
+          className="font-medium text-foreground hover:text-teal"
+        >
+          {w.id.slice(0, 8)}
+        </Link>
+      ),
       exportValue: (w) => w.id,
     },
     {

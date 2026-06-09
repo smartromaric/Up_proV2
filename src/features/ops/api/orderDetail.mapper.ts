@@ -202,8 +202,18 @@ export function mapApiOrderToTripDetail(
     status,
     payment_method: mapApiPaymentMethod(order.payment_method_code),
     created_at: order.created_at ?? new Date().toISOString(),
-    franchise_name: assignedDriver?.franchiseName,
-    partner_name: assignedDriver?.partnerName,
+    franchise_name:
+      assignedDriver?.franchiseName ?? order.franchiseName ?? undefined,
+    partner_id: (() => {
+      const id =
+        order.partner_id ??
+        order.partner?.id ??
+        assignedDriver?.partnerId ??
+        undefined;
+      return id != null ? String(id) : undefined;
+    })(),
+    partner_name:
+      assignedDriver?.partnerName ?? order.partnerName ?? undefined,
     zone_name: assignedDriver?.zoneName,
     timeline: buildTimeline(order, driversById),
     vehicle_label:

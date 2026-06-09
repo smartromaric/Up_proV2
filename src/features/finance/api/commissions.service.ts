@@ -1,6 +1,20 @@
 import { apiClient } from "@/core/http/apiClient";
+import { LINKS } from "@/core/api/links";
+import { buildV1ListQuery } from "@/core/api/v1Pagination";
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
+import { fetchAdminFilterOptions } from "@/features/admin/api/adminFilterOptions.service";
 import type { LiveMapData, Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
+import type {
+  ApiFinanceCommissionItem,
+  ApiFinanceListResponse,
+  ApiFinanceReconciliationItem,
+} from "./adminFinance.api.types";
+import {
+  mapFinanceCommissionsResponse,
+  mapFinanceListResponse,
+  mapFinanceReconciliationItem,
+} from "./adminFinance.mapper";
 
 export interface CommissionRow {
   id: string;
@@ -29,15 +43,43 @@ export interface ReconciliationRow {
 }
 
 export const commissionsService = {
-  list: (params?: ListParams) =>
-    apiClient.get<CommissionsListResponse>(
-      `/admin/finance/commissions${buildListQuery(params)}`
-    ),
+  list: async (params?: ListParams): Promise<CommissionsListResponse> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.get<CommissionsListResponse>(
+        `/admin/finance/commissions${buildListQuery(params)}`
+      );
+    }
+
+    const [response, filterOptions] = await Promise.all([
+      apiClient.get<ApiFinanceListResponse<ApiFinanceCommissionItem>>(
+        `${LINKS.admin.v1.finance.commissions}${buildV1ListQuery(params)}`
+      ),
+      fetchAdminFilterOptions(),
+    ]);
+
+    return mapFinanceCommissionsResponse(response, params, filterOptions);
+  },
 };
 
 export const reconciliationService = {
-  list: (params?: ListParams) =>
-    apiClient.get<Paginated<ReconciliationRow>>(
-      `/admin/finance/reconciliation${buildListQuery(params)}`
-    ),
+  list: async (params?: ListParams): Promise<Paginated<ReconciliationRow>> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.get<Paginated<ReconciliationRow>>(
+        `/admin/finance/reconciliation${buildListQuery(params)}`
+      );
+    }
+
+    const response = await apiClient.get<
+      ApiFinanceListResponse<ApiFinanceReconciliationItem> & {
+        reconciliations?: ApiFinanceReconciliationItem[];
+      }
+    >(`${LINKS.admin.v1.finance.reconciliation}${buildV1ListQuery(params)}`);
+
+    const items = response.items ?? response.reconciliations ?? [];
+    return mapFinanceListResponse(
+      { ...response, items },
+      params,
+      mapFinanceReconciliationItem
+    );
+  },
 };

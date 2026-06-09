@@ -12,9 +12,18 @@ export function formatPercent(value: number, signed = true): string {
   return `${prefix}${value.toFixed(1)} %`;
 }
 
-export function formatDateTime(iso: string): string {
+export function formatDateTime(
+  iso: string | null | undefined,
+  fallback = "—"
+): string {
+  const raw = iso?.trim();
+  if (!raw) return fallback;
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return fallback;
+
   return new Intl.DateTimeFormat("fr-CI", {
     dateStyle: "short",
     timeStyle: "short",
-  }).format(new Date(iso));
+  }).format(date);
 }

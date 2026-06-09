@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -11,7 +11,15 @@ import {
   VehicleCreatePiecesSection,
   type VehiclePieceFile,
 } from "@/features/partner/components/VehicleCreatePiecesSection";
-import { VehicleCreateDriverSection } from "@/features/partner/components/VehicleCreateDriverSection";
+import {
+  EMPTY_DRIVER,
+  VehicleCreateDriverSection,
+} from "@/features/partner/components/VehicleCreateDriverSection";
+import { useFranchiseDetail } from "@/features/network/api/franchiseDetail.queries";
+import { usePartnerDetail } from "@/features/network/api/partnerDetail.queries";
+import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
+import { useCatalogCountryForPartner } from "@/shared/hooks/useCatalogCountryForPartner";
+import type { Partner, PartnerDetail } from "@/shared/types";
 import {
   VehicleCreateDriverDocumentsSection,
   type DriverDocumentFile,
@@ -29,9 +37,19 @@ import {
   useVehicleColorsCatalog,
 } from "../api/vehicles.queries";
 
-export function VehicleCreatePage() {
+interface VehicleCreatePageProps {
+  /** Création depuis la fiche partenaire admin — partenaire verrouillé, chauffeur obligatoire. */
+  lockedPartnerId?: string;
+}
+
+export function VehicleCreatePage({ lockedPartnerId }: VehicleCreatePageProps = {}) {
   const router = useRouter();
   const create = useCreateAdminVehicle();
+  const legacy = useLegacyAdminApi();
+  const adminLocked = Boolean(lockedPartnerId);
+  const { data: lockedPartner, isLoading: partnerDetailLoading } = usePartnerDetail(
+    lockedPartnerId ?? ""
+  );
 
   const { data: partners } = usePartnersList({ per_page: 100 });
   const { data: categories, isLoading: categoriesLoading } = useVehicleCategoriesCatalog();
@@ -47,11 +65,36 @@ export function VehicleCreatePage() {
   const [seats, setSeats] = useState(4);
   const [plate, setPlate] = useState("");
   const [pieces, setPieces] = useState<VehiclePieceFile[]>([]);
-  const [driver, setDriver] = useState<CreateDriverPayload | null>(null);
+  const [driver, setDriver] = useState<CreateDriverPayload | null>({ ...EMPTY_DRIVER });
   const [driverDocuments, setDriverDocuments] = useState<DriverDocumentFile[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
 
   const { data: models, isLoading: modelsLoading } = useVehicleBrandModelsCatalog(brandCode);
+
+  const selectedPartner = useMemo((): Partner | PartnerDetail | null => {
+    if (adminLocked && lockedPartner) return lockedPartner;
+    if (!partnerId) return null;
+    const fromList = (partners?.data ?? []).find((p) => String(p.id) === partnerId);
+    return fromList ?? null;
+  }, [adminLocked, lockedPartner, partnerId, partners?.data]);
+
+  const franchiseIdForCountry = useMemo(() => {
+    const fid = selectedPartner?.franchise_id;
+    if (fid == null || fid === "—") return "";
+    return String(fid);
+  }, [selectedPartner?.franchise_id]);
+
+  const { data: franchiseDetail } = useFranchiseDetail(franchiseIdForCountry);
+
+  const { data: phoneCountry } = useCatalogCountryForPartner({
+    franchiseCountryId: franchiseDetail?.country_id,
+    cityId:
+      selectedPartner && "city_id" in selectedPartner
+        ? selectedPartner.city_id
+        : undefined,
+    cityLabel: selectedPartner?.city,
+    enabled: !legacy && Boolean(selectedPartner),
+  });
 
   useEffect(() => {
     if (!categoryCode && categories?.length) {
@@ -63,13 +106,20 @@ export function VehicleCreatePage() {
     setModelCode("");
   }, [brandCode]);
 
+  useEffect(() => {
+    if (!adminLocked || !lockedPartner) return;
+    setPartnerId(String(lockedPartner.id));
+    if (lockedPartner.city && lockedPartner.city !== "—") {
+      setDriver((d) => ({ ...(d ?? EMPTY_DRIVER), zone: lockedPartner.city }));
+    }
+  }, [adminLocked, lockedPartner]);
+
   const handleDriverChange = (next: CreateDriverPayload | null) => {
+    if (!next) return;
     setDriver(next);
-    if (!next) setDriverDocuments([]);
   };
 
   const hasRegistration = pieces.some((p) => p.type === "registration");
-  const hasDriver = driver !== null;
   const driverValid = isDriverComplete(driver);
   const catalogLoading = categoriesLoading || brandsLoading || colorsLoading;
 
@@ -84,8 +134,8 @@ export function VehicleCreatePage() {
       next.push("Année invalide.");
     }
     if (seats < 1 || seats > 12) next.push("Nombre de places invalide.");
-    if (hasDriver && !driverValid) {
-      next.push("Renseignez tous les champs du chauffeur ou décochez la section.");
+    if (!driverValid) {
+      next.push("Renseignez tous les champs du chauffeur.");
     }
     setErrors(next);
     if (next.length) return;
@@ -104,43 +154,56 @@ export function VehicleCreatePage() {
         },
         pieces,
         driver,
-        driverDocuments: hasDriver ? driverDocuments : [],
+        driverDocuments,
       },
       {
         onSuccess: (vehicle) => {
-          if (hasDriver && vehicle.driver_name) {
+          if (vehicle.driver_name) {
             notificationService.success(
-              `Véhicule créé — chauffeur assigné (${vehicle.driver_name})`
+              `Chauffeur et véhicule créés — ${vehicle.driver_name} assigné`
             );
           } else if (pieces.length === 0) {
             notificationService.info(
-              "Véhicule créé en brouillon — pièces et chauffeur à ajouter sur la fiche"
+              "Binôme créé — pièces à ajouter sur la fiche véhicule"
             );
           } else if (hasRegistration) {
             notificationService.success(
-              "Véhicule créé — pièces envoyées, validation en cours"
+              "Binôme créé — pièces enregistrées, validation en cours"
             );
           } else {
             notificationService.success(
-              "Véhicule créé — pensez à ajouter la carte grise pour la validation"
+              "Binôme créé — pensez à ajouter la carte grise pour la validation"
             );
           }
-          router.push("/admin/fleet/vehicles");
+          if (adminLocked && lockedPartnerId) {
+            router.push(`/admin/network/partners/${lockedPartnerId}?tab=drivers`);
+          } else {
+            router.push("/admin/fleet/vehicles");
+          }
         },
       }
     );
   };
 
+  const backHref = adminLocked && lockedPartnerId
+    ? `/admin/network/partners/${lockedPartnerId}?tab=drivers`
+    : "/admin/fleet/vehicles";
+  const backLabel = adminLocked ? "← Retour au partenaire" : "← Retour à la liste";
+
   return (
     <div className="animate-fade-up mx-auto max-w-6xl">
       <PageHeader
-        title="Nouveau véhicule"
-        breadcrumb={["Admin", "Flotte", "Véhicules", "Nouveau"]}
+        title={adminLocked ? "Nouveau chauffeur et véhicule" : "Nouveau véhicule et chauffeur"}
+        breadcrumb={
+          adminLocked
+            ? ["Admin", "Réseau", "Partenaire", "Nouveau binôme"]
+            : ["Admin", "Flotte", "Véhicules", "Nouveau"]
+        }
       />
 
       <p className="mb-6 text-sm">
-        <Link href="/admin/fleet/vehicles" className="text-teal hover:underline">
-          ← Retour à la liste
+        <Link href={backHref} className="text-teal hover:underline">
+          {backLabel}
         </Link>
       </p>
 
@@ -168,10 +231,15 @@ export function VehicleCreatePage() {
               <select
                 value={partnerId}
                 onChange={(e) => setPartnerId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
+                disabled={adminLocked || partnerDetailLoading}
+                className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2 disabled:bg-muted/10 disabled:text-muted"
                 required
               >
-                <option value="">— Choisir un partenaire —</option>
+                <option value="">
+                  {adminLocked && partnerDetailLoading
+                    ? "— Chargement… —"
+                    : "— Choisir un partenaire —"}
+                </option>
                 {(partners?.data ?? []).map((p) => (
                   <option key={String(p.id)} value={String(p.id)}>
                     {p.name}
@@ -179,6 +247,11 @@ export function VehicleCreatePage() {
                   </option>
                 ))}
               </select>
+              {adminLocked && lockedPartner && (
+                <p className="mt-1 text-xs text-muted">
+                  Partenaire verrouillé depuis la fiche réseau.
+                </p>
+              )}
             </label>
 
             <label className="block">
@@ -298,24 +371,27 @@ export function VehicleCreatePage() {
           <VehicleCreatePiecesSection pieces={pieces} onChange={setPieces} />
         </div>
 
-        <div className={hasDriver ? "grid items-start gap-6 lg:grid-cols-2" : "w-full"}>
-          <VehicleCreateDriverSection driver={driver} onChange={handleDriverChange} />
-          {hasDriver && (
-            <VehicleCreateDriverDocumentsSection
-              documents={driverDocuments}
-              onChange={setDriverDocuments}
-            />
-          )}
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <VehicleCreateDriverSection
+            driver={driver}
+            onChange={handleDriverChange}
+            required
+            phoneCountry={legacy ? null : phoneCountry}
+          />
+          <VehicleCreateDriverDocumentsSection
+            documents={driverDocuments}
+            onChange={setDriverDocuments}
+          />
         </div>
 
         <div className="flex flex-wrap gap-2 border-t border-border pt-6">
           <Button
             type="submit"
-            disabled={create.isPending || catalogLoading || (hasDriver && !driverValid)}
+            disabled={create.isPending || catalogLoading || !driverValid}
           >
-            {create.isPending ? "Création…" : vehicleCreateSubmitLabel(pieces, hasDriver)}
+            {create.isPending ? "Création…" : vehicleCreateSubmitLabel(pieces)}
           </Button>
-          <Link href="/admin/fleet/vehicles">
+          <Link href={backHref}>
             <Button type="button" variant="secondary">
               Annuler
             </Button>

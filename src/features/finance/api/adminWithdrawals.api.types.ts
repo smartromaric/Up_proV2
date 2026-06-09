@@ -39,3 +39,32 @@ export interface ApiAdminWithdrawalsResponse {
   summary?: ApiAdminWithdrawalsSummary;
   pagination?: ApiV1Pagination;
 }
+
+export interface ApiAdminWithdrawalDetailItem extends ApiAdminWithdrawalItem {
+  rejectionReason?: string | null;
+  wallet?: {
+    id?: string;
+    balanceCachedXof?: number;
+    balance_cached_xof?: number;
+    ownerType?: string;
+    owner_type?: string;
+    owner?: { id?: string; displayName?: string | null };
+  } | null;
+  franchise?: { id?: string; name?: string | null } | null;
+  beneficiary?: {
+    id?: string;
+    type?: string;
+    displayName?: string | null;
+  } | null;
+  approvedBy?: { id?: string; displayName?: string | null } | null;
+  timeline?: Array<{
+    type?: string;
+    at?: string | null;
+    label?: string | null;
+  }>;
+}
+
+export interface ApiAdminWithdrawalDetailResponse {
+  status?: string;
+  withdrawal?: ApiAdminWithdrawalDetailItem;
+}

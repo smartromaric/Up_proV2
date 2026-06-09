@@ -6,6 +6,8 @@ export interface ApiAdminKycDocumentItem {
   subject_id?: string;
   document_type_code?: string;
   document_type_label?: string | null;
+  document_side?: string | null;
+  document_group?: string | null;
   file_url?: string | null;
   file_download_url?: string | null;
   file_urls?: string[];

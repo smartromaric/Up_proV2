@@ -1,9 +1,11 @@
+import Link from "next/link";
 import type { TripDetail } from "@/shared/types";
 import { formatDateTime } from "@/shared/lib/format";
 import {
   isTripLiveOnMap,
   isTripWithAssignedDriver,
 } from "@/shared/lib/tripDriver";
+import { buildAdminVehicleDetailPath } from "@/features/fleet/lib/vehicleRoutes";
 
 interface TripAssignedVehicleCardProps {
   trip: TripDetail;
@@ -17,7 +19,13 @@ export function TripAssignedVehicleCard({
   driverLive,
 }: TripAssignedVehicleCardProps) {
   if (!isTripWithAssignedDriver(trip.status)) return null;
-  if (!trip.vehicle_label && !trip.vehicle_plate) return null;
+  if (!trip.vehicle_label && !trip.vehicle_plate && !trip.vehicle_id) return null;
+
+  const vehicleDetailHref = trip.vehicle_id
+    ? buildAdminVehicleDetailPath(trip.vehicle_id, trip.partner_id)
+    : null;
+  const displayLabel =
+    trip.vehicle_label ?? trip.vehicle_plate ?? "Véhicule assigné";
 
   const live = isTripLiveOnMap(trip.status);
   const speed = driverLocation?.speed_kmh ?? trip.driver_location?.speed_kmh;
@@ -29,9 +37,16 @@ export function TripAssignedVehicleCard({
       <h3 className="text-xs font-medium uppercase tracking-wider text-muted">
         Véhicule
       </h3>
-      <p className="mt-2 font-medium text-foreground">
-        {trip.vehicle_label ?? trip.vehicle_plate}
-      </p>
+      {vehicleDetailHref ? (
+        <Link
+          href={vehicleDetailHref}
+          className="mt-2 block font-medium text-foreground hover:text-teal"
+        >
+          {displayLabel}
+        </Link>
+      ) : (
+        <p className="mt-2 font-medium text-foreground">{displayLabel}</p>
+      )}
       {trip.vehicle_label && trip.vehicle_plate && trip.vehicle_label !== trip.vehicle_plate && (
         <p className="text-sm text-muted">Plaque {trip.vehicle_plate}</p>
       )}

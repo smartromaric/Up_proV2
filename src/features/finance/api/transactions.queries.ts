@@ -11,3 +11,11 @@ export function useTransactionsList(params?: ListParams) {
     queryFn: () => transactionsService.listAdmin(params),
   });
 }
+
+export function useTransactionDetail(id: string) {
+  return useQuery({
+    queryKey: transactionsKeys.detail(id),
+    queryFn: () => transactionsService.getById(id),
+    enabled: Boolean(id),
+  });
+}

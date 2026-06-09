@@ -4,9 +4,18 @@ import type { Paginated, Withdrawal, WithdrawalsResponse } from "@/shared/types"
 import type { ListParams } from "@/shared/types/listParams";
 import { paginateClientList } from "@/shared/lib/clientList";
 import type {
+  ApiAdminWithdrawalDetailItem,
   ApiAdminWithdrawalItem,
   ApiAdminWithdrawalsResponse,
 } from "./adminWithdrawals.api.types";
+
+export interface WithdrawalDetail extends Withdrawal {
+  rejection_reason?: string;
+  beneficiary_type?: string;
+  wallet_id?: string;
+  approved_by_name?: string;
+  timeline: Array<{ type: string; at: string | null; label: string }>;
+}
 
 function mapWithdrawalMethod(
   destinationType?: string | null
@@ -62,6 +71,39 @@ function withdrawalMatchesFilters(
 ): boolean {
   if (params?.status && withdrawal.status !== params.status) return false;
   return true;
+}
+
+export function mapAdminWithdrawalDetail(
+  item: ApiAdminWithdrawalDetailItem,
+  franchiseNames?: Map<string, string>
+): WithdrawalDetail {
+  const base = mapAdminWithdrawalItemToWithdrawal(item, franchiseNames);
+  const franchiseName =
+    item.franchise?.name?.trim() ||
+    base.franchise_name ||
+    "—";
+  const beneficiary =
+    item.beneficiary?.displayName?.trim() || base.owner_name;
+
+  return {
+    ...base,
+    owner_name: beneficiary,
+    owner_id: item.beneficiary?.id ?? base.owner_id,
+    franchise_name: franchiseName,
+    wallet_balance_fcfa:
+      item.wallet?.balanceCachedXof ??
+      item.wallet?.balance_cached_xof ??
+      base.wallet_balance_fcfa,
+    rejection_reason: item.rejectionReason ?? undefined,
+    beneficiary_type: item.beneficiary?.type ?? undefined,
+    wallet_id: item.wallet_id ?? item.wallet?.id,
+    approved_by_name: item.approvedBy?.displayName ?? undefined,
+    timeline: (item.timeline ?? []).map((step) => ({
+      type: step.type ?? "event",
+      at: step.at ?? null,
+      label: step.label ?? step.type ?? "Événement",
+    })),
+  };
 }
 
 export function mapAdminWithdrawalsToResponse(

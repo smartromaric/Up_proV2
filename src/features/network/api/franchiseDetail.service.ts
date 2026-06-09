@@ -111,6 +111,14 @@ export const franchiseDetailService = {
       }
     );
 
+    const profileFranchise = profileForMap.franchise;
+    const countryId =
+      adminDetail?.franchise?.operating_country_id?.trim() ||
+      adminDetail?.franchise?.country_id?.trim() ||
+      profileFranchise.operating_country_id?.trim() ||
+      profileFranchise.country_id?.trim();
+    if (countryId) detail.country_id = countryId;
+
     if (adminDetail?.franchise) {
       const f = adminDetail.franchise;
       const city = f.cityLabel?.trim() || f.city?.trim();

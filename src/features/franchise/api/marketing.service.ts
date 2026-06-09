@@ -1,6 +1,15 @@
 import { apiClient } from "@/core/http/apiClient";
+import { buildV1ListQuery } from "@/core/api/v1Pagination";
+import { useLegacyPortalApi } from "@/core/api/portalApiMode";
 import type { Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
+import {
+  mapMarketingBannersResponse,
+  mapMarketingCampaignsResponse,
+  type ApiMarketingBannerItem,
+  type ApiMarketingCampaignItem,
+  type ApiMarketingListResponse,
+} from "@/features/marketing/api/adminMarketing.mapper";
 
 export interface FranchiseCampaign {
   id: string;
@@ -36,16 +45,73 @@ export type FranchiseBannerPayload = Omit<
 >;
 
 export const franchiseMarketingService = {
-  campaigns: (params?: ListParams) =>
-    apiClient.get<Paginated<FranchiseCampaign>>(
-      `/franchise/marketing/campaigns${buildListQuery(params)}`
-    ),
-  createCampaign: (payload: FranchiseCampaignPayload) =>
-    apiClient.post<FranchiseCampaign>("/franchise/marketing/campaigns", payload),
-  banners: (params?: ListParams) =>
-    apiClient.get<Paginated<FranchiseBanner>>(
-      `/franchise/marketing/banners${buildListQuery(params)}`
-    ),
-  createBanner: (payload: FranchiseBannerPayload) =>
-    apiClient.post<FranchiseBanner>("/franchise/marketing/banners", payload),
+  campaigns: async (params?: ListParams) => {
+    if (useLegacyPortalApi()) {
+      return apiClient.get<Paginated<FranchiseCampaign>>(
+        `/franchise/marketing/campaigns${buildListQuery(params)}`
+      );
+    }
+
+    const response = await apiClient.get<
+      ApiMarketingListResponse<ApiMarketingCampaignItem>
+    >(`/v1/franchise/marketing/campaigns${buildV1ListQuery(params)}`);
+    return mapMarketingCampaignsResponse(
+      response,
+      params
+    ) as Paginated<FranchiseCampaign>;
+  },
+
+  createCampaign: (payload: FranchiseCampaignPayload) => {
+    if (useLegacyPortalApi()) {
+      return apiClient.post<FranchiseCampaign>(
+        "/franchise/marketing/campaigns",
+        payload
+      );
+    }
+
+    return apiClient.post<FranchiseCampaign>(
+      "/v1/franchise/marketing/campaigns",
+      {
+        name: payload.name,
+        channel: payload.channel,
+        audience: payload.audience,
+        status: payload.status,
+        starts_at: payload.starts_at,
+        ends_at: payload.ends_at,
+      }
+    );
+  },
+
+  banners: async (params?: ListParams) => {
+    if (useLegacyPortalApi()) {
+      return apiClient.get<Paginated<FranchiseBanner>>(
+        `/franchise/marketing/banners${buildListQuery(params)}`
+      );
+    }
+
+    const response = await apiClient.get<
+      ApiMarketingListResponse<ApiMarketingBannerItem>
+    >(`/v1/franchise/marketing/banners${buildV1ListQuery(params)}`);
+    return mapMarketingBannersResponse(
+      response,
+      params
+    ) as Paginated<FranchiseBanner>;
+  },
+
+  createBanner: (payload: FranchiseBannerPayload) => {
+    if (useLegacyPortalApi()) {
+      return apiClient.post<FranchiseBanner>(
+        "/franchise/marketing/banners",
+        payload
+      );
+    }
+
+    return apiClient.post<FranchiseBanner>("/v1/franchise/marketing/banners", {
+      title: payload.title,
+      placement: payload.placement,
+      status: payload.status,
+      starts_at: payload.starts_at,
+      ends_at: payload.ends_at,
+    });
+  },
 };

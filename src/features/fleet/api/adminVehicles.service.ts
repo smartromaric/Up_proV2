@@ -2,7 +2,7 @@ import { apiClient } from "@/core/http/apiClient";
 import { LINKS } from "@/core/api/links";
 import { buildV1ListQuery } from "@/core/api/v1Pagination";
 import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
-import type { Paginated, Vehicle, VehicleDetail } from "@/shared/types";
+import type { AdminVehicleDetail, Paginated, Vehicle, VehicleDetail } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 import type {
   ApiAdminVehiclesListResponse,
@@ -17,6 +17,8 @@ import type { CreateDriverPayload } from "@/features/partner/api/drivers.service
 import { partnerDriversService } from "@/features/partner/api/drivers.service";
 import type { VehiclePieceFile } from "@/features/partner/components/VehicleCreatePiecesSection";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
+import type { ApiV1PartnerVehicleDetailResponse } from "./adminVehicleDetail.api.types";
+import { mapPartnerVehicleDetailResponse } from "./adminVehicleDetail.mapper";
 import {
   fetchVehicleCatalogLookupsForBrand,
   fetchVehicleCatalogLookupsForItems,
@@ -45,6 +47,38 @@ export const adminVehiclesService = {
     const lookups = await fetchVehicleCatalogLookupsForItems(items);
 
     return mapAdminVehiclesToPaginated(items, params, response.pagination, lookups);
+  },
+
+  getById: async (
+    vehicleId: string,
+    partnerId?: string
+  ): Promise<AdminVehicleDetail> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.get<AdminVehicleDetail>(
+        `/admin/fleet/vehicles/${vehicleId}`
+      );
+    }
+
+    let resolvedPartnerId = partnerId?.trim();
+    if (!resolvedPartnerId) {
+      const list = await adminVehiclesService.listAdmin({ per_page: 200 });
+      const match = list.data.find((item) => String(item.id) === vehicleId);
+      if (!match?.partner_id) {
+        throw new Error("Véhicule introuvable — partenaire manquant.");
+      }
+      resolvedPartnerId = String(match.partner_id);
+    }
+
+    const response = await apiClient.get<ApiV1PartnerVehicleDetailResponse>(
+      LINKS.admin.partners.vehicleById(resolvedPartnerId, vehicleId)
+    );
+
+    if (!response.vehicle?.id) {
+      throw new Error("Véhicule introuvable.");
+    }
+
+    const lookups = await fetchVehicleCatalogLookupsForItems([response.vehicle]);
+    return mapPartnerVehicleDetailResponse(response, lookups);
   },
 
   create: async (payload: AdminVehicleCreatePayload): Promise<VehicleDetail> => {

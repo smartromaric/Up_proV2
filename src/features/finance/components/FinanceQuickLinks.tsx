@@ -13,16 +13,21 @@ const LINKS = [
 
 export function FinanceQuickLinks() {
   return (
-    <div className="flex flex-wrap gap-2">
-      {LINKS.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-teal/40 hover:text-teal"
-        >
-          {link.label} →
-        </Link>
+    <nav
+      className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-muted"
+      aria-label="Raccourcis finance"
+    >
+      {LINKS.map((link, index) => (
+        <span key={link.href} className="inline-flex items-center">
+          {index > 0 && <span className="mx-2 text-border" aria-hidden>·</span>}
+          <Link
+            href={link.href}
+            className="font-medium text-muted transition-colors hover:text-teal"
+          >
+            {link.label}
+          </Link>
+        </span>
       ))}
-    </div>
+    </nav>
   );
 }

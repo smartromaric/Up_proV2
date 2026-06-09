@@ -7,6 +7,8 @@
     { "id": 4, "name": "Sénégal", "city": "Dakar" }
   ],
   "gmv_today_fcfa": 18420000,
+  "credits_today_fcfa": 11240000,
+  "debits_today_fcfa": 7180000,
   "gmv_today_trend_pct": 11.2,
   "gmv_month_fcfa": 428500000,
   "gmv_month_trend_pct": 8.6,

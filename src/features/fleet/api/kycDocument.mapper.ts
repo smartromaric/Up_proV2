@@ -1,6 +1,10 @@
 import { env } from "@/core/config/env";
 import { LINKS } from "@/core/api/links";
-import type { KycDocument, KycDocumentStatus } from "@/shared/types";
+import type {
+  KycDocument,
+  KycDocumentDisplayItem,
+  KycDocumentStatus,
+} from "@/shared/types";
 import type { ApiAdminKycDocumentItem } from "./adminKyc.api.types";
 
 const DOCUMENT_TYPE_MAP: Record<
@@ -9,8 +13,12 @@ const DOCUMENT_TYPE_MAP: Record<
 > = {
   NATIONAL_ID: { type: "cni", label: "Carte nationale d'identité" },
   ID_CARD: { type: "cni", label: "Carte nationale d'identité" },
+  ID_CARD_FRONT: { type: "cni", label: "Pièce d'identité (recto)" },
+  ID_CARD_BACK: { type: "cni", label: "Pièce d'identité (verso)" },
   CNI: { type: "cni", label: "Carte nationale d'identité" },
   DRIVER_LICENSE: { type: "license", label: "Permis de conduire" },
+  DRIVER_LICENSE_FRONT: { type: "license", label: "Permis de conduire (recto)" },
+  DRIVER_LICENSE_BACK: { type: "license", label: "Permis de conduire (verso)" },
   LICENSE: { type: "license", label: "Permis de conduire" },
   VEHICLE_REGISTRATION: { type: "registration", label: "Carte grise" },
   REGISTRATION: { type: "registration", label: "Carte grise" },
@@ -21,13 +29,32 @@ const DOCUMENT_TYPE_MAP: Record<
   INSURANCE: { type: "registration", label: "Assurance véhicule" },
 };
 
+const GROUP_LABELS: Record<string, string> = {
+  ID_CARD: "Pièce d'identité",
+  DRIVER_LICENSE: "Permis de conduire",
+  PROFILE_PHOTO: "Photo profil chauffeur",
+  REGISTRATION_CARD: "Carte grise",
+  INSURANCE: "Assurance véhicule",
+};
+
+const GROUPED_DISPLAY_GROUPS = new Set(["ID_CARD", "DRIVER_LICENSE"]);
+
+const DISPLAY_GROUP_ORDER = [
+  "PROFILE_PHOTO",
+  "ID_CARD",
+  "DRIVER_LICENSE",
+  "REGISTRATION_CARD",
+  "INSURANCE",
+] as const;
+
 const EXPECTED_DRIVER_SLOTS: Array<{
   type: KycDocument["type"];
+  group?: string;
   label: string;
 }> = [
-  { type: "cni", label: "Carte nationale d'identité" },
-  { type: "license", label: "Permis de conduire" },
-  { type: "selfie", label: "Photo selfie" },
+  { type: "cni", group: "ID_CARD", label: "Carte nationale d'identité" },
+  { type: "license", group: "DRIVER_LICENSE", label: "Permis de conduire" },
+  { type: "selfie", group: "PROFILE_PHOTO", label: "Photo selfie" },
 ];
 
 function mapKycStatus(status?: string | null): KycDocumentStatus {
@@ -55,6 +82,28 @@ function resolveDocumentMeta(
     (code ? code.replace(/_/g, " ").toLowerCase() : "Document");
   const type = mapped?.type ?? "cni";
   return { type, label };
+}
+
+function sideSortOrder(side?: string | null): number {
+  const key = String(side ?? "").toUpperCase();
+  if (key === "FRONT" || key === "SELFIE") return 0;
+  if (key === "BACK") return 1;
+  return 2;
+}
+
+function groupSortIndex(group?: string | null): number {
+  const key = String(group ?? "").toUpperCase();
+  const index = DISPLAY_GROUP_ORDER.indexOf(
+    key as (typeof DISPLAY_GROUP_ORDER)[number]
+  );
+  return index === -1 ? DISPLAY_GROUP_ORDER.length : index;
+}
+
+function resolveGroupLabel(groupId: string, documents: KycDocument[]): string {
+  const mapped = GROUP_LABELS[groupId];
+  if (mapped) return mapped;
+  const first = documents[0]?.label ?? "Document";
+  return first.replace(/\s*\((recto|verso|selfie)\)/i, "").trim() || first;
 }
 
 /** Chemin relatif API → URL absolue ; fallback GET /v1/files/:id si besoin. */
@@ -107,25 +156,125 @@ export function mapApiKycItemToKycDocument(
       item.uploaded_at ?? item.submitted_at ?? item.created_at ?? "",
     reviewed_at: item.reviewed_at ?? null,
     preview_url: previewUrl,
+    document_type_code: item.document_type_code ?? undefined,
+    document_group: item.document_group ?? undefined,
+    document_side: item.document_side ?? undefined,
   };
+}
+
+export function dedupeApiKycItems(
+  items: ApiAdminKycDocumentItem[]
+): ApiAdminKycDocumentItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
 }
 
 export function mapApiKycItemsForDriver(
   items: ApiAdminKycDocumentItem[],
   driverId: string
 ): KycDocument[] {
-  return items
+  return dedupeApiKycItems(items)
     .filter(
       (item) =>
         String(item.subject_type ?? "").toUpperCase() === "DRIVER" &&
         item.subject_id === driverId
     )
     .map(mapApiKycItemToKycDocument)
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      const groupDiff =
+        groupSortIndex(a.document_group) - groupSortIndex(b.document_group);
+      if (groupDiff !== 0) return groupDiff;
+      const sideDiff =
+        sideSortOrder(a.document_side) - sideSortOrder(b.document_side);
+      if (sideDiff !== 0) return sideDiff;
+      return (
         new Date(b.uploaded_at || 0).getTime() -
         new Date(a.uploaded_at || 0).getTime()
+      );
+    });
+}
+
+/** Regroupe recto/verso (CNI, permis) pour l'affichage fiche chauffeur. */
+export function organizeDriverKycDocuments(
+  documents: KycDocument[]
+): KycDocumentDisplayItem[] {
+  const grouped = new Map<string, KycDocument[]>();
+  const singles: KycDocument[] = [];
+
+  for (const doc of documents) {
+    const groupId = doc.document_group?.trim().toUpperCase();
+    if (groupId && GROUPED_DISPLAY_GROUPS.has(groupId)) {
+      const list = grouped.get(groupId) ?? [];
+      list.push(doc);
+      grouped.set(groupId, list);
+      continue;
+    }
+    singles.push(doc);
+  }
+
+  const result: KycDocumentDisplayItem[] = [];
+
+  for (const groupId of DISPLAY_GROUP_ORDER) {
+    const docs = grouped.get(groupId);
+    if (!docs?.length) continue;
+    docs.sort((a, b) => sideSortOrder(a.document_side) - sideSortOrder(b.document_side));
+    if (docs.length === 1) {
+      result.push({ kind: "single", document: docs[0] });
+    } else {
+      result.push({
+        kind: "group",
+        groupId,
+        label: resolveGroupLabel(groupId, docs),
+        documents: docs,
+      });
+    }
+    grouped.delete(groupId);
+  }
+
+  for (const [groupId, docs] of grouped) {
+    docs.sort((a, b) => sideSortOrder(a.document_side) - sideSortOrder(b.document_side));
+    if (docs.length === 1) {
+      result.push({ kind: "single", document: docs[0] });
+    } else {
+      result.push({
+        kind: "group",
+        groupId,
+        label: resolveGroupLabel(groupId, docs),
+        documents: docs,
+      });
+    }
+  }
+
+  singles.sort((a, b) => {
+    const groupDiff =
+      groupSortIndex(a.document_group) - groupSortIndex(b.document_group);
+    if (groupDiff !== 0) return groupDiff;
+    return sideSortOrder(a.document_side) - sideSortOrder(b.document_side);
+  });
+
+  for (const doc of singles) {
+    result.push({ kind: "single", document: doc });
+  }
+
+  return result;
+}
+
+function hasDriverKycSlot(
+  documents: KycDocument[],
+  slot: (typeof EXPECTED_DRIVER_SLOTS)[number]
+): boolean {
+  if (slot.group) {
+    return documents.some(
+      (doc) =>
+        doc.document_group?.toUpperCase() === slot.group ||
+        doc.type === slot.type
     );
+  }
+  return documents.some((doc) => doc.type === slot.type);
 }
 
 /** Conserve la grille de cartes attendue (CNI, permis, selfie) pour les comptes en attente. */
@@ -135,11 +284,10 @@ export function mergeExpectedDriverKycSlots(
 ): KycDocument[] {
   if (!options?.showMissingSlots) return documents;
 
-  const byType = new Map(documents.map((doc) => [doc.type, doc]));
   const merged = [...documents];
 
   for (const slot of EXPECTED_DRIVER_SLOTS) {
-    if (!byType.has(slot.type)) {
+    if (!hasDriverKycSlot(merged, slot)) {
       merged.push({
         id: `slot-${slot.type}`,
         type: slot.type,
@@ -147,12 +295,19 @@ export function mergeExpectedDriverKycSlots(
         status: "pending",
         uploaded_at: "",
         reviewed_at: null,
+        document_group: slot.group,
       });
     }
   }
 
-  const order = ["cni", "license", "selfie", "registration"] as const;
-  return merged.sort(
-    (a, b) => order.indexOf(a.type) - order.indexOf(b.type)
-  );
+  return merged.sort((a, b) => {
+    const groupDiff =
+      groupSortIndex(a.document_group) - groupSortIndex(b.document_group);
+    if (groupDiff !== 0) return groupDiff;
+    const sideDiff =
+      sideSortOrder(a.document_side) - sideSortOrder(b.document_side);
+    if (sideDiff !== 0) return sideDiff;
+    const order = ["cni", "license", "selfie", "registration"] as const;
+    return order.indexOf(a.type) - order.indexOf(b.type);
+  });
 }

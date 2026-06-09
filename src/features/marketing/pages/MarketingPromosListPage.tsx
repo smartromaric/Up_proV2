@@ -73,7 +73,10 @@ export function MarketingPromosListPage() {
     {
       id: "expires",
       header: "Expire",
-      cell: (p) => formatDateTime(p.expires_at),
+      cell: (p) =>
+        p.expires_at?.trim()
+          ? formatDateTime(p.expires_at)
+          : "Illimité",
       exportValue: (p) => p.expires_at,
     },
     {

@@ -124,7 +124,7 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
         breadcrumb={["Partenaire", "Flotte"]}
         actions={
           <Link href="/partner/fleet/new">
-            <Button>Ajouter un véhicule</Button>
+            <Button>Nouveau chauffeur + véhicule</Button>
           </Link>
         }
       />

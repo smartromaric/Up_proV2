@@ -1,16 +1,30 @@
 import { env } from "@/core/config/env";
+import { clearAuthCookie } from "@/core/auth/authCookie";
 import { LOGIN_BY_PORTAL } from "@/core/auth/authRoutes";
+import { buildLoginUrlWithReturn } from "@/core/auth/returnUrl";
 import { useAuthStore } from "@/core/auth/authStore";
 import { AppError, AuthError, NetworkError } from "./errorHandler";
 
-const API_V2_BASE = `${env.apiUrl}/api/v2`;
+/**
+ * Préfixe same-origin : les requêtes navigateur passent par le rewrite Next.js
+ * (`/upjunoo-api/*` → API distante) car le CORS live n'autorise que GET/HEAD/POST
+ * (PATCH/PUT/DELETE bloqués en preflight — voir CORS-01).
+ */
+export const BROWSER_API_PROXY_PREFIX = "/upjunoo-api";
+
+function getRequestApiOrigin(): string {
+  if (typeof window !== "undefined") {
+    return BROWSER_API_PROXY_PREFIX;
+  }
+  return env.apiUrl.replace(/\/$/, "");
+}
 
 export function getApiBaseUrl(): string {
-  return API_V2_BASE;
+  return `${getRequestApiOrigin()}/api/v2`;
 }
 
 export function getApiV1BaseUrl(): string {
-  return `${env.apiUrl}/v1`;
+  return `${getRequestApiOrigin()}/v1`;
 }
 
 /** Résout l'URL complète selon le préfixe du chemin (v1 auth vs api/v2 back-office). */
@@ -19,24 +33,29 @@ export function resolveApiUrl(endpoint: string): string {
     return endpoint;
   }
   const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const origin = getRequestApiOrigin();
   if (path.startsWith("/v1/")) {
-    return `${env.apiUrl}${path}`;
+    return `${origin}${path}`;
   }
-  return `${API_V2_BASE}${path}`;
+  return `${origin}/api/v2${path}`;
 }
 
 async function createHeaders(
   customHeaders: Record<string, string> = {},
-  isAuthRequest = false
+  isAuthRequest = false,
+  withJsonBody = false
 ): Promise<Record<string, string>> {
   const { token } = useAuthStore.getState();
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     Accept: "application/json",
     "X-Client-Type": "back-office",
     ...customHeaders,
   };
+
+  if (withJsonBody && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token && !isAuthRequest) {
     headers.Authorization = `Bearer ${token}`;
@@ -75,9 +94,15 @@ export async function fetchClient(
   const isAuthRequest = isPublicAuthEndpoint(endpoint);
 
   try {
+    const hasJsonBody =
+      options.body != null &&
+      options.body !== "" &&
+      !(typeof options.body === "string" && options.body.trim() === "");
+
     const headers = await createHeaders(
       options.headers as Record<string, string>,
-      isAuthRequest
+      isAuthRequest,
+      hasJsonBody
     );
 
     const url = resolveApiUrl(endpoint);
@@ -87,9 +112,14 @@ export async function fetchClient(
     if (response.status === 401 && !isAuthRequest) {
       const role = useAuthStore.getState().user?.role;
       useAuthStore.getState().clearSession();
+      clearAuthCookie();
       if (typeof window !== "undefined") {
-        window.location.href =
+        const loginPath =
           LOGIN_BY_PORTAL[role as keyof typeof LOGIN_BY_PORTAL] ?? "/login";
+        window.location.href = buildLoginUrlWithReturn(
+          loginPath,
+          window.location.pathname
+        );
       }
       throw new AuthError("Session expirée. Veuillez vous reconnecter.");
     }

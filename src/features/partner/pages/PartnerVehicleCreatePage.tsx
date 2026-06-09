@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useLegacyPortalApi } from "@/core/api/portalApiMode";
+import { useCatalogCountryForPartner } from "@/shared/hooks/useCatalogCountryForPartner";
+import { usePartnerProfile } from "../api/profile.queries";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -10,7 +13,10 @@ import {
   VehicleCreatePiecesSection,
   type VehiclePieceFile,
 } from "../components/VehicleCreatePiecesSection";
-import { VehicleCreateDriverSection } from "../components/VehicleCreateDriverSection";
+import {
+  EMPTY_DRIVER,
+  VehicleCreateDriverSection,
+} from "../components/VehicleCreateDriverSection";
 import {
   VehicleCreateDriverDocumentsSection,
   type DriverDocumentFile,
@@ -32,7 +38,13 @@ const CATEGORIES: { value: VehicleCategory; label: string }[] = [
 
 export function PartnerVehicleCreatePage() {
   const router = useRouter();
+  const legacy = useLegacyPortalApi();
   const create = useCreateVehicle();
+  const { data: profile } = usePartnerProfile();
+  const { data: phoneCountry } = useCatalogCountryForPartner({
+    cityLabel: profile?.city,
+    enabled: !legacy && Boolean(profile?.city),
+  });
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [year, setYear] = useState(new Date().getFullYear());
@@ -40,23 +52,22 @@ export function PartnerVehicleCreatePage() {
   const [plate, setPlate] = useState("");
   const [category, setCategory] = useState<VehicleCategory>("taxi");
   const [pieces, setPieces] = useState<VehiclePieceFile[]>([]);
-  const [driver, setDriver] = useState<CreateDriverPayload | null>(null);
+  const [driver, setDriver] = useState<CreateDriverPayload | null>({ ...EMPTY_DRIVER });
   const [driverDocuments, setDriverDocuments] = useState<DriverDocumentFile[]>([]);
 
   const handleDriverChange = (next: CreateDriverPayload | null) => {
+    if (!next) return;
     setDriver(next);
-    if (!next) setDriverDocuments([]);
   };
 
   const hasRegistration = pieces.some((p) => p.type === "registration");
-  const hasDriver = driver !== null;
   const driverValid = isDriverComplete(driver);
 
   return (
     <div className="animate-fade-up mx-auto max-w-6xl">
       <PageHeader
-        title="Ajouter un véhicule"
-        breadcrumb={["Partenaire", "Véhicules", "Nouveau"]}
+        title="Nouveau chauffeur et véhicule"
+        breadcrumb={["Partenaire", "Flotte", "Nouveau binôme"]}
       />
 
       <form
@@ -64,7 +75,7 @@ export function PartnerVehicleCreatePage() {
         onSubmit={(e) => {
           e.preventDefault();
           if (!driverValid) {
-            notificationService.warning("Renseignez tous les champs du chauffeur ou décochez la section");
+            notificationService.warning("Renseignez tous les champs du chauffeur.");
             return;
           }
           create.mutate(
@@ -72,17 +83,17 @@ export function PartnerVehicleCreatePage() {
               data: { brand, model, year, color, category, plate: plate || undefined },
               pieces,
               driver,
-              driverDocuments: hasDriver ? driverDocuments : [],
+              driverDocuments,
             },
             {
               onSuccess: (vehicle) => {
-                if (hasDriver) {
+                if (vehicle.driver_name) {
                   notificationService.success(
-                    `Véhicule créé — chauffeur assigné (${vehicle.driver_name})`
+                    `Chauffeur et véhicule créés — ${vehicle.driver_name} assigné`
                   );
                 } else if (pieces.length === 0) {
                   notificationService.info(
-                    "Véhicule créé en brouillon — pièces et chauffeur à ajouter sur la fiche"
+                    "Binôme créé — pièces à ajouter sur la fiche véhicule"
                   );
                 } else if (hasRegistration) {
                   notificationService.success(
@@ -182,23 +193,22 @@ export function PartnerVehicleCreatePage() {
           <VehicleCreatePiecesSection pieces={pieces} onChange={setPieces} />
         </div>
 
-        <div
-          className={
-            hasDriver ? "grid items-start gap-6 lg:grid-cols-2" : "w-full"
-          }
-        >
-          <VehicleCreateDriverSection driver={driver} onChange={handleDriverChange} />
-          {hasDriver && (
-            <VehicleCreateDriverDocumentsSection
-              documents={driverDocuments}
-              onChange={setDriverDocuments}
-            />
-          )}
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <VehicleCreateDriverSection
+            driver={driver}
+            onChange={handleDriverChange}
+            required
+            phoneCountry={legacy ? null : phoneCountry}
+          />
+          <VehicleCreateDriverDocumentsSection
+            documents={driverDocuments}
+            onChange={setDriverDocuments}
+          />
         </div>
 
         <div className="flex flex-wrap gap-2 border-t border-border pt-6">
-          <Button type="submit" disabled={create.isPending || (hasDriver && !driverValid)}>
-            {create.isPending ? "Création…" : vehicleCreateSubmitLabel(pieces, hasDriver)}
+          <Button type="submit" disabled={create.isPending || !driverValid}>
+            {create.isPending ? "Création…" : vehicleCreateSubmitLabel(pieces)}
           </Button>
           <Link href="/partner/fleet">
             <Button type="button" variant="secondary">

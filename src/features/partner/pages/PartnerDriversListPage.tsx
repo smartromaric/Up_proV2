@@ -96,8 +96,8 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
         breadcrumb={["Partenaire", "Flotte"]}
         actions={
           !pendingOnly ? (
-            <Link href="/partner/drivers/new">
-              <Button>Ajouter un chauffeur</Button>
+            <Link href="/partner/fleet/new">
+              <Button>Nouveau chauffeur + véhicule</Button>
             </Link>
           ) : undefined
         }

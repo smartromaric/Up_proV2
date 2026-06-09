@@ -191,6 +191,8 @@ export interface WithdrawalsResponse extends Paginated<Withdrawal> {
 }
 
 export interface FranchiseDetail extends Franchise {
+  /** UUID pays catalogue (franchise.operating_country_id / country_id). */
+  country_id?: string;
   contact_email: string;
   contact_phone: string;
   created_at: string;
@@ -227,6 +229,8 @@ export interface FranchiseDetail extends Franchise {
 }
 
 export interface PartnerDetail extends Partner {
+  /** UUID ville catalogue (API v1). */
+  city_id?: string;
   address: string;
   created_at: string;
   wallet_id?: string | null;
@@ -302,7 +306,14 @@ export interface KycDocument {
   uploaded_at: string;
   reviewed_at: string | null;
   preview_url?: string;
+  document_type_code?: string;
+  document_group?: string;
+  document_side?: string;
 }
+
+export type KycDocumentDisplayItem =
+  | { kind: "single"; document: KycDocument }
+  | { kind: "group"; groupId: string; label: string; documents: KycDocument[] };
 
 export interface DriverTimelineEvent {
   id: string;
@@ -325,6 +336,8 @@ export interface DriverDetail extends Driver {
   driver_code?: string;
   email?: string;
   owner_id?: number | string;
+  /** UUID véhicule assigné — GET /v1/drivers/:id → current_vehicle_id / vehicle.id */
+  vehicle_id?: string | null;
   registered_at: string;
   approved_at: string | null;
   stats: {
@@ -474,7 +487,7 @@ export interface RolePermissionGroup {
 }
 
 export interface AdminRole {
-  id: number;
+  id: number | string;
   name: string;
   slug: string;
   description: string;
@@ -636,6 +649,14 @@ export interface VehicleDetail extends Vehicle {
   owner_id: number | string;
   registration_document: KycDocument;
   approved_at?: string | null;
+}
+
+/** Fiche véhicule admin — GET /v1/partners/{partnerId}/vehicles/{vehicleId} */
+export interface AdminVehicleDetail extends VehicleDetail {
+  driver_id?: string | null;
+  vin?: string | null;
+  updated_at?: string;
+  documents: KycDocument[];
 }
 
 export interface PartnerProfile {
@@ -820,6 +841,8 @@ export interface AdminFinanceDashboard {
   selected_franchise_id: number | null;
   franchise_options: DashboardAdminFranchiseOption[];
   gmv_today_fcfa: number;
+  credits_today_fcfa: number;
+  debits_today_fcfa: number;
   gmv_today_trend_pct: number;
   gmv_month_fcfa: number;
   gmv_month_trend_pct: number;

@@ -6,7 +6,9 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { Tabs } from "@/shared/ui/Tabs";
 import { Timeline } from "@/shared/ui/Timeline";
 import { driverTimelineToItems } from "@/shared/lib/driverTimeline";
+import { organizeDriverKycDocuments } from "@/features/fleet/api/kycDocument.mapper";
 import { KycDocumentCard } from "@/shared/ui/KycDocumentCard";
+import { KycDocumentGroupCard } from "@/shared/ui/KycDocumentGroupCard";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmModal } from "@/shared/ui/ConfirmModal";
@@ -18,6 +20,7 @@ import { getTripStatusLabel } from "@/shared/lib/tripLabels";
 import type { TripMatchingOutcome } from "@/shared/types";
 import type { DriverTripRow, DriverWalletTransaction } from "../api/driverDetail.service";
 import { DetailPageSkeleton } from "@/shared/ui/skeletons";
+import { buildAdminVehicleDetailPath } from "../lib/vehicleRoutes";
 import {
   useDriverDetail,
   useDriverTrips,
@@ -77,6 +80,10 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
   const isSuspended = driver.account_status === "suspended";
   const canSuspend = driver.account_status === "approved";
   const timelineItems = driverTimelineToItems(driver.timeline);
+  const vehicleDetailHref = driver.vehicle_id
+    ? buildAdminVehicleDetailPath(driver.vehicle_id, driver.owner_id)
+    : null;
+  const kycDisplayItems = organizeDriverKycDocuments(driver.kyc_documents);
 
   const tabs = [
     { id: "kyc", label: "KYC & documents" },
@@ -238,20 +245,38 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {driver.kyc_documents.map((doc) => (
-                      <KycDocumentCard
-                        key={doc.id}
-                        document={doc}
-                        canReview={
-                          isPending &&
-                          doc.status === "pending" &&
-                          Boolean(doc.uploaded_at) &&
-                          !doc.id.startsWith("slot-")
-                        }
-                        onApprove={() => approveDoc.mutate(doc.id)}
-                        onReject={() => setRejectDocTarget(doc.id)}
-                      />
-                    ))}
+                    {kycDisplayItems.map((item) =>
+                      item.kind === "group" ? (
+                        <div key={item.groupId} className="sm:col-span-2">
+                          <KycDocumentGroupCard
+                            label={item.label}
+                            documents={item.documents}
+                            canReview={isPending}
+                            onApprove={(documentId) =>
+                              approveDoc.mutate(documentId)
+                            }
+                            onReject={(documentId) =>
+                              setRejectDocTarget(documentId)
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <KycDocumentCard
+                          key={item.document.id}
+                          document={item.document}
+                          canReview={
+                            isPending &&
+                            item.document.status === "pending" &&
+                            Boolean(item.document.uploaded_at) &&
+                            !item.document.id.startsWith("slot-")
+                          }
+                          onApprove={() => approveDoc.mutate(item.document.id)}
+                          onReject={() =>
+                            setRejectDocTarget(item.document.id)
+                          }
+                        />
+                      )
+                    )}
                   </div>
                 )}
               </div>
@@ -272,10 +297,23 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
                     label="Note moyenne"
                     value={driver.rating > 0 ? driver.rating.toFixed(2) : "—"}
                   />
-                  <KpiCard
-                    label="Véhicule"
-                    value={driver.vehicle_label ?? "Non renseigné"}
-                  />
+                  {vehicleDetailHref ? (
+                    <Link
+                      href={vehicleDetailHref}
+                      className="block rounded-card transition-opacity hover:opacity-95"
+                    >
+                      <KpiCard
+                        label="Véhicule"
+                        value={driver.vehicle_label ?? "Voir la fiche"}
+                        hint="Ouvrir le détail véhicule →"
+                      />
+                    </Link>
+                  ) : (
+                    <KpiCard
+                      label="Véhicule"
+                      value={driver.vehicle_label ?? "Non renseigné"}
+                    />
+                  )}
                 </div>
                 <div className="rounded-card border border-border bg-surface p-6 shadow-card">
                   <h3 className="text-sm font-semibold text-foreground">Historique</h3>
@@ -330,6 +368,27 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
                   />
                 )}
               </div>
+            )}
+          </div>
+
+          <div className="rounded-card border border-border bg-surface p-5 shadow-card text-sm">
+            <h3 className="font-semibold text-foreground">Véhicule assigné</h3>
+            {vehicleDetailHref ? (
+              <div className="mt-3 space-y-3">
+                <p className="font-medium text-foreground">
+                  {driver.vehicle_label ?? "Véhicule assigné"}
+                </p>
+                <Link
+                  href={vehicleDetailHref}
+                  className="inline-block text-teal hover:underline"
+                >
+                  Voir la fiche véhicule →
+                </Link>
+              </div>
+            ) : (
+              <p className="mt-3 text-muted">
+                {driver.vehicle_label ?? "Aucun véhicule assigné."}
+              </p>
             )}
           </div>
 

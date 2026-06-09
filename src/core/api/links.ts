@@ -55,6 +55,8 @@ export const LINKS = {
   v1: {
     drivers: {
       getById: (id: string) => `${DRIVERS_V1_BASE}/${id}`,
+      wallet: (id: string) => `${DRIVERS_V1_BASE}/${id}/wallet`,
+      ledger: (id: string) => `${DRIVERS_V1_BASE}/${id}/ledger`,
       onboardingStart: "/v1/drivers/onboarding/start",
     },
     files: {
@@ -67,11 +69,17 @@ export const LINKS = {
       assignDriver: (id: string) => `/v1/vehicles/${id}/assign-driver`,
     },
     partners: {
+      create: "/v1/partners",
       vehicles: (partnerId: string) => `/v1/partners/${partnerId}/vehicles`,
+      vehicleById: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
       drivers: (partnerId: string) => `/v1/partners/${partnerId}/drivers`,
       members: (partnerId: string) => `/v1/partners/${partnerId}/members`,
     },
     catalog: {
+      bootstrap: "/v1/catalog/bootstrap",
+      countryCities: (countryCode: string) =>
+        `/v1/catalog/countries/${countryCode}/cities`,
       vehicleCategories: "/v1/catalog/vehicle-categories",
       vehicleBrands: "/v1/catalog/vehicle-brands",
       vehicleBrandModels: (brandCode: string) =>
@@ -132,10 +140,32 @@ export const LINKS = {
       franchises: `${ADMIN_V1_BASE}/franchises`,
       partners: `${ADMIN_V1_BASE}/partners`,
       withdrawals: `${ADMIN_V1_BASE}/withdrawals`,
+      withdrawalById: (id: string) => `${ADMIN_V1_BASE}/withdrawals/${id}`,
       withdrawalApprove: (id: string) =>
         `${ADMIN_V1_BASE}/withdrawals/${id}/approve`,
       withdrawalReject: (id: string) =>
         `${ADMIN_V1_BASE}/withdrawals/${id}/reject`,
+      partnerById: (id: string) => `${ADMIN_V1_BASE}/partners/${id}`,
+      partnerActivate: (id: string) =>
+        `${ADMIN_V1_BASE}/partners/${id}/activate`,
+      partnerSuspend: (id: string) =>
+        `${ADMIN_V1_BASE}/partners/${id}/suspend`,
+      partnerDocuments: (id: string) =>
+        `${ADMIN_V1_BASE}/partners/${id}/documents`,
+      compliance: {
+        summary: `${ADMIN_V1_BASE}/compliance/summary`,
+        drivers: `${ADMIN_V1_BASE}/compliance/drivers`,
+        vehicles: `${ADMIN_V1_BASE}/compliance/vehicles`,
+      },
+      marketing: {
+        promos: `${ADMIN_V1_BASE}/marketing/promos`,
+        campaigns: `${ADMIN_V1_BASE}/marketing/campaigns`,
+        banners: `${ADMIN_V1_BASE}/marketing/banners`,
+        promoById: (id: string) => `${ADMIN_V1_BASE}/marketing/promos/${id}`,
+        campaignById: (id: string) =>
+          `${ADMIN_V1_BASE}/marketing/campaigns/${id}`,
+        bannerById: (id: string) => `${ADMIN_V1_BASE}/marketing/banners/${id}`,
+      },
       users: `${ADMIN_V1_BASE}/users`,
       userById: (id: string) => `${ADMIN_V1_BASE}/users/${id}`,
       userSuspend: (id: string) => `${ADMIN_V1_BASE}/users/${id}/suspend`,
@@ -152,6 +182,28 @@ export const LINKS = {
       paymentsReconcileBatch: `${ADMIN_V1_BASE}/payments/reconcile-batch`,
       pricingRules: `${ADMIN_V1_BASE}/pricing-rules`,
       pricingRuleById: (id: string) => `${ADMIN_V1_BASE}/pricing-rules/${id}`,
+      franchiseDelete: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
+      finance: {
+        dashboard: `${ADMIN_V1_BASE}/finance/dashboard`,
+        transactions: `${ADMIN_V1_BASE}/finance/transactions`,
+        transactionById: (id: string) =>
+          `${ADMIN_V1_BASE}/finance/transactions/${id}`,
+        wallets: `${ADMIN_V1_BASE}/finance/wallets`,
+        commissions: `${ADMIN_V1_BASE}/finance/commissions`,
+        reconciliation: `${ADMIN_V1_BASE}/finance/reconciliation`,
+        driverTransfers: `${ADMIN_V1_BASE}/finance/driver-transfers`,
+        driverTransferStats: `${ADMIN_V1_BASE}/finance/driver-transfers/stats`,
+      },
+      /** @deprecated Préférer `marketing.promos` */
+      promotions: `${ADMIN_V1_BASE}/promotions`,
+      promotionById: (id: string) => `${ADMIN_V1_BASE}/promotions/${id}`,
+      roles: `${ADMIN_V1_BASE}/roles`,
+      roleById: (id: string) => `${ADMIN_V1_BASE}/roles/${id}`,
+      auditLog: `${ADMIN_V1_BASE}/audit-log`,
+      dispatchers: `${ADMIN_V1_BASE}/dispatchers`,
+      dispatcherById: (id: string) => `${ADMIN_V1_BASE}/dispatchers/${id}`,
+      settingsGeneral: `${ADMIN_V1_BASE}/settings/general`,
+      supportTickets: "/v1/support/tickets",
     },
 
     /** Franchises — détail module 99 ; liste via `admin.v1.franchises` */
@@ -168,6 +220,8 @@ export const LINKS = {
     partners: {
       getById: (id: string) => `/v1/partners/${id}`,
       drivers: (id: string) => `/v1/partners/${id}/drivers`,
+      vehicleById: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
       wallet: (id: string) => `/v1/partners/${id}/wallet`,
       ledger: (id: string) => `/v1/partners/${id}/ledger`,
     },

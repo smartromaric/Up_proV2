@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { partnersKeys } from "@/features/network/api/partners.keys";
 import { partnerDriversService } from "./drivers.service";
 import type { CreateDriverPayload } from "./drivers.service";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
@@ -34,12 +35,20 @@ export function useCreatePartnerDriver() {
     mutationFn: ({
       data,
       documents = [],
+      partnerId,
     }: {
       data: CreateDriverPayload;
       documents?: DriverDocumentFile[];
-    }) => partnerDriversService.createWithDocuments(data, documents),
-    onSuccess: () => {
+      partnerId?: string;
+    }) =>
+      partnerDriversService.createWithDocuments(data, documents, {
+        partnerId,
+      }),
+    onSuccess: (_data, variables) => {
       void qc.invalidateQueries({ queryKey: partnerDriversKeys.all });
+      if (variables.partnerId) {
+        void qc.invalidateQueries({ queryKey: partnersKeys.all });
+      }
     },
   });
 }

@@ -164,6 +164,7 @@ export function mapV1PartnerDetailToPartnerDetail(
 
   return {
     ...base,
+    city_id: p.city_id ?? undefined,
     address: p.address?.trim() || "—",
     created_at: p.created_at ?? new Date().toISOString(),
     wallet_id: p.wallet_id ?? options?.wallet?.id ?? null,

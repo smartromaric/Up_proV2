@@ -116,4 +116,15 @@ export interface ApiV1DriverSummary {
   phone?: string;
   rating?: number;
   ratingAvg?: number;
+  vehicle?: {
+    id?: string;
+    model?: string | null;
+    plate?: string | null;
+    licensePlate?: string | null;
+    license_plate?: string | null;
+    brandCode?: string | null;
+    colorCode?: string | null;
+    categoryCode?: string | null;
+    year?: number | null;
+  } | null;
 }

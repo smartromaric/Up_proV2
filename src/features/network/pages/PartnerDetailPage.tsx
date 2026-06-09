@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Tabs } from "@/shared/ui/Tabs";
@@ -15,15 +16,32 @@ import { getDriverAvailabilityLabel } from "@/shared/lib/driverLabels";
 import { getTripStatusLabel } from "@/shared/lib/tripLabels";
 import type { PartnerDetail } from "@/shared/types";
 import { DetailPageSkeleton } from "@/shared/ui/skeletons";
+import { ConfirmModal } from "@/shared/ui/ConfirmModal";
 import { usePartnerDetail } from "../api/partnerDetail.queries";
+import {
+  useActivatePartner,
+  useDeletePartner,
+  useSuspendPartner,
+} from "../api/partners.queries";
 
 interface PartnerDetailPageProps {
   partnerId: string;
 }
 
 export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
-  const [tab, setTab] = useState("overview");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const [tab, setTab] = useState(
+    initialTab === "drivers" || initialTab === "trips" ? initialTab : "overview"
+  );
+  const [confirmActivate, setConfirmActivate] = useState(false);
+  const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { data, isLoading, isError } = usePartnerDetail(partnerId);
+  const activatePartner = useActivatePartner(partnerId);
+  const suspendPartner = useSuspendPartner(partnerId);
+  const deletePartner = useDeletePartner();
 
   if (isLoading) {
     return (
@@ -114,7 +132,42 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
         <PageHeader
           title={data.name}
           breadcrumb={["Admin", "Réseau", "Partenaires", data.name]}
-          actions={<EntityStatusPill status={data.status} />}
+          actions={
+            <div className="flex flex-wrap items-center gap-3">
+              {data.status === "pending" || data.status === "suspended" ? (
+                <Button type="button" onClick={() => setConfirmActivate(true)}>
+                  {data.status === "suspended" ? "Réactiver" : "Approuver"}
+                </Button>
+              ) : null}
+              {data.status === "active" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setConfirmSuspend(true)}
+                >
+                  Suspendre
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  router.push(`/admin/network/partners/${partnerId}/edit`)
+                }
+              >
+                Modifier
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="!border-red-200 !text-red-600 hover:!bg-red-50"
+                onClick={() => setConfirmDelete(true)}
+              >
+                Supprimer
+              </Button>
+              <EntityStatusPill status={data.status} />
+            </div>
+          }
         />
         <p className="text-sm text-muted">
           <Link
@@ -156,13 +209,27 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
             )}
 
             {tab === "drivers" && (
-              <DataTable
-                columns={driverCols}
-                data={data.drivers}
-                rowKey={(d) => d.id}
-                exportFileName="chauffeurs-partenaire-detail"
-                emptyTitle="Aucun chauffeur"
-              />
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        `/admin/network/partners/${partnerId}/drivers/new`
+                      )
+                    }
+                  >
+                    Nouveau chauffeur + véhicule
+                  </Button>
+                </div>
+                <DataTable
+                  columns={driverCols}
+                  data={data.drivers}
+                  rowKey={(d) => d.id}
+                  exportFileName="chauffeurs-partenaire-detail"
+                  emptyTitle="Aucun chauffeur"
+                />
+              </div>
             )}
 
             {tab === "trips" && (
@@ -241,6 +308,54 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
           </div>
         </aside>
       </div>
+
+      <ConfirmModal
+        open={confirmActivate}
+        title={data.status === "suspended" ? "Réactiver ce partenaire ?" : "Approuver ce partenaire ?"}
+        message="Le partenaire pourra à nouveau opérer sur la plateforme."
+        confirmLabel={data.status === "suspended" ? "Réactiver" : "Approuver"}
+        onConfirm={() => {
+          activatePartner.mutate(undefined, {
+            onSuccess: () => setConfirmActivate(false),
+          });
+        }}
+        onCancel={() => setConfirmActivate(false)}
+      />
+
+      <ConfirmModal
+        open={confirmSuspend}
+        title="Suspendre ce partenaire ?"
+        message="Les chauffeurs associés ne pourront plus prendre de courses."
+        confirmLabel="Suspendre"
+        variant="danger"
+        onConfirm={() => {
+          suspendPartner.mutate(undefined, {
+            onSuccess: () => setConfirmSuspend(false),
+          });
+        }}
+        onCancel={() => setConfirmSuspend(false)}
+      />
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Supprimer ce partenaire ?"
+        message={
+          data.stats.drivers_count > 0
+            ? `Cette action est irréversible. « ${data.name} » compte ${data.stats.drivers_count} chauffeur(s).`
+            : `Cette action est irréversible. Le partenaire « ${data.name} » sera définitivement supprimé.`
+        }
+        confirmLabel={deletePartner.isPending ? "Suppression…" : "Supprimer"}
+        variant="danger"
+        onConfirm={() => {
+          deletePartner.mutate(partnerId, {
+            onSuccess: () => {
+              setConfirmDelete(false);
+              router.push("/admin/network/partners");
+            },
+          });
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

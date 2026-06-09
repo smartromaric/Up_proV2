@@ -15,7 +15,7 @@ function isDevApiHost(): boolean {
   return /upjunoo-dev\.tech/i.test(env.apiUrl);
 }
 
-function splitAdminName(name: string): { firstName: string; lastName: string } {
+export function splitAdminName(name: string): { firstName: string; lastName: string } {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
     return { firstName: "Admin", lastName: "Franchise" };
@@ -64,11 +64,10 @@ export async function registerFranchisePortalAccount(
     );
   }
 
-  const cityId = await resolveCityIdByLabel(payload.city);
+  const cityId =
+    payload.city_id?.trim() || (await resolveCityIdByLabel(payload.city));
   if (!cityId) {
-    throw new Error(
-      `Ville « ${payload.city} » introuvable dans le catalogue (cityId).`
-    );
+    throw new Error("Sélectionnez une ville du catalogue.");
   }
 
   const { firstName, lastName } = splitAdminName(payload.name);

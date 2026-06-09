@@ -105,6 +105,11 @@ src/
 └── mocks/         # MSW + JSON fixtures
 ```
 
+## Identité visuelle
+
+- Logo officiel : `public/assets/logo.png` (référencé via `src/shared/brand/logo.ts`)
+- Détail : `docs/IDENTITE-VISUELLE.md`
+
 ## Docs projet
 
 - `CONTEXTE.md` — état d’avancement (fait / reste à faire)

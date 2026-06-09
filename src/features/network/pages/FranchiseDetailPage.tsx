@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Tabs } from "@/shared/ui/Tabs";
 import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
@@ -23,8 +24,11 @@ const ZONE_TYPE_LABELS: Record<Zone["type"], string> = {
   surge: "Surge",
   airport: "Aéroport",
 };
+import { Button } from "@/shared/ui/Button";
+import { ConfirmModal } from "@/shared/ui/ConfirmModal";
 import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { useFranchiseDetail } from "../api/franchiseDetail.queries";
+import { useDeleteFranchise } from "../api/franchises.queries";
 import { useZonesByFranchise } from "../api/zones.queries";
 import { AbidjanZonesMap } from "../components/AbidjanZonesMap";
 
@@ -32,9 +36,20 @@ interface FranchiseDetailPageProps {
   franchiseId: string;
 }
 
+const FRANCHISE_TABS = ["overview", "partners", "orders", "zones"] as const;
+
 export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
-  const [tab, setTab] = useState("overview");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const initialTab =
+    tabFromUrl && FRANCHISE_TABS.includes(tabFromUrl as (typeof FRANCHISE_TABS)[number])
+      ? tabFromUrl
+      : "overview";
+  const [tab, setTab] = useState(initialTab);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { data, isLoading, isError } = useFranchiseDetail(franchiseId);
+  const deleteFranchise = useDeleteFranchise();
   const { data: franchiseZones = [], isLoading: zonesMapLoading } =
     useZonesByFranchise(franchiseId);
 
@@ -124,7 +139,28 @@ export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
         <PageHeader
           title={data.name}
           breadcrumb={["Admin", "Réseau", "Franchises", data.name]}
-          actions={<EntityStatusPill status={data.status} />}
+          actions={
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  router.push(`/admin/network/franchises/${franchiseId}/edit`)
+                }
+              >
+                Modifier
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="!border-red-200 !text-red-600 hover:!bg-red-50"
+                onClick={() => setConfirmDelete(true)}
+              >
+                Supprimer
+              </Button>
+              <EntityStatusPill status={data.status} />
+            </div>
+          }
         />
         <p className="text-sm text-muted">
           {data.city} · {data.contact_email} · {data.contact_phone}
@@ -161,12 +197,26 @@ export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
             )}
 
             {tab === "partners" && (
-              <DataTable
-                columns={partnerCols}
-                data={data.partners}
-                rowKey={(p) => p.id}
-                exportFileName="partenaires-franchise-detail"
-              />
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        `/admin/network/franchises/${franchiseId}/partners/new`
+                      )
+                    }
+                  >
+                    Nouveau partenaire
+                  </Button>
+                </div>
+                <DataTable
+                  columns={partnerCols}
+                  data={data.partners}
+                  rowKey={(p) => p.id}
+                  exportFileName="partenaires-franchise-detail"
+                />
+              </div>
             )}
 
             {tab === "orders" && (
@@ -280,6 +330,27 @@ export function FranchiseDetailPage({ franchiseId }: FranchiseDetailPageProps) {
           </div>
         </aside>
       </div>
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Supprimer cette franchise ?"
+        message={
+          data.partners_count > 0
+            ? `Cette action est irréversible. La franchise « ${data.name} » compte ${data.partners_count} partenaire(s) — vérifiez les contraintes côté API avant de confirmer.`
+            : `Cette action est irréversible. La franchise « ${data.name} » sera définitivement supprimée.`
+        }
+        confirmLabel={deleteFranchise.isPending ? "Suppression…" : "Supprimer"}
+        variant="danger"
+        onConfirm={() => {
+          deleteFranchise.mutate(String(franchiseId), {
+            onSuccess: () => {
+              setConfirmDelete(false);
+              router.push("/admin/network/franchises");
+            },
+          });
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

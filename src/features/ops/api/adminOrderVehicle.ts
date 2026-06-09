@@ -4,15 +4,58 @@ import type { ApiLiveMapDriverLocation } from "./liveMap.api.types";
 
 type UnknownRecord = Record<string, unknown>;
 
+const LABEL_OBJECT_KEYS = [
+  "name",
+  "label",
+  "displayName",
+  "value",
+  "text",
+  "title",
+] as const;
+
+function isBrokenLabel(value: string): boolean {
+  return !value || value.includes("[object Object]");
+}
+
 function readString(value: unknown): string | undefined {
   if (value == null) return undefined;
+  if (typeof value === "object") return undefined;
   const s = String(value).trim();
-  return s || undefined;
+  return s && !isBrokenLabel(s) ? s : undefined;
+}
+
+/** Extrait un libellé affichable (gère les objets imbriqués type `{ name: "Toyota" }`). */
+function readLabelValue(value: unknown): string | undefined {
+  if (value == null) return undefined;
+
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s && !isBrokenLabel(s) ? s : undefined;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    const s = String(value).trim();
+    return s && !isBrokenLabel(s) ? s : undefined;
+  }
+
+  if (typeof value === "object") {
+    const record = value as UnknownRecord;
+    for (const key of LABEL_OBJECT_KEYS) {
+      const nested = readLabelValue(record[key]);
+      if (nested) return nested;
+    }
+    const brand = readLabelValue(record.brand ?? record.make ?? record.brandName);
+    const model = readLabelValue(record.model ?? record.brandModel ?? record.brand_model);
+    if (brand && model) return `${brand} ${model}`;
+    return model ?? brand;
+  }
+
+  return undefined;
 }
 
 function readVehiclePlate(vehicle: UnknownRecord | null | undefined): string | undefined {
   if (!vehicle) return undefined;
-  return readString(
+  return readLabelValue(
     vehicle.plateNumber ??
       vehicle.plate ??
       vehicle.licensePlate ??
@@ -22,19 +65,26 @@ function readVehiclePlate(vehicle: UnknownRecord | null | undefined): string | u
 
 function readVehicleModel(vehicle: UnknownRecord | null | undefined): string | undefined {
   if (!vehicle) return undefined;
-  const brand = readString(vehicle.brand ?? vehicle.make ?? vehicle.brandName);
-  const model = readString(vehicle.model ?? vehicle.brandModel ?? vehicle.brand_model);
+
+  const brandModelRaw = vehicle.brandModel ?? vehicle.brand_model;
+  if (brandModelRaw && typeof brandModelRaw === "object") {
+    const fromBrandModel = readLabelValue(brandModelRaw);
+    if (fromBrandModel) return fromBrandModel;
+  }
+
+  const brand = readLabelValue(vehicle.brand ?? vehicle.make ?? vehicle.brandName);
+  const model = readLabelValue(vehicle.model);
   if (brand && model) return `${brand} ${model}`;
   return model ?? brand;
 }
 
 export function formatApiVehicleLabel(
   vehicle: UnknownRecord | null | undefined,
-  fallbackLabel?: string | null
+  fallbackLabel?: unknown
 ): string | undefined {
   const plate = readVehiclePlate(vehicle);
   const model = readVehicleModel(vehicle);
-  const cleanedFallback = readString(fallbackLabel)?.replace(/^[·•]\s*/, "");
+  const cleanedFallback = readLabelValue(fallbackLabel)?.replace(/^[·•]\s*/, "");
 
   if (model && plate) return `${model} · ${plate}`;
   if (cleanedFallback) return cleanedFallback;
@@ -105,6 +155,13 @@ export function mapApiLocationToTripDriverLocation(
   };
 }
 
+function readSummaryVehicle(block: UnknownRecord | undefined): UnknownRecord | undefined {
+  const summary = block?.summary;
+  if (!summary || typeof summary !== "object") return undefined;
+  const vehicle = (summary as UnknownRecord).vehicle;
+  return vehicle && typeof vehicle === "object" ? (vehicle as UnknownRecord) : undefined;
+}
+
 export function extractTripVehicleFields(
   payload: ApiAdminOrderDetailPayload
 ): Pick<TripDetail, "vehicle_id" | "vehicle_label" | "vehicle_plate" | "driver_location"> {
@@ -114,11 +171,28 @@ export function extractTripVehicleFields(
     vehicleRaw && typeof vehicleRaw === "object"
       ? (vehicleRaw as UnknownRecord)
       : undefined;
+  const summaryVehicle = readSummaryVehicle(block);
+  const ride = payload.ride as UnknownRecord | undefined;
+  const rideVehicle =
+    ride?.vehicle && typeof ride.vehicle === "object"
+      ? (ride.vehicle as UnknownRecord)
+      : undefined;
+  const resolvedVehicle = vehicle ?? summaryVehicle ?? rideVehicle;
+  const fallbackLabel =
+    block?.vehicleLabel ??
+    summaryVehicle?.label ??
+    summaryVehicle?.model;
 
   return {
-    vehicle_id: readString(vehicle?.id),
-    vehicle_label: formatApiVehicleLabel(vehicle, readString(block?.vehicleLabel)),
-    vehicle_plate: readVehiclePlate(vehicle),
+    vehicle_id:
+      readString(vehicle?.id) ??
+      readString(summaryVehicle?.id) ??
+      readString(rideVehicle?.id) ??
+      readString(ride?.vehicle_id) ??
+      readString(block?.current_vehicle_id),
+    vehicle_label: formatApiVehicleLabel(resolvedVehicle, fallbackLabel),
+    vehicle_plate:
+      readVehiclePlate(resolvedVehicle) ?? readVehiclePlate(summaryVehicle),
     driver_location: mapApiLocationToTripDriverLocation(readLocationRecord(payload)),
   };
 }

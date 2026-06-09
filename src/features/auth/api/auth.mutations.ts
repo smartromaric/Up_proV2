@@ -7,6 +7,7 @@ import { clearAuthCookie, setAuthCookie } from "@/core/auth/authCookie";
 import { AppError, resolveUserFacingMessage } from "@/core/http/errorHandler";
 import { notificationService } from "@/core/http/notificationService";
 import { DASHBOARD_BY_PORTAL } from "@/core/auth/authRoutes";
+import { readReturnUrlFromLocation } from "@/core/auth/returnUrl";
 import { authService, type LoginPayload } from "./auth.service";
 
 export function useLogoutMutation(loginPath: string) {
@@ -39,7 +40,11 @@ export function useLoginMutation(portal: LoginPayload["portal"]) {
       setSession(data.token, data.user, data.refreshToken);
       setAuthCookie();
       notificationService.success("Connexion réussie");
-      router.push(DASHBOARD_BY_PORTAL[portal]);
+      const destination = readReturnUrlFromLocation(
+        DASHBOARD_BY_PORTAL[portal],
+        portal
+      );
+      router.push(destination);
     },
     onError: (error: unknown) => {
       const message =

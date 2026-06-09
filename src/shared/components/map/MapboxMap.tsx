@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { env } from "@/core/config/env";
@@ -81,6 +82,7 @@ export function MapboxMap({
   className = "",
   animateDriverMoves = false,
 }: MapboxMapProps) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersByIdRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
@@ -93,6 +95,25 @@ export function MapboxMap({
   const routesRequestRef = useRef(0);
 
   hotZonesRef.current = hotZones;
+
+  useEffect(() => {
+    const onPopupLinkClick = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement | null)?.closest(
+        "a.mapbox-live-popup__link"
+      );
+      if (!target || !(target instanceof HTMLAnchorElement)) return;
+
+      const href = target.getAttribute("href");
+      if (!href?.startsWith("/")) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      router.push(href);
+    };
+
+    document.addEventListener("click", onPopupLinkClick, true);
+    return () => document.removeEventListener("click", onPopupLinkClick, true);
+  }, [router]);
 
   useEffect(() => {
     if (!env.mapboxToken || !containerRef.current || mapRef.current) return;

@@ -2,7 +2,7 @@ import type { CreateDriverPayload } from "@/features/partner/api/drivers.service
 import type { VehiclePieceFile } from "@/features/partner/components/VehicleCreatePiecesSection";
 
 export function isDriverComplete(driver: CreateDriverPayload | null): boolean {
-  if (!driver) return true;
+  if (!driver) return false;
   return (
     driver.first_name.trim().length > 0 &&
     driver.last_name.trim().length > 0 &&
@@ -13,11 +13,10 @@ export function isDriverComplete(driver: CreateDriverPayload | null): boolean {
 
 export function vehicleCreateSubmitLabel(
   pieces: VehiclePieceFile[],
-  hasDriver: boolean
+  hasDriver = true
 ): string {
   const parts: string[] = ["Créer le véhicule"];
   if (hasDriver) parts.push("chauffeur");
   if (pieces.length > 0) parts.push("pièces");
-  if (parts.length === 1) return "Créer (brouillon)";
   return parts.join(" + ");
 }

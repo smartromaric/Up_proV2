@@ -4,7 +4,10 @@ import { isDriverOnTripStatus } from "@/features/ops/api/liveMap.labels";
 import type { ApiAdminDriverItem } from "./adminDrivers.api.types";
 import type { ApiV1DriverDetailResponse } from "./driverDetail.v1.api.types";
 import { splitDisplayName } from "@/features/admin/api/adminOrder.shared";
-import { mapApiKycItemToKycDocument } from "./kycDocument.mapper";
+import {
+  dedupeApiKycItems,
+  mapApiKycItemToKycDocument,
+} from "./kycDocument.mapper";
 
 function mapAccountStatus(
   approval?: string | null,
@@ -125,22 +128,44 @@ export function mapLiveMapDriverToDetail(
   };
 }
 
-function readPlate(vehicle?: {
+type VehiclePlateSource = {
   plateNumber?: string | null;
   plate?: string | null;
   licensePlate?: string | null;
   license_plate?: string | null;
   model?: string | null;
-} | null): string {
+};
+
+function readPlate(vehicle?: VehiclePlateSource | null): string {
   if (!vehicle) return "";
-  const plate =
+  return (
     vehicle.plateNumber ??
     vehicle.plate ??
     vehicle.licensePlate ??
     vehicle.license_plate ??
-    "";
-  const model = vehicle.model?.trim() ?? "";
-  return [plate, model].filter(Boolean).join(" · ");
+    ""
+  ).trim();
+}
+
+function isBrokenVehicleLabel(label?: string | null): boolean {
+  const trimmed = label?.trim() ?? "";
+  return !trimmed || trimmed.startsWith("·");
+}
+
+function buildVehicleLabel(response: ApiV1DriverDetailResponse): string {
+  const explicit = response.vehicleLabel?.trim();
+  if (explicit && !isBrokenVehicleLabel(explicit)) return explicit;
+
+  const summaryVehicle = response.summary?.vehicle;
+  const vehicle = response.vehicle ?? response.vehicles?.[0] ?? null;
+  const category = response.driver.ride_category_code?.trim() ?? "";
+  const model =
+    summaryVehicle?.model?.trim() || vehicle?.model?.trim() || "";
+  const plate = readPlate(summaryVehicle ?? vehicle);
+  const parts = [model, plate, category].filter(Boolean);
+
+  if (parts.length) return parts.join(" · ");
+  return category || "—";
 }
 
 function buildTimelineFromV1(
@@ -241,15 +266,12 @@ export function mapApiV1DriverDetailToDriverDetail(
     0;
 
   const reliability = performance?.reliabilityScore ?? driver.reliability_score;
-  const plateLabel = readPlate(vehicle);
-  const category = driver.ride_category_code?.trim() ?? "";
-  const vehicleLabel =
-    response.vehicleLabel?.trim() ||
-    [plateLabel, category].filter(Boolean).join(" · ") ||
-    category ||
-    "—";
+  const vehicleLabel = buildVehicleLabel(response);
 
-  const embeddedKyc = response.kyc_documents ?? response.kycDocuments ?? [];
+  const embeddedKyc = dedupeApiKycItems([
+    ...(response.kyc_documents ?? []),
+    ...(response.kycDocuments ?? []),
+  ]);
   const kyc_documents = embeddedKyc.map(mapApiKycItemToKycDocument);
 
   const approvedAt =
@@ -274,6 +296,7 @@ export function mapApiV1DriverDetailToDriverDetail(
       response.partnerName ??
       undefined,
     vehicle_label: vehicleLabel,
+    vehicle_id: vehicle?.id ?? driver.current_vehicle_id ?? null,
     account_status: mapAccountStatus(
       driver.approval_status,
       driver.kyc_status
@@ -306,7 +329,10 @@ export function mapAdminDriverItemToDetail(item: ApiAdminDriverItem): DriverDeta
     phone: "—",
     rating: item.rating_avg ?? 0,
     zone: item.city_id ?? "—",
-    vehicle_label: item.ride_category_code ?? "",
+    vehicle_label: item.vehicleLabel ?? item.ride_category_code ?? "",
+    vehicle_id: item.current_vehicle_id ?? null,
+    owner_id: item.partner_id as unknown as number | undefined,
+    owner_name: item.partnerName ?? undefined,
     account_status: mapAccountStatus(item.approval_status, item.kyc_status),
     availability: mapAvailability(item.availability_status),
     registered_at: item.created_at ?? new Date().toISOString(),

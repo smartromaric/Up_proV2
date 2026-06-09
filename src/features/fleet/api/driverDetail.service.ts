@@ -30,6 +30,10 @@ import {
   mapApiKycItemsForDriver,
   mergeExpectedDriverKycSlots,
 } from "./kycDocument.mapper";
+import type {
+  ApiDriverLedgerResponse,
+  ApiDriverWalletResponse,
+} from "./driverWallet.api.types";
 
 export interface DriverTripRow {
   id: string;
@@ -106,6 +110,64 @@ async function enrichDriverPartnerName(
   return detail;
 }
 
+function readWalletBalanceFcfa(
+  wallet?: ApiDriverWalletResponse["wallet"] | null
+): number {
+  if (!wallet) return 0;
+  return (
+    wallet.availableXof ??
+    wallet.available_xof ??
+    wallet.balanceCachedXof ??
+    wallet.balance_fcfa ??
+    0
+  );
+}
+
+async function attachDriverWallet(
+  detail: DriverDetail,
+  driverId: string
+): Promise<DriverDetail> {
+  if (useLegacyDriverDetail()) return detail;
+
+  try {
+    const response = await apiClient.get<ApiDriverWalletResponse>(
+      LINKS.v1.drivers.wallet(driverId)
+    );
+    const balance = readWalletBalanceFcfa(response.wallet);
+    return {
+      ...detail,
+      stats: {
+        ...detail.stats,
+        wallet_balance_fcfa: balance,
+      },
+    };
+  } catch {
+    return detail;
+  }
+}
+
+function mapLedgerItemToWalletTransaction(
+  item: NonNullable<ApiDriverLedgerResponse["items"]>[number]
+): DriverWalletTransaction {
+  const direction =
+    String(item.direction ?? "credit").toLowerCase() === "debit"
+      ? "debit"
+      : "credit";
+  return {
+    id: item.id,
+    type: direction,
+    label: item.label ?? item.description ?? "Mouvement",
+    amount_fcfa: item.amount_fcfa ?? item.amount_xof ?? item.amountXof ?? 0,
+    balance_after_fcfa:
+      item.balance_after_fcfa ??
+      item.balance_after_xof ??
+      item.balanceAfterXof ??
+      0,
+    created_at:
+      item.created_at ?? item.posted_at ?? new Date().toISOString(),
+  };
+}
+
 async function attachDriverKycDocuments(
   detail: DriverDetail,
   driverId: string
@@ -173,7 +235,8 @@ export const driverDetailService = {
       );
       const detail = mapApiV1DriverDetailToDriverDetail(response);
       const withPartner = await enrichDriverPartnerName(detail);
-      return attachDriverKycDocuments(withPartner, driverId);
+      const withKyc = await attachDriverKycDocuments(withPartner, driverId);
+      return attachDriverWallet(withKyc, driverId);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         return fetchDriverDetailFallback(driverId);
@@ -193,10 +256,32 @@ export const driverDetailService = {
     return mapOrdersToDriverTrips(String(id), orders);
   },
 
-  getWalletTransactions: (id: string | number) =>
-    apiClient.get<Paginated<DriverWalletTransaction>>(
-      `/admin/drivers/${id}/wallet/transactions`
-    ),
+  getWalletTransactions: async (
+    id: string | number
+  ): Promise<Paginated<DriverWalletTransaction>> => {
+    if (useLegacyDriverDetail()) {
+      return apiClient.get<Paginated<DriverWalletTransaction>>(
+        `/admin/drivers/${id}/wallet/transactions`
+      );
+    }
+
+    const driverId = String(id);
+    const response = await apiClient.get<ApiDriverLedgerResponse>(
+      `${LINKS.v1.drivers.ledger(driverId)}?page=1&limit=50`
+    );
+    const items = response.items ?? response.transactions ?? [];
+    const data = items.map(mapLedgerItemToWalletTransaction);
+    const total = response.pagination?.total ?? data.length;
+    return {
+      data,
+      meta: {
+        total,
+        per_page: response.pagination?.limit ?? 50,
+        current_page: response.pagination?.page ?? 1,
+        last_page: response.pagination?.totalPages ?? 1,
+      },
+    };
+  },
 
   approveKyc: (id: string | number) =>
     useLegacyDriverDetail()

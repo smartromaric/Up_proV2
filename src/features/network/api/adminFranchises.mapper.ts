@@ -19,6 +19,22 @@ import {
   type PartnerLookupMaps,
 } from "./adminPartners.mapper";
 
+function readFranchiseContactEmail(item: ApiV1FranchiseItem): string {
+  return (
+    item.support_email?.trim() ||
+    item.metadata?.contactEmail?.trim() ||
+    "—"
+  );
+}
+
+function readFranchiseContactPhone(item: ApiV1FranchiseItem): string {
+  return (
+    item.support_phone?.trim() ||
+    item.metadata?.contactPhone?.trim() ||
+    "—"
+  );
+}
+
 function mapFranchiseStatus(
   status?: string | null
 ): Franchise["status"] {
@@ -140,8 +156,8 @@ export function mapV1FranchiseDetail(
     drivers_count: driversTotal,
     zones_count: franchiseZones.length,
     revenue_month_fcfa: totalXof,
-    contact_email: f.support_email?.trim() || "—",
-    contact_phone: f.support_phone?.trim() || "—",
+    contact_email: readFranchiseContactEmail(f),
+    contact_phone: readFranchiseContactPhone(f),
     created_at: f.created_at ?? new Date().toISOString(),
     stats: {
       partners_count: partners.pagination?.total ?? mappedPartners.length,

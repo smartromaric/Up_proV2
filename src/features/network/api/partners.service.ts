@@ -1,17 +1,44 @@
-import { apiClient } from "@/core/http/apiClient";
-import { fetchNetworkLookups } from "@/core/api/catalogLookup.service";
+import { apiClient, apiWithNotify } from "@/core/http/apiClient";
+import {
+  fetchNetworkLookups,
+  resolveCityIdByLabel,
+} from "@/core/api/catalogLookup.service";
 import { LINKS } from "@/core/api/links";
 import { buildV1ListQuery } from "@/core/api/v1Pagination";
 import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import type { Paginated, Partner } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
-import type { ApiAdminPartnersResponse } from "./adminPartners.api.types";
-import { mapAdminPartnersToPaginated } from "./adminPartners.mapper";
+import type {
+  ApiAdminPartnerItem,
+  ApiAdminPartnersResponse,
+  ApiPartnerCreateBody,
+  ApiPartnerCreateResponse,
+  ApiPartnerUpdateBody,
+} from "./adminPartners.api.types";
+import type { ApiV1PartnerDetailResponse } from "./adminPartnerDetail.api.types";
+import {
+  mapAdminPartnerItemToPartner,
+  mapAdminPartnersToPaginated,
+} from "./adminPartners.mapper";
 
 export type PartnerCreatePayload = {
   name: string;
   franchise_id: number | string;
   city: string;
+  /** UUID ville catalogue — prioritaire sur `city` (libellé). */
+  city_id?: string;
+  /** Code pays ISO (ex. CI) — dérivé de la ville sélectionnée. */
+  country_code?: string;
+  contact_email: string;
+  contact_phone: string;
+  address?: string;
+  status?: Partner["status"];
+};
+
+export type PartnerUpdatePayload = {
+  name: string;
+  city: string;
+  city_id?: string;
   contact_email: string;
   contact_phone: string;
   address?: string;
@@ -40,6 +67,140 @@ export const partnersService = {
     );
   },
 
-  create: (payload: PartnerCreatePayload) =>
-    apiClient.post<Partner>("/admin/network/partners", payload),
+  create: async (payload: PartnerCreatePayload): Promise<Partner> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.post<Partner>("/admin/network/partners", payload);
+    }
+
+    const cityId =
+      payload.city_id?.trim() || (await resolveCityIdByLabel(payload.city));
+    if (!cityId) {
+      throw new Error("Sélectionnez une ville du catalogue.");
+    }
+
+    const body: ApiPartnerCreateBody = {
+      franchiseId: String(payload.franchise_id),
+      legalName: payload.name.trim(),
+      tradeName: payload.name.trim(),
+      cityId,
+      contactEmail: payload.contact_email.trim(),
+      partnerType: "FLEET",
+      ...(payload.contact_phone.trim()
+        ? { contactPhone: payload.contact_phone.trim() }
+        : {}),
+      ...(payload.address?.trim() ? { address: payload.address.trim() } : {}),
+      ...(payload.status ? { status: payload.status } : {}),
+    };
+
+    const response = await apiClient.post<ApiPartnerCreateResponse>(
+      LINKS.v1.partners.create,
+      body
+    );
+
+    if (!response.partner?.id) {
+      throw new Error(
+        response.error?.message ?? "Création partenaire sans identifiant en réponse."
+      );
+    }
+
+    const lookups = await fetchNetworkLookups();
+    return mapAdminPartnerItemToPartner(response.partner, lookups);
+  },
+
+  update: async (id: string, payload: PartnerUpdatePayload): Promise<Partner> => {
+    if (useLegacyAdminApi()) {
+      return apiClient.patch<Partner>(`/admin/network/partners/${id}`, {
+        name: payload.name.trim(),
+        city: payload.city.trim(),
+        contact_email: payload.contact_email.trim(),
+        contact_phone: payload.contact_phone.trim(),
+        address: payload.address?.trim(),
+        status: payload.status,
+      });
+    }
+
+    const cityId =
+      payload.city_id?.trim() || (await resolveCityIdByLabel(payload.city));
+    if (!cityId) {
+      throw new Error("Sélectionnez une ville du catalogue.");
+    }
+
+    const body: ApiPartnerUpdateBody = {
+      legalName: payload.name.trim(),
+      tradeName: payload.name.trim(),
+      cityId,
+      contactEmail: payload.contact_email.trim(),
+      ...(payload.contact_phone.trim()
+        ? { contactPhone: payload.contact_phone.trim() }
+        : {}),
+      ...(payload.address?.trim() ? { address: payload.address.trim() } : {}),
+      ...(payload.status ? { status: payload.status } : {}),
+    };
+
+    const response = await apiClient.patch<ApiV1PartnerDetailResponse>(
+      LINKS.admin.partners.getById(id),
+      body
+    );
+
+    if (!response.partner?.id) {
+      throw new Error(
+        "Mise à jour partenaire sans identifiant en réponse."
+      );
+    }
+
+    const lookups = await fetchNetworkLookups();
+    const item: ApiAdminPartnerItem = {
+      id: response.partner.id,
+      franchise_id: response.partner.franchise_id,
+      legal_name: response.partner.legal_name,
+      trade_name: response.partner.trade_name,
+      name:
+        response.partner.name ??
+        response.partner.trade_name ??
+        response.partner.legal_name,
+      city_id: response.partner.city_id,
+      contact_phone: response.partner.contact_phone,
+      contact_email: response.partner.contact_email,
+      status: response.partner.status,
+      driversCount: response.partner.stats?.driversCount,
+    };
+    return mapAdminPartnerItemToPartner(item, lookups);
+  },
+
+  activate: (id: string) => {
+    if (useLegacyAdminApi()) {
+      return apiWithNotify.post(
+        `/admin/network/partners/${id}/activate`,
+        undefined,
+        "Partenaire activé"
+      );
+    }
+    return apiWithNotify.post(
+      LINKS.admin.v1.partnerActivate(id),
+      undefined,
+      "Partenaire activé"
+    );
+  },
+
+  suspend: (id: string) => {
+    if (useLegacyAdminApi()) {
+      return apiWithNotify.post(
+        `/admin/network/partners/${id}/suspend`,
+        undefined,
+        "Partenaire suspendu"
+      );
+    }
+    return apiWithNotify.post(
+      LINKS.admin.v1.partnerSuspend(id),
+      undefined,
+      "Partenaire suspendu"
+    );
+  },
+
+  delete: async (id: string) => {
+    if (useLegacyAdminApi()) {
+      return apiClient.delete(`/admin/network/partners/${id}`);
+    }
+    return apiClient.delete(LINKS.admin.v1.partnerById(id));
+  },
 };
