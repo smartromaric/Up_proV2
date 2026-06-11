@@ -7,6 +7,7 @@
   "from_coords": { "lat": 5.324, "lng": -4.015 },
   "to_coords": { "lat": 5.318, "lng": -4.008 },
   "client_name": "Société BTP CI",
+  "client_id": 1002,
   "client_phone": "+225 27 20 30 40 50",
   "driver_id": 102,
   "driver_name": "Traoré Aminata",

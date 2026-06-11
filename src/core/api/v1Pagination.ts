@@ -32,6 +32,10 @@ export function buildV1ListQuery(params?: ListParams): string {
   if (params.account_status && params.account_status !== "all") {
     qs.set("account_status", params.account_status);
   }
+  if (params.compliance_status && params.compliance_status !== "all") {
+    qs.set("complianceStatus", params.compliance_status);
+  }
+  if (params.type && params.type !== "all") qs.set("type", params.type);
   if (params.service && params.service !== "all") qs.set("service", params.service);
   if (params.franchise_id != null) qs.set("franchise_id", String(params.franchise_id));
   if (params.partner_id != null) qs.set("partner_id", String(params.partner_id));

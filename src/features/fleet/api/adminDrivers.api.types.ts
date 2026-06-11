@@ -8,6 +8,18 @@ export interface ApiAdminDriverProfile {
   email?: string | null;
 }
 
+export interface ApiAdminDriverDocumentsSummary {
+  requiredCount?: number;
+  uploadedCount?: number;
+  approvedCount?: number;
+  pendingCount?: number;
+  rejectedCount?: number;
+  missingCount?: number;
+  missingTypes?: string[];
+  isComplete?: boolean;
+  hasAnyDocument?: boolean;
+}
+
 export interface ApiAdminDriverItem {
   id: string;
   user_id?: string;
@@ -40,6 +52,8 @@ export interface ApiAdminDriverItem {
   accepts_wallet?: boolean;
   last_online_at?: string | null;
   metadata?: Record<string, unknown>;
+  documentsSummary?: ApiAdminDriverDocumentsSummary | null;
+  complianceStatus?: string | null;
   created_at?: string;
   updated_at?: string;
 }

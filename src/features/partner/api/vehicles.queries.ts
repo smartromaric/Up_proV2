@@ -40,13 +40,20 @@ export function useCreateVehicle() {
       pieces = [],
       driver = null,
       driverDocuments = [],
+      driverPhoneVerified = false,
     }: {
       data: CreateVehiclePayload;
       pieces?: VehiclePieceFile[];
       driver?: CreateDriverPayload | null;
       driverDocuments?: DriverDocumentFile[];
+      driverPhoneVerified?: boolean;
     }) =>
-      partnerVehiclesService.createWithOptions(data, { pieces, driver, driverDocuments }),
+      partnerVehiclesService.createWithOptions(data, {
+        pieces,
+        driver,
+        driverDocuments,
+        driverPhoneVerified,
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: partnerVehiclesKeys.all });
       void qc.invalidateQueries({ queryKey: partnerDriversKeys.all });

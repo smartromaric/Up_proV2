@@ -1,4 +1,5 @@
 import type { ApiV1Pagination } from "@/core/api/v1Pagination";
+import type { ApiAdminOrdersFilterOptions } from "@/features/ops/api/adminOrders.api.types";
 
 export interface ApiFinanceListResponse<T> {
   status?: string;
@@ -6,6 +7,7 @@ export interface ApiFinanceListResponse<T> {
   items?: T[];
   pagination?: ApiV1Pagination;
   summary?: Record<string, unknown>;
+  filterOptions?: ApiAdminOrdersFilterOptions;
 }
 
 export interface ApiFinanceDashboardResponse {

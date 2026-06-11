@@ -6,9 +6,17 @@ export function isDriverComplete(driver: CreateDriverPayload | null): boolean {
   return (
     driver.first_name.trim().length > 0 &&
     driver.last_name.trim().length > 0 &&
-    driver.phone.trim().length > 0 &&
-    driver.zone.trim().length > 0
+    driver.phone.trim().length > 0
   );
+}
+
+export function isDriverReadyForSubmit(
+  driver: CreateDriverPayload | null,
+  options: { requirePhoneOtp?: boolean; phoneVerified?: boolean } = {}
+): boolean {
+  if (!isDriverComplete(driver)) return false;
+  if (options.requirePhoneOtp && !options.phoneVerified) return false;
+  return true;
 }
 
 export function vehicleCreateSubmitLabel(

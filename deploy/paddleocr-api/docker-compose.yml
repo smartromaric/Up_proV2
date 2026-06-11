@@ -1,0 +1,14 @@
+services:
+  paddleocr-api:
+    build: .
+    container_name: paddleocr-api
+    restart: unless-stopped
+    ports:
+      - "8866:8866"
+    environment:
+      OCR_LANG: fr
+      PORT: "8866"
+    deploy:
+      resources:
+        limits:
+          memory: 6G

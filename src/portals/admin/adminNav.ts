@@ -136,6 +136,12 @@ export const ADMIN_NAV: NavGroup[] = [
         permission: "finance.transactions.view",
       },
       {
+        label: "Règles commission",
+        path: "/admin/finance/commission-rules",
+        icon: "commissions",
+        permission: "finance.transactions.view",
+      },
+      {
         label: "Réconciliation",
         path: "/admin/finance/reconciliation",
         icon: "reconciliation",

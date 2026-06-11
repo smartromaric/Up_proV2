@@ -66,16 +66,19 @@ export function useCreateAdminVehicle() {
       pieces = [],
       driver = null,
       driverDocuments = [],
+      driverPhoneVerified = false,
     }: {
       data: AdminVehicleCreatePayload;
       pieces?: VehiclePieceFile[];
       driver?: CreateDriverPayload | null;
       driverDocuments?: DriverDocumentFile[];
+      driverPhoneVerified?: boolean;
     }) =>
       adminVehiclesService.createWithOptions(data, {
         pieces,
         driver,
         driverDocuments,
+        driverPhoneVerified,
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: adminVehiclesKeys.all });

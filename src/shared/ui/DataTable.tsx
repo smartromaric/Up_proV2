@@ -72,7 +72,7 @@ function SkeletonRows({
       {[1, 2, 3, 4, 5].map((i) => (
         <tr key={i} className={`${rowClass} border-t border-border/50`}>
           {Array.from({ length: cols }).map((_, j) => (
-            <td key={j} className="px-6">
+            <td key={j} className="px-3 sm:px-6">
               <div className="h-4 w-full max-w-[120px] animate-pulse rounded bg-navy/10 dark:bg-white/10" />
             </td>
           ))}
@@ -257,7 +257,7 @@ export function DataTable<T>({
           <thead className="sticky top-0 z-10 border-b border-border bg-surface">
             <tr className="text-left text-xs uppercase tracking-wider text-muted">
               {selectable && (
-                <th className="w-12 px-6 py-3">
+                <th className="w-12 px-3 py-3 sm:px-6">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -268,7 +268,7 @@ export function DataTable<T>({
                 </th>
               )}
               {columns.map((col) => (
-                <th key={col.id} className={`px-6 py-3 font-medium ${col.className ?? ""}`}>
+                <th key={col.id} className={`px-3 py-3 font-medium sm:px-6 ${col.className ?? ""}`}>
                   {col.header}
                 </th>
               ))}
@@ -278,7 +278,7 @@ export function DataTable<T>({
             {isLoading && <SkeletonRows cols={colCount} rowClass={rowClass} />}
             {!isLoading && data.length === 0 && (
               <tr>
-                <td colSpan={colCount} className="px-6 py-16 text-center">
+                <td colSpan={colCount} className="px-3 py-16 text-center sm:px-6">
                   <p className="font-medium text-foreground">{emptyTitle}</p>
                   {emptyDescription && (
                     <p className="mt-1 text-sm text-muted">{emptyDescription}</p>
@@ -299,7 +299,7 @@ export function DataTable<T>({
                     } ${extraRowClass}`}
                   >
                     {selectable && (
-                      <td className="px-6">
+                      <td className="px-3 sm:px-6">
                         <input
                           type="checkbox"
                           checked={selected}
@@ -310,7 +310,7 @@ export function DataTable<T>({
                       </td>
                     )}
                     {columns.map((col) => (
-                      <td key={col.id} className={`px-6 ${col.className ?? ""}`}>
+                      <td key={col.id} className={`px-3 sm:px-6 ${col.className ?? ""}`}>
                         {col.cell(row)}
                       </td>
                     ))}

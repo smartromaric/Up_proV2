@@ -70,7 +70,15 @@ export const financeHandlers = [
   http.get("*/api/v2/admin/finance/transactions", ({ request }) => {
     const query = parseListQuery(request);
     const filtered = filterTransactions(TRANSACTIONS_CATALOG, query);
-    return HttpResponse.json(paginatedList(filtered, query));
+    return HttpResponse.json({
+      ...paginatedList(filtered, query),
+      summary: {
+        volume_today_fcfa: 0,
+        credits_today_fcfa: 0,
+        debits_today_fcfa: 0,
+      },
+      filter_options: getTripsScopeFilterOptions(),
+    });
   }),
 
   http.get("*/api/v2/admin/finance/wallets", ({ request }) => {
@@ -146,6 +154,9 @@ export const financeHandlers = [
     );
     if (query.type && query.type !== "all") {
       list = list.filter((t) => t.source === query.type);
+    }
+    if (query.status && query.status !== "all") {
+      list = list.filter((t) => t.status === query.status);
     }
     return HttpResponse.json(paginatedList(list, query));
   }),

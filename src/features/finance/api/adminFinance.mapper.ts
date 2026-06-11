@@ -13,6 +13,7 @@ import type { ListParams } from "@/shared/types/listParams";
 import { paginateClientList } from "@/shared/lib/clientList";
 import type { TripsScopeFilterOptions } from "@/shared/types";
 import { buildAdminDriverDetailPath } from "@/features/fleet/lib/driverRoutes";
+import { mapOrdersFilterOptions } from "@/features/ops/api/adminOrders.mapper";
 import type {
   ApiFinanceCommissionItem,
   ApiFinanceDashboardResponse,
@@ -311,6 +312,7 @@ export function mapFinanceTransactionsResponse(
       credits_today_fcfa: Number(summary.credits_today_fcfa ?? summary.creditsTodayFcfa ?? 0),
       debits_today_fcfa: Number(summary.debits_today_fcfa ?? summary.debitsTodayFcfa ?? 0),
     },
+    filter_options: mapOrdersFilterOptions(response.filterOptions),
   };
 }
 

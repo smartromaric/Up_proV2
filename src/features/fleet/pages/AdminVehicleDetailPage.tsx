@@ -54,7 +54,7 @@ export function AdminVehicleDetailPage({
 
   return (
     <div className="animate-fade-up">
-      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+      <div className="page-sticky-header">
         <PageHeader
           title={title}
           breadcrumb={["Admin", "Flotte", "Véhicules", title]}
@@ -77,7 +77,7 @@ export function AdminVehicleDetailPage({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="detail-page-grid">
         <div>
           <Tabs
             tabs={[

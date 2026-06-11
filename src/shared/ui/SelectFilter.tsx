@@ -22,11 +22,11 @@ export function SelectFilter<T extends string>({
   className = "",
 }: SelectFilterProps<T>) {
   const selectWidth = wide
-    ? "min-w-[12.5rem] sm:min-w-[14rem]"
-    : "min-w-[140px]";
+    ? "w-full min-w-0 sm:min-w-[12.5rem] md:min-w-[14rem]"
+    : "w-full min-w-0 sm:min-w-[140px]";
 
   return (
-    <label className={`flex flex-col gap-1 ${className}`}>
+    <label className={`flex w-full min-w-0 flex-col gap-1 sm:w-auto ${className}`}>
       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
         {label}
       </span>

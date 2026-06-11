@@ -157,6 +157,9 @@ export function DispatchConsolePage({
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<"queue" | "detail" | "map">(
+    "queue"
+  );
 
   const selected = useMemo(
     () => data?.queue.find((q) => q.trip.id === selectedTripId) ?? data?.queue[0] ?? null,
@@ -256,8 +259,41 @@ export function DispatchConsolePage({
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[280px_1fr_300px]">
-          <aside className="space-y-3">
+        <>
+          <div className="tabs-scroll mb-4 lg:hidden" role="tablist">
+            {(
+              [
+                { id: "queue" as const, label: "File d'attente" },
+                { id: "detail" as const, label: "Course" },
+                { id: "map" as const, label: "Carte" },
+              ] as const
+            ).map((panel) => (
+              <button
+                key={panel.id}
+                type="button"
+                role="tab"
+                aria-selected={mobilePanel === panel.id}
+                onClick={() => setMobilePanel(panel.id)}
+                className={`relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium ${
+                  mobilePanel === panel.id
+                    ? "text-teal-dark"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                {panel.label}
+                {mobilePanel === panel.id ? (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal" />
+                ) : null}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-[280px_1fr_300px]">
+          <aside
+            className={`space-y-3 ${
+              mobilePanel === "queue" ? "block" : "hidden lg:block"
+            }`}
+          >
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">
               File d&apos;attente
             </h2>
@@ -269,12 +305,17 @@ export function DispatchConsolePage({
                 onSelect={() => {
                   setSelectedTripId(item.trip.id);
                   setSelectedDriverId(null);
+                  setMobilePanel("detail");
                 }}
               />
             ))}
           </aside>
 
-          <main className="space-y-4">
+          <main
+            className={`space-y-4 ${
+              mobilePanel === "detail" ? "block" : "hidden lg:block"
+            }`}
+          >
             {selected && (
               <>
                 <div className="rounded-card border border-border bg-surface p-5 shadow-card">
@@ -344,7 +385,9 @@ export function DispatchConsolePage({
             )}
           </main>
 
-          <aside>
+          <aside
+            className={mobilePanel === "map" ? "block" : "hidden lg:block"}
+          >
             <DispatchMapPreview
               map={data.map}
               selected={selected}
@@ -358,6 +401,7 @@ export function DispatchConsolePage({
             )}
           </aside>
         </div>
+        </>
       )}
 
       <ConfirmModal

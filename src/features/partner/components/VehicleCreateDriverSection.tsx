@@ -7,6 +7,7 @@ import {
   type CatalogCountry,
 } from "@/core/api/catalogLookup.service";
 import { PhoneDialPrefix } from "@/shared/ui/PhoneDialPrefix";
+import { DriverPhoneOtpBlock } from "@/features/fleet/components/DriverPhoneOtpBlock";
 import type { CreateDriverPayload } from "../api/drivers.service";
 
 export const EMPTY_DRIVER: CreateDriverPayload = {
@@ -24,6 +25,10 @@ interface VehicleCreateDriverSectionProps {
   required?: boolean;
   /** Pays du partenaire — précharge l'indicatif téléphonique (ex. Lomé → +228). */
   phoneCountry?: CatalogCountry | null;
+  /** Vérification OTP obligatoire (désactivée en mode legacy). */
+  requirePhoneOtp?: boolean;
+  phoneVerified?: boolean;
+  onPhoneVerifiedChange?: (verified: boolean) => void;
 }
 
 export function VehicleCreateDriverSection({
@@ -31,6 +36,9 @@ export function VehicleCreateDriverSection({
   onChange,
   required = false,
   phoneCountry,
+  requirePhoneOtp = false,
+  phoneVerified = false,
+  onPhoneVerifiedChange,
 }: VehicleCreateDriverSectionProps) {
   const enabled = required || driver !== null;
   const activeDriver = driver ?? EMPTY_DRIVER;
@@ -150,17 +158,19 @@ export function VehicleCreateDriverSection({
               </p>
             )}
           </label>
-          <label className="block">
-            <span className="text-sm font-medium">Zone</span>
-            <input
-              value={activeDriver.zone}
-              onChange={(e) => update({ zone: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-border px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2"
-              placeholder="Cocody"
-              required={enabled}
-            />
-          </label>
-          <label className="block">
+          {requirePhoneOtp && onPhoneVerifiedChange && (
+            <div className="sm:col-span-2">
+              <DriverPhoneOtpBlock
+                internationalPhone={activeDriver.phone}
+                dialCode={dialCode}
+                countryCode={phoneCountry?.code ?? "CI"}
+                verified={phoneVerified}
+                onVerifiedChange={onPhoneVerifiedChange}
+                disabled={!enabled}
+              />
+            </div>
+          )}
+          <label className="block sm:col-span-2">
             <span className="text-sm font-medium">E-mail (optionnel)</span>
             <input
               type="email"

@@ -14,10 +14,13 @@ import {
   zoneStrokeColor,
   zonesToGeoJson,
 } from "@/shared/components/map/zonesMapGeoJson";
+import { syncLeafletHotZones } from "@/shared/components/map/leafletHotZones";
+import type { LiveMapHotZone } from "@/shared/types";
 import type { ZoneMapItem } from "./AbidjanZonesMap";
 
 interface ZonesOsmMapProps {
   zones: ZoneMapItem[];
+  hotZones?: LiveMapHotZone[];
   cityLabel?: string;
   selectedZoneId?: number | string | null;
   onSelectZone?: (zone: ZoneMapItem) => void;
@@ -31,6 +34,7 @@ interface ZonesOsmMapProps {
 
 export function ZonesOsmMap({
   zones,
+  hotZones = [],
   cityLabel = "Zones",
   selectedZoneId = null,
   onSelectZone,
@@ -45,6 +49,7 @@ export function ZonesOsmMap({
   const mapRef = useRef<L.Map | null>(null);
   const zonesLayerRef = useRef<L.GeoJSON | null>(null);
   const draftLayerRef = useRef<L.GeoJSON | null>(null);
+  const hotZonesLayerRef = useRef<L.LayerGroup | null>(null);
   const zonesRef = useRef(zones);
   const onSelectRef = useRef(onSelectZone);
   const onDraftRef = useRef(onDraftPoint);
@@ -80,6 +85,7 @@ export function ZonesOsmMap({
     });
 
     mapRef.current = map;
+    hotZonesLayerRef.current = L.layerGroup().addTo(map);
     setReady(true);
 
     const resizeObserver = new ResizeObserver(() => {
@@ -91,6 +97,7 @@ export function ZonesOsmMap({
       resizeObserver.disconnect();
       zonesLayerRef.current = null;
       draftLayerRef.current = null;
+      hotZonesLayerRef.current = null;
       map.remove();
       mapRef.current = null;
       didFitRef.current = false;
@@ -193,6 +200,13 @@ export function ZonesOsmMap({
 
   useEffect(() => {
     const map = mapRef.current;
+    const hotZonesLayer = hotZonesLayerRef.current;
+    if (!map || !hotZonesLayer || !ready) return;
+    syncLeafletHotZones(map, hotZonesLayer, hotZones);
+  }, [hotZones, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || !ready) return;
 
     const handleDrawClick = (e: L.LeafletMouseEvent) => {
@@ -217,6 +231,12 @@ export function ZonesOsmMap({
       <p className="pointer-events-none absolute left-3 top-3 z-[500] rounded-lg bg-surface/95 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur">
         {cityLabel}
       </p>
+      {hotZones.length > 0 && mode === "select" && (
+        <p className="pointer-events-none absolute right-3 top-3 z-[500] max-w-[calc(100%-1.5rem)] whitespace-nowrap rounded-lg bg-surface/95 px-2.5 py-1 text-xs text-muted shadow-sm backdrop-blur">
+          <span className="mr-2 inline-block h-2 w-2 rounded-full bg-amber-500" />
+          {hotZones.length} zone{hotZones.length > 1 ? "s chaudes" : " chaude"}
+        </p>
+      )}
       {mode === "draw" && (
         <p className="pointer-events-none absolute right-3 top-3 z-[500] rounded-lg bg-teal/90 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
           {draftRing.length} point{draftRing.length !== 1 ? "s" : ""}

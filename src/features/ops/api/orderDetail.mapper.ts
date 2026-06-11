@@ -24,6 +24,7 @@ import {
   mapApiPaymentMethod,
   mapApiServiceType,
   orderRef,
+  resolveOrderClientId,
 } from "@/features/admin/api/adminOrder.shared";
 
 interface DispatchOffer {
@@ -195,6 +196,8 @@ export function mapApiOrderToTripDetail(
       (order.client_id
         ? `Client ${String(order.client_id).slice(0, 8)}`
         : "Client"),
+    client_id: resolveOrderClientId(order),
+    client_phone: order.client?.phone ?? undefined,
     driver_id: order.driver_id ?? undefined,
     driver_name: order.driver_id
       ? driverNameById(order.driver_id, driversById)

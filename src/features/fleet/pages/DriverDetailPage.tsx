@@ -204,7 +204,7 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
 
   return (
     <div className="animate-fade-up">
-      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+      <div className="page-sticky-header">
         <PageHeader
           title={fullName}
           breadcrumb={["Admin", "Flotte", "Chauffeurs", fullName]}
@@ -263,7 +263,7 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
             </div>
           }
         />
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted break-words">
           {driver.driver_code ? (
             <span className="font-medium text-foreground">{driver.driver_code}</span>
           ) : null}
@@ -274,7 +274,7 @@ export function DriverDetailPage({ driverId }: DriverDetailPageProps) {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="detail-page-grid">
         {/* Contenu onglets */}
         <div className="min-w-0">
           <Tabs tabs={tabs} active={tab} onChange={setTab} />

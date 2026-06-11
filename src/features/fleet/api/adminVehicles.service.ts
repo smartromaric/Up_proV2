@@ -123,6 +123,7 @@ export const adminVehiclesService = {
           );
           return {
             id: created.id,
+            user_id: created.user_id,
             first_name: driver.first_name,
             last_name: driver.last_name,
           };
@@ -137,7 +138,10 @@ export const adminVehiclesService = {
               }
             );
           }
-          return assignDriverV1(vehicleId, driver, vehicle);
+          return assignDriverV1(vehicleId, driver, {
+            baseVehicle: vehicle,
+            partnerId: payload.partnerId,
+          });
         },
       }
     );

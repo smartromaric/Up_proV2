@@ -27,6 +27,36 @@ function buildCatalog(): Driver[] {
       availability: i % 5 === 0 ? "offline" : "online",
       account_status:
         i % 31 === 0 ? "suspended" : i % 17 === 0 ? "pending" : "approved",
+      documents_summary:
+        i % 11 === 0
+          ? {
+              required_count: 5,
+              uploaded_count: 2,
+              approved_count: 1,
+              pending_count: 1,
+              rejected_count: 0,
+              missing_count: 3,
+              missing_types: ["license"],
+              is_complete: false,
+              has_any_document: true,
+            }
+          : {
+              required_count: 5,
+              uploaded_count: 5,
+              approved_count: 5,
+              pending_count: 0,
+              rejected_count: 0,
+              missing_count: 0,
+              missing_types: [],
+              is_complete: true,
+              has_any_document: true,
+            },
+      compliance_status:
+        i % 11 === 0
+          ? "documents_incomplete"
+          : i % 13 === 0
+            ? "vehicle_incomplete"
+            : "complete",
     });
   }
   return rows;
@@ -53,6 +83,9 @@ export function filterDrivers(rows: Driver[], query: ListQuery): Driver[] {
   }
   if (query.zone) {
     list = list.filter((d) => d.zone === query.zone);
+  }
+  if (query.compliance_status) {
+    list = list.filter((d) => d.compliance_status === query.compliance_status);
   }
   return list.map(applyDriverAdminOverrides);
 }

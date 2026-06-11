@@ -12,6 +12,12 @@ import {
   getDriverAccountStatusLabel,
   getDriverAvailabilityLabel,
 } from "@/shared/lib/driverLabels";
+import {
+  DRIVER_COMPLIANCE_FILTER_OPTIONS,
+  getDriverComplianceLabel,
+  getDriverComplianceStyle,
+} from "@/shared/lib/complianceLabels";
+import type { DriverComplianceStatus } from "@/shared/types";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
@@ -57,14 +63,21 @@ export function DriversListPage() {
     useState<(typeof ACCOUNT_OPTIONS)[number]["value"]>("all");
   const [availabilityFilter, setAvailabilityFilter] =
     useState<(typeof AVAILABILITY_OPTIONS)[number]["value"]>("all");
+  const [complianceFilter, setComplianceFilter] = useState<
+    (typeof DRIVER_COMPLIANCE_FILTER_OPTIONS)[number]["value"]
+  >("all");
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
   const table = useServerTableState(
-    [zoneFilter, accountFilter, availabilityFilter],
+    [zoneFilter, accountFilter, availabilityFilter, complianceFilter],
     {
       zone: zoneFilter !== "all" ? zoneFilter : undefined,
       account_status: accountFilter !== "all" ? accountFilter : undefined,
       availability: availabilityFilter !== "all" ? availabilityFilter : undefined,
+      compliance_status:
+        complianceFilter !== "all"
+          ? (complianceFilter as DriverComplianceStatus)
+          : undefined,
     }
   );
 
@@ -77,6 +90,11 @@ export function DriversListPage() {
         value: availabilityFilter,
         defaultValue: "all",
         reset: () => setAvailabilityFilter("all"),
+      },
+      {
+        value: complianceFilter,
+        defaultValue: "all",
+        reset: () => setComplianceFilter("all"),
       },
     ],
   });
@@ -153,6 +171,43 @@ export function DriversListPage() {
       exportValue: (d) => (d.rating > 0 ? d.rating : ""),
     },
     {
+      id: "documents",
+      header: "Documents",
+      cell: (d) => {
+        const summary = d.documents_summary;
+        if (!summary) return <span className="text-muted">—</span>;
+        return (
+          <span className="text-sm tabular-nums">
+            {summary.approved_count}/{summary.required_count}
+            {summary.missing_count > 0 ? (
+              <span className="ml-1 text-amber-700">({summary.missing_count} manq.)</span>
+            ) : null}
+          </span>
+        );
+      },
+      exportValue: (d) => {
+        const summary = d.documents_summary;
+        if (!summary) return "";
+        return `${summary.approved_count}/${summary.required_count}`;
+      },
+    },
+    {
+      id: "compliance",
+      header: "Conformité",
+      cell: (d) =>
+        d.compliance_status ? (
+          <span
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getDriverComplianceStyle(d.compliance_status)}`}
+          >
+            {getDriverComplianceLabel(d.compliance_status)}
+          </span>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+      exportValue: (d) =>
+        d.compliance_status ? getDriverComplianceLabel(d.compliance_status) : "",
+    },
+    {
       id: "account",
       header: "Compte",
       cell: (d) => <AccountStatusPill status={d.account_status} />,
@@ -207,6 +262,13 @@ export function DriversListPage() {
             value={availabilityFilter}
             onChange={setAvailabilityFilter}
             options={AVAILABILITY_OPTIONS}
+          />
+          <SelectFilter
+            wide
+            label="Conformité"
+            value={complianceFilter}
+            onChange={setComplianceFilter}
+            options={DRIVER_COMPLIANCE_FILTER_OPTIONS}
           />
         </div>
       </TableFiltersBar>

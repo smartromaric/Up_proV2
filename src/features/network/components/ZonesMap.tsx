@@ -2,12 +2,14 @@
 
 import { resolveMapEngine } from "@/core/config/mapProvider";
 import type { MapBounds } from "@/shared/lib/mapProjection";
+import type { LiveMapHotZone } from "@/shared/types";
 import type { ZoneMapItem } from "./AbidjanZonesMap";
 import { ZonesMapboxMap } from "./ZonesMapboxMap";
 import { ZonesOsmMap } from "./ZonesOsmMap";
 
 interface ZonesMapProps {
   zones: ZoneMapItem[];
+  hotZones?: LiveMapHotZone[];
   cityLabel?: string;
   selectedZoneId?: number | string | null;
   onSelectZone?: (zone: ZoneMapItem) => void;

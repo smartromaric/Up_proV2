@@ -133,6 +133,11 @@ export function VehiclesListPage() {
         search={table.search}
         onSearchChange={table.setSearch}
         searchPlaceholder="Rechercher plaque, partenaire…"
+        totalLabel={
+          meta
+            ? `${meta.total.toLocaleString("fr-CI")} véhicules au total`
+            : undefined
+        }
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
       >

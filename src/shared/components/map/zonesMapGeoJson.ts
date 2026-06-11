@@ -1,5 +1,21 @@
 import type { ZoneMapItem } from "@/features/network/components/AbidjanZonesMap";
 import type { MapBounds } from "@/shared/lib/mapProjection";
+import type { ZonePolygonGeoJson } from "@/shared/types";
+
+export function getZonePolygonRings(geo?: ZonePolygonGeoJson): number[][][] {
+  if (!geo) return [];
+  if (geo.type === "Polygon") {
+    const ring = geo.coordinates[0];
+    return ring?.length ? [ring] : [];
+  }
+  return geo.coordinates
+    .map((polygon) => polygon[0])
+    .filter((ring): ring is number[][] => Boolean(ring?.length));
+}
+
+function zoneHasPolygonGeometry(geo?: ZonePolygonGeoJson): geo is ZonePolygonGeoJson {
+  return getZonePolygonRings(geo).length > 0;
+}
 
 export const ZONE_FILL_COLORS = [
   "rgba(10,179,156,0.35)",
@@ -40,15 +56,12 @@ export function zonesToGeoJson(
       interactive,
     };
 
-    const ring = zone.polygon_geojson?.coordinates?.[0];
-    if (ring?.length) {
+    const geo = zone.polygon_geojson;
+    if (zoneHasPolygonGeometry(geo)) {
       features.push({
         type: "Feature",
         properties: props,
-        geometry: {
-          type: "Polygon",
-          coordinates: zone.polygon_geojson!.coordinates,
-        },
+        geometry: geo,
       });
       return;
     }
@@ -108,10 +121,12 @@ export function collectZoneLatLngs(zones: ZoneMapItem[]): [number, number][] {
   const points: [number, number][] = [];
 
   for (const zone of zones) {
-    const ring = zone.polygon_geojson?.coordinates?.[0];
-    if (ring?.length) {
-      for (const [lng, lat] of ring) {
-        if (isValidCoord(lng, lat)) points.push([lat, lng]);
+    const rings = getZonePolygonRings(zone.polygon_geojson);
+    if (rings.length) {
+      for (const ring of rings) {
+        for (const [lng, lat] of ring) {
+          if (isValidCoord(lng, lat)) points.push([lat, lng]);
+        }
       }
     } else if (
       zone.center_lng != null &&
