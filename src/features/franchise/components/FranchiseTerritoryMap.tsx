@@ -8,6 +8,7 @@ import {
   computeZonesMapBounds,
   type ZoneMapItem,
 } from "@/features/network/components/AbidjanZonesMap";
+import { getZonePolygonRings } from "@/shared/components/map/zonesMapGeoJson";
 import { ZonesMap } from "@/features/network/components/ZonesMap";
 
 const ZONE_COLORS = [
@@ -95,21 +96,23 @@ export function FranchiseTerritoryMap({
 
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
         {zones.map((zone, i) => {
-          const ring = zone.polygon_geojson?.coordinates?.[0];
-          const points = ring ? ringToPoints(ring) : "";
-          if (!points) return null;
+          const rings = getZonePolygonRings(zone.polygon_geojson);
           const selected = selectedId === zone.id;
-          return (
-            <polygon
-              key={zone.id}
-              points={points}
-              fill={ZONE_COLORS[i % ZONE_COLORS.length]}
-              stroke={selected ? "#0ab39c" : "#405189"}
-              strokeWidth={selected ? 1.2 : 0.6}
-              className="cursor-pointer transition-opacity hover:opacity-90"
-              onClick={() => onSelect(zone.id)}
-            />
-          );
+          return rings.map((ring, ringIndex) => {
+            const points = ringToPoints(ring);
+            if (!points) return null;
+            return (
+              <polygon
+                key={`${zone.id}-${ringIndex}`}
+                points={points}
+                fill={ZONE_COLORS[i % ZONE_COLORS.length]}
+                stroke={selected ? "#0ab39c" : "#405189"}
+                strokeWidth={selected ? 1.2 : 0.6}
+                className="cursor-pointer transition-opacity hover:opacity-90"
+                onClick={() => onSelect(zone.id)}
+              />
+            );
+          });
         })}
       </svg>
     </div>

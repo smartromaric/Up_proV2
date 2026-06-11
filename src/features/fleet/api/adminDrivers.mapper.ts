@@ -1,6 +1,6 @@
 import type { ApiV1Pagination } from "@/core/api/v1Pagination";
 import { mapV1PaginationToMeta } from "@/core/api/v1Pagination";
-import type { Driver } from "@/shared/types";
+import type { Driver, DriverComplianceStatus } from "@/shared/types";
 import type { ListParams } from "@/shared/types/listParams";
 import { paginateClientList } from "@/shared/lib/clientList";
 import type { Paginated } from "@/shared/types";
@@ -21,7 +21,32 @@ function mapAvailability(item: ApiAdminDriverItem): Driver["availability"] {
   }
   if (key === "paused" || key === "break") return "paused";
   if (key === "offline") return "offline";
+  if (key === "online" || key === "available") return "online";
   return "online";
+}
+
+function mapDocumentsSummary(
+  summary?: ApiAdminDriverItem["documentsSummary"] | null
+): Driver["documents_summary"] {
+  if (!summary) return undefined;
+  return {
+    required_count: summary.requiredCount ?? 0,
+    uploaded_count: summary.uploadedCount ?? 0,
+    approved_count: summary.approvedCount ?? 0,
+    pending_count: summary.pendingCount ?? 0,
+    rejected_count: summary.rejectedCount ?? 0,
+    missing_count: summary.missingCount ?? 0,
+    missing_types: summary.missingTypes ?? [],
+    is_complete: summary.isComplete ?? false,
+    has_any_document: summary.hasAnyDocument ?? false,
+  };
+}
+
+function mapComplianceStatus(
+  value?: string | null
+): DriverComplianceStatus | undefined {
+  const key = value?.trim();
+  return key ? (key as DriverComplianceStatus) : undefined;
 }
 
 function driverDisplayName(item: ApiAdminDriverItem): {
@@ -112,6 +137,13 @@ function driverMatchesFilters(driver: Driver, params?: ListParams): boolean {
   if (params?.availability && driver.availability !== params.availability) {
     return false;
   }
+  if (
+    params?.compliance_status &&
+    params.compliance_status !== "all" &&
+    driver.compliance_status !== params.compliance_status
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -120,9 +152,7 @@ export function mapAdminDriversToPaginated(
   params?: ListParams,
   serverPagination?: ApiV1Pagination
 ): Paginated<Driver> {
-  const drivers = items
-    .map(mapAdminDriverItemToListDriver)
-    .filter((d) => driverMatchesFilters(d, params));
+  const drivers = items.map(mapAdminDriverItemToListDriver);
 
   if (serverPagination) {
     return {

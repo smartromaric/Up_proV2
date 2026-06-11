@@ -304,12 +304,8 @@ export const partnerVehiclesService = {
       );
     }
 
-    return apiClient.post<VehicleDetail>(
-      LINKS.v1.vehicles.assignDriver(String(vehicleId)),
-      {
-        driverId: String(driver.id),
-      }
-    );
+    const partnerId = resolvePartnerId();
+    return assignDriverV1(vehicleId, driver, { partnerId });
   },
 
   /** Création véhicule, pièces et chauffeur optionnels */
@@ -319,6 +315,7 @@ export const partnerVehiclesService = {
       pieces?: VehiclePieceFile[];
       driver?: CreateDriverPayload | null;
       driverDocuments?: DriverDocumentFile[];
+      driverPhoneVerified?: boolean;
     } = {}
   ): Promise<VehicleDetail> => {
     const legacy = useLegacyPortalApi();
@@ -343,6 +340,7 @@ export const partnerVehiclesService = {
           );
           return {
             id: created.id,
+            user_id: created.user_id,
             first_name: driver.first_name,
             last_name: driver.last_name,
           };
@@ -357,7 +355,10 @@ export const partnerVehiclesService = {
               }
             );
           }
-          return assignDriverV1(vehicleId, driver, vehicle);
+          return assignDriverV1(vehicleId, driver, {
+            baseVehicle: vehicle,
+            partnerId: resolvePartnerId(),
+          });
         },
       }
     );

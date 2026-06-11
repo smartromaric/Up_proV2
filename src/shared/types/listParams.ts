@@ -9,6 +9,7 @@ export interface ListParams {
   zone_id?: number;
   availability?: string;
   account_status?: string;
+  compliance_status?: string;
   type?: string;
   service?: string;
   franchise_id?: number | string;
@@ -32,6 +33,9 @@ export function buildListQuery(params?: ListParams): string {
   }
   if (params.account_status && params.account_status !== "all") {
     qs.set("account_status", params.account_status);
+  }
+  if (params.compliance_status && params.compliance_status !== "all") {
+    qs.set("compliance_status", params.compliance_status);
   }
   if (params.type && params.type !== "all") qs.set("type", params.type);
   if (params.service && params.service !== "all") qs.set("service", params.service);

@@ -23,6 +23,7 @@ import {
   useDeletePartner,
   useSuspendPartner,
 } from "../api/partners.queries";
+import { PartnerCommissionRulesPanel } from "@/features/finance/components/PartnerCommissionRulesPanel";
 
 interface PartnerDetailPageProps {
   partnerId: string;
@@ -33,7 +34,11 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab");
   const [tab, setTab] = useState(
-    initialTab === "drivers" || initialTab === "trips" ? initialTab : "overview"
+    initialTab === "drivers" ||
+      initialTab === "trips" ||
+      initialTab === "commission"
+      ? initialTab
+      : "overview"
   );
   const [confirmActivate, setConfirmActivate] = useState(false);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
@@ -128,7 +133,7 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
 
   return (
     <div className="animate-fade-up">
-      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+      <div className="page-sticky-header">
         <PageHeader
           title={data.name}
           breadcrumb={["Admin", "Réseau", "Partenaires", data.name]}
@@ -181,13 +186,14 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="detail-page-grid">
         <div>
           <Tabs
             tabs={[
               { id: "overview", label: "Aperçu" },
               { id: "drivers", label: "Chauffeurs" },
               { id: "trips", label: "Courses" },
+              { id: "commission", label: "Commission" },
             ]}
             active={tab}
             onChange={setTab}
@@ -242,6 +248,26 @@ export function PartnerDetailPage({ partnerId }: PartnerDetailPageProps) {
                 emptyDescription="Aucune course récente pour ce partenaire."
               />
             )}
+
+            {tab === "commission" &&
+              (data.franchise_id ? (
+                <PartnerCommissionRulesPanel
+                  partnerId={String(partnerId)}
+                  franchiseId={String(data.franchise_id)}
+                  franchiseName={data.franchise_name}
+                  partnerName={data.name}
+                />
+              ) : (
+                <div className="rounded-card border border-dashed border-border bg-surface p-8 text-center">
+                  <p className="font-medium text-foreground">
+                    Partenaire sans franchise
+                  </p>
+                  <p className="mt-2 text-sm text-muted">
+                    Les règles de commission partenaire / franchise nécessitent
+                    un rattachement à une franchise.
+                  </p>
+                </div>
+              ))}
           </div>
         </div>
 

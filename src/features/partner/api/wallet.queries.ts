@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScope } from "@/core/auth/useScope";
 import {
   partnerWalletService,
-  type DriverRechargePayload,
+  type DriverRechargeBatchPayload,
 } from "./wallet.service";
 import { notificationService } from "@/core/http/notificationService";
 import type { ListParams } from "@/shared/types/listParams";

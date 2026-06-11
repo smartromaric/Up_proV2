@@ -3,7 +3,8 @@ import { fetchNetworkLookups } from "@/core/api/catalogLookup.service";
 import { LINKS } from "@/core/api/links";
 import { buildV1ListQuery } from "@/core/api/v1Pagination";
 import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
-import type { Paginated, Zone } from "@/shared/types";
+import type { LiveMapHotZone, Paginated, Zone } from "@/shared/types";
+import { fetchLiveMapHotZones } from "@/features/ops/api/liveMapHotZones.service";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 import type { ZoneMapItem } from "../components/AbidjanZonesMap";
 import type {
@@ -11,6 +12,8 @@ import type {
   ApiV1ZonesListResponse,
 } from "./adminZones.api.types";
 import {
+  buildHotZonesFromMapItems,
+  enrichMapItemsWithHotZones,
   filterZonesByFranchise,
   mapApiZoneToMapItem,
   mapApiZonesToPaginated,
@@ -32,6 +35,7 @@ export type ZoneCreatePayload = {
 export interface ZonesMapOverview {
   city: string;
   zones: ZoneMapItem[];
+  hotZones: LiveMapHotZone[];
 }
 
 export async function fetchZoneSurgeById(): Promise<Map<string, number>> {
@@ -115,20 +119,31 @@ export const zonesService = {
 
   mapOverview: async (): Promise<ZonesMapOverview> => {
     if (useLegacyAdminApi()) {
-      return apiClient.get<ZonesMapOverview>("/admin/network/zones/map-overview");
+      const overview = await apiClient.get<Omit<ZonesMapOverview, "hotZones">>(
+        "/admin/network/zones/map-overview"
+      );
+      const zones = overview.zones ?? [];
+      return {
+        ...overview,
+        zones,
+        hotZones: buildHotZonesFromMapItems(zones),
+      };
     }
 
-    const [response, lookups] = await Promise.all([
+    const [response, lookups, hotZones] = await Promise.all([
       fetchV1Zones({ per_page: 200 }),
       resolveZoneLookups(),
+      fetchLiveMapHotZones().catch(() => [] as LiveMapHotZone[]),
     ]);
-    const zones = (response.zones ?? []).map((item) =>
-      mapApiZoneToMapItem(item, lookups)
+    const zones = enrichMapItemsWithHotZones(
+      (response.zones ?? []).map((item) => mapApiZoneToMapItem(item, lookups)),
+      hotZones
     );
     const cities = [...new Set(zones.map((z) => z.city).filter((c) => c && c !== "—"))];
     return {
       city: cities.length === 1 ? cities[0]! : "Côte d'Ivoire",
       zones,
+      hotZones,
     };
   },
 

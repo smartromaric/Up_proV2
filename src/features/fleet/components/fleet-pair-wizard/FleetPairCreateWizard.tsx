@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/Button";
 import { WizardStepper } from "@/shared/ui/WizardStepper";
+import { YEAR_EXTRACTION_FIELD_HINT } from "@/features/fleet/lib/localizeExtractionWarning";
 import { FieldSourceBadge, fieldInputClass } from "@/shared/ui/FieldSourceBadge";
 import {
   EMPTY_DRIVER,
@@ -21,10 +22,13 @@ import {
   vehicleUploadsFromWizard,
 } from "@/shared/types/documentUpload";
 import {
-  isDriverComplete,
+  isDriverReadyForSubmit,
   vehicleCreateSubmitLabel,
 } from "@/features/fleet/lib/vehicleCreateForm";
 import { useVehicleBrandModelsCatalog } from "@/features/fleet/api/vehicles.queries";
+import { useFranchiseDetail } from "@/features/network/api/franchiseDetail.queries";
+import { usePartnerDetail } from "@/features/network/api/partnerDetail.queries";
+import { useCatalogCountryForPartner } from "@/shared/hooks/useCatalogCountryForPartner";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
 import type { VehiclePieceFile } from "@/features/partner/components/VehicleCreatePiecesSection";
 import {
@@ -62,6 +66,7 @@ export interface AdminFleetPairSubmitPayload {
   pieces: VehiclePieceFile[];
   driver: CreateDriverPayload | null;
   driverDocuments: DriverDocumentFile[];
+  driverPhoneVerified: boolean;
 }
 
 export interface PartnerFleetPairSubmitPayload {
@@ -76,6 +81,7 @@ export interface PartnerFleetPairSubmitPayload {
   pieces: VehiclePieceFile[];
   driver: CreateDriverPayload | null;
   driverDocuments: DriverDocumentFile[];
+  driverPhoneVerified: boolean;
 }
 
 type CatalogItem = { code: string; label: string };
@@ -124,7 +130,9 @@ function emptyProvenance(): FieldProvenance {
 }
 
 export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
+  const requirePhoneOtp = !props.legacyPhone;
   const [stepId, setStepId] = useState<WizardStepId>("mode");
+  const [driverPhoneVerified, setDriverPhoneVerified] = useState(!requirePhoneOtp);
   const [creationMode, setCreationMode] = useState<CreationMode | null>(null);
   const [documents, setDocuments] = useState<WizardDocumentsState>(EMPTY_WIZARD_DOCUMENTS);
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
@@ -148,6 +156,9 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
   const [category, setCategory] = useState<VehicleCategory>("taxi");
 
   const adminLocked = props.variant === "admin" && Boolean(props.lockedPartnerId);
+  const { data: selectedPartnerDetail } = usePartnerDetail(
+    props.variant === "admin" && partnerId.trim() && !adminLocked ? partnerId.trim() : ""
+  );
   const { data: brandModels, isLoading: modelsLoading } = useVehicleBrandModelsCatalog(
     props.variant === "admin" ? brandCode : ""
   );
@@ -182,10 +193,53 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
     const locked = props.lockedPartner;
     if (!locked) return;
     setPartnerId(String(locked.id));
-    if (locked.city && locked.city !== "—") {
-      setDriver((d) => ({ ...(d ?? EMPTY_DRIVER), zone: locked.city }));
-    }
   }, [adminLocked, props]);
+
+  const selectedAdminPartner = useMemo((): Partner | PartnerDetail | null => {
+    if (props.variant !== "admin") return null;
+    if (adminLocked && props.lockedPartner) return props.lockedPartner;
+    if (selectedPartnerDetail) return selectedPartnerDetail;
+    const id = partnerId.trim();
+    if (!id) return null;
+    return props.partners.find((p) => String(p.id) === id) ?? null;
+  }, [adminLocked, partnerId, props, selectedPartnerDetail]);
+
+  const franchiseIdForPhone = useMemo(() => {
+    const fid = selectedAdminPartner?.franchise_id;
+    if (fid == null || fid === "—") return "";
+    return String(fid);
+  }, [selectedAdminPartner]);
+
+  const { data: franchiseForPhone } = useFranchiseDetail(franchiseIdForPhone);
+
+  const { data: adminPhoneCountry } = useCatalogCountryForPartner({
+    franchiseCountryId: franchiseForPhone?.country_id,
+    cityId:
+      selectedAdminPartner && "city_id" in selectedAdminPartner
+        ? selectedAdminPartner.city_id
+        : undefined,
+    cityLabel: selectedAdminPartner?.city,
+    enabled:
+      props.variant === "admin" &&
+      !props.legacyPhone &&
+      Boolean(selectedAdminPartner),
+  });
+
+  const driverPhoneCountry = useMemo(() => {
+    if (props.legacyPhone) return null;
+    if (props.variant === "admin") {
+      return adminPhoneCountry ?? props.phoneCountry ?? null;
+    }
+    return props.phoneCountry ?? null;
+  }, [adminPhoneCountry, props.legacyPhone, props.phoneCountry, props.variant]);
+
+  const driverPhoneCountryKey = driverPhoneCountry?.code ?? "";
+
+  useEffect(() => {
+    if (props.variant !== "admin" || props.legacyPhone) return;
+    setDriverPhoneVerified(!requirePhoneOtp);
+    setDriver((current) => (current ? { ...current, phone: "" } : current));
+  }, [partnerId, driverPhoneCountryKey, props.variant, props.legacyPhone, requirePhoneOtp]);
 
   const markManual = useCallback((field: string) => {
     setProvenance((p) => ({ ...p, [field]: "manual" }));
@@ -295,7 +349,14 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
     [driverUploads]
   );
 
-  const driverValid = isDriverComplete(driver);
+  useEffect(() => {
+    setDriverPhoneVerified(!requirePhoneOtp);
+  }, [requirePhoneOtp]);
+
+  const driverValid = isDriverReadyForSubmit(driver, {
+    requirePhoneOtp,
+    phoneVerified: driverPhoneVerified,
+  });
   const catalogLoading =
     props.variant === "admin"
       ? Boolean(props.catalogLoading) || modelsLoading
@@ -310,7 +371,13 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
     if (!colorCode.trim()) next.push("Sélectionnez une couleur.");
     if (year < 1990 || year > new Date().getFullYear() + 1) next.push("Année invalide.");
     if (seats < 1 || seats > 12) next.push("Nombre de places invalide.");
-    if (!driverValid) next.push("Renseignez tous les champs du chauffeur.");
+    if (!driverValid) {
+      if (requirePhoneOtp && !driverPhoneVerified) {
+        next.push("Vérifiez le numéro de téléphone du chauffeur par OTP.");
+      } else {
+        next.push("Renseignez tous les champs du chauffeur.");
+      }
+    }
     return next;
   };
 
@@ -319,7 +386,13 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
     if (!brand.trim()) next.push("Indiquez la marque.");
     if (!model.trim()) next.push("Indiquez le modèle.");
     if (!color.trim()) next.push("Indiquez la couleur.");
-    if (!driverValid) next.push("Renseignez tous les champs du chauffeur.");
+    if (!driverValid) {
+      if (requirePhoneOtp && !driverPhoneVerified) {
+        next.push("Vérifiez le numéro de téléphone du chauffeur par OTP.");
+      } else {
+        next.push("Renseignez tous les champs du chauffeur.");
+      }
+    }
     return next;
   };
 
@@ -343,6 +416,7 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
         pieces,
         driver,
         driverDocuments,
+        driverPhoneVerified,
       });
     } else {
       props.onSubmit({
@@ -357,6 +431,7 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
         pieces,
         driver,
         driverDocuments,
+        driverPhoneVerified,
       });
     }
   };
@@ -392,14 +467,16 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
       )}
 
       {extractionWarnings.length > 0 && stepId === "review" && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-medium">Analyse partielle ou incomplète</p>
-          <ul className="mt-1 list-inside list-disc text-amber-800">
-            {extractionWarnings.map((w) => (
-              <li key={w}>{w}</li>
-            ))}
-          </ul>
-        </div>
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {extractionWarnings.length === 1 ? (
+            extractionWarnings[0]
+          ) : (
+            <>
+              <span className="font-medium">Vérifiez les champs extraits — </span>
+              {extractionWarnings.join(" · ")}
+            </>
+          )}
+        </p>
       )}
 
       {stepId === "mode" && <ModeStep onSelect={handleModeSelect} />}
@@ -657,6 +734,9 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
                     className={labelClass("year")}
                     required
                   />
+                  {provenance.year === "ai" && (
+                    <p className="mt-1 text-xs text-muted">{YEAR_EXTRACTION_FIELD_HINT}</p>
+                  )}
                 </label>
                 {props.variant === "admin" && (
                   <label className="block">
@@ -707,7 +787,10 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
               markManual("first_name");
             }}
             required
-            phoneCountry={props.legacyPhone ? null : props.phoneCountry ?? null}
+            phoneCountry={driverPhoneCountry}
+            requirePhoneOtp={requirePhoneOtp}
+            phoneVerified={driverPhoneVerified}
+            onPhoneVerifiedChange={setDriverPhoneVerified}
           />
 
           <WizardFooter

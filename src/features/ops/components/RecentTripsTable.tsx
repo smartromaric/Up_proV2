@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { adminPaths } from "@/core/routes/adminPaths";
 import type { Trip } from "@/shared/types";
 import { formatFCFA } from "@/shared/lib/format";
 import { StatusPill } from "@/shared/ui/StatusPill";
@@ -30,7 +32,14 @@ export function RecentTripsTable({ trips }: RecentTripsTableProps) {
                 key={trip.id}
                 className="h-[52px] border-t border-border/50 transition-colors duration-120 hover:bg-surface-hover/80"
               >
-                <td className="px-6 font-medium text-foreground">{trip.ref}</td>
+                <td className="px-6">
+                  <Link
+                    href={adminPaths.trip(trip.id)}
+                    className="font-medium text-foreground hover:text-teal"
+                  >
+                    {trip.ref}
+                  </Link>
+                </td>
                 <td className="px-6 text-muted">
                   <span className="block text-foreground">{trip.from_label}</span>
                   <span className="text-xs">→ {trip.to_label}</span>

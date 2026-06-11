@@ -48,8 +48,8 @@ export function TableFiltersBar({
           )}
         </div>
       )}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-[200px] flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:gap-3">
+        <div className="w-full min-w-0 flex-1 sm:min-w-[200px]">
           <SearchInput
             value={search}
             onChange={onSearchChange}
@@ -57,7 +57,7 @@ export function TableFiltersBar({
           />
         </div>
         {totalLabel && (
-          <span className="pb-2 text-sm text-muted tabular-nums">{totalLabel}</span>
+          <span className="text-sm text-muted tabular-nums sm:pb-2">{totalLabel}</span>
         )}
       </div>
     </div>

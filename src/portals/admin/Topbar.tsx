@@ -2,14 +2,17 @@
 
 import { useAuthStore } from "@/core/auth/authStore";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { MobileNavToggle } from "@/portals/shared/MobileNavToggle";
+import type { PortalShellTopbarProps } from "@/portals/shared/PortalShellLayout";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
-export function Topbar() {
+export function Topbar({ onMenuToggle, mobileNavOpen }: PortalShellTopbarProps) {
   const user = useAuthStore((s) => s.user);
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-6">
-      <div className="flex items-center gap-3">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+        <MobileNavToggle onClick={onMenuToggle} open={mobileNavOpen} />
         <button
           type="button"
           className="hidden rounded-lg border border-border px-3 py-1.5 text-xs text-muted md:inline-flex"
@@ -17,14 +20,16 @@ export function Topbar() {
         >
           ⌘K Rechercher…
         </button>
-        <span className="rounded-full bg-canvas px-3 py-1 text-xs text-muted">
+        <span className="hidden min-w-0 truncate rounded-full bg-canvas px-3 py-1 text-xs text-muted sm:inline-block">
           Abidjan · Toutes franchises
         </span>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <ThemeToggle />
-        <span className="hidden text-sm text-muted sm:inline">{user?.name}</span>
-        <span className="rounded-full bg-teal-soft px-2.5 py-1 text-xs font-medium text-foreground-display">
+        <span className="hidden max-w-[8rem] truncate text-sm text-muted sm:inline md:max-w-none">
+          {user?.name}
+        </span>
+        <span className="hidden rounded-full bg-teal-soft px-2.5 py-1 text-xs font-medium text-foreground-display sm:inline">
           Administrateur
         </span>
         <LogoutButton loginPath="/admin/login" />

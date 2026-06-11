@@ -109,6 +109,7 @@ export const partnerDriversService = {
     return createDriverWithDocumentsViaV1(data, documents, {
       partnerId: context?.partnerId ?? resolvePartnerIdForDrivers(),
       rideCategoryCode: context?.rideCategoryCode,
+      phoneVerified: context?.phoneVerified,
     });
   },
 };

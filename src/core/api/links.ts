@@ -54,6 +54,7 @@ export const DRIVERS_V1_BASE = "/v1/drivers" as const;
 export const LINKS = {
   v1: {
     drivers: {
+      me: "/v1/drivers/me",
       getById: (id: string) => `${DRIVERS_V1_BASE}/${id}`,
       wallet: (id: string) => `${DRIVERS_V1_BASE}/${id}/wallet`,
       ledger: (id: string) => `${DRIVERS_V1_BASE}/${id}/ledger`,
@@ -73,8 +74,31 @@ export const LINKS = {
       vehicles: (partnerId: string) => `/v1/partners/${partnerId}/vehicles`,
       vehicleById: (partnerId: string, vehicleId: string) =>
         `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
+      assignDriver: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}/assign-driver`,
       drivers: (partnerId: string) => `/v1/partners/${partnerId}/drivers`,
       members: (partnerId: string) => `/v1/partners/${partnerId}/members`,
+      wallet: (partnerId: string) => `/v1/partners/${partnerId}/wallet`,
+      ledger: (partnerId: string) => `/v1/partners/${partnerId}/ledger`,
+      driverRecharge: (partnerId: string) =>
+        `/v1/partners/${partnerId}/wallet/driver-recharge`,
+      driverTransfers: (partnerId: string) =>
+        `/v1/partners/${partnerId}/wallet/driver-transfers`,
+      driverTransferStats: (partnerId: string) =>
+        `/v1/partners/${partnerId}/wallet/driver-transfers/stats`,
+    },
+    franchise: {
+      finance: {
+        driverRecharge: "/v1/franchise/finance/driver-recharge",
+        driverTransfers: "/v1/franchise/finance/driver-transfers",
+        driverTransferStats: "/v1/franchise/finance/driver-transfers/stats",
+      },
+      driverRecharge: (franchiseId: string) =>
+        `/v1/franchises/${franchiseId}/driver-recharge`,
+      driverTransfers: (franchiseId: string) =>
+        `/v1/franchises/${franchiseId}/driver-transfers`,
+      driverTransferStats: (franchiseId: string) =>
+        `/v1/franchises/${franchiseId}/driver-transfers/stats`,
     },
     catalog: {
       bootstrap: "/v1/catalog/bootstrap",
@@ -102,6 +126,9 @@ export const LINKS = {
       forgotPassword: `${AUTH_V1_BASE}/forgot-password`,
       otpSend: `${AUTH_V1_BASE}/otp/send`,
       otpVerify: `${AUTH_V1_BASE}/otp/verify`,
+      driverResendOtp: `${AUTH_V1_BASE}/driver/resend-otp`,
+      driverVerifyOtp: `${AUTH_V1_BASE}/driver/verify-otp`,
+      devOtpLast: "/v1/dev/otp/last",
       /** Inscription compte portail franchise (bootstrap membre — franchiseId requis) */
       franchiseRegister: `${AUTH_V1_BASE}/franchise/register`,
     },
@@ -171,6 +198,7 @@ export const LINKS = {
       userSuspend: (id: string) => `${ADMIN_V1_BASE}/users/${id}/suspend`,
       userActivate: (id: string) => `${ADMIN_V1_BASE}/users/${id}/activate`,
       filterOptions: `${ADMIN_V1_BASE}/filter-options`,
+      driverById: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}`,
       driverApprove: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/approve`,
       driverReject: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/reject`,
       vehicles: `${ADMIN_V1_BASE}/vehicles`,
@@ -182,6 +210,8 @@ export const LINKS = {
       paymentsReconcileBatch: `${ADMIN_V1_BASE}/payments/reconcile-batch`,
       pricingRules: `${ADMIN_V1_BASE}/pricing-rules`,
       pricingRuleById: (id: string) => `${ADMIN_V1_BASE}/pricing-rules/${id}`,
+      commissionRules: `${ADMIN_V1_BASE}/commission-rules`,
+      commissionRuleById: (id: string) => `${ADMIN_V1_BASE}/commission-rules/${id}`,
       franchiseDelete: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
       finance: {
         dashboard: `${ADMIN_V1_BASE}/finance/dashboard`,
@@ -230,6 +260,8 @@ export const LINKS = {
       drivers: (id: string) => `/v1/partners/${id}/drivers`,
       vehicleById: (partnerId: string, vehicleId: string) =>
         `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
+      assignDriver: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}/assign-driver`,
       wallet: (id: string) => `/v1/partners/${id}/wallet`,
       ledger: (id: string) => `/v1/partners/${id}/ledger`,
     },

@@ -97,6 +97,7 @@ export interface TripDriverLocation {
 export interface TripDetail extends Trip {
   from_coords?: { lat: number; lng: number };
   to_coords?: { lat: number; lng: number };
+  client_id?: string | number;
   client_phone?: string;
   driver_id?: string | number;
   driver_phone?: string;
@@ -167,6 +168,7 @@ export interface TransactionsResponse extends Paginated<Transaction> {
     credits_today_fcfa: number;
     debits_today_fcfa: number;
   };
+  filter_options?: TripsScopeFilterOptions;
 }
 
 export type WithdrawalStatus = "pending" | "approved" | "rejected";
@@ -262,6 +264,10 @@ export interface PartnerDetail extends Partner {
   }[];
 }
 
+export type ZonePolygonGeoJson =
+  | { type: "Polygon"; coordinates: number[][][] }
+  | { type: "MultiPolygon"; coordinates: number[][][][] };
+
 export interface ZoneDetail extends Zone {
   franchise_id: number | string;
   status: "active" | "inactive";
@@ -275,13 +281,30 @@ export interface ZoneDetail extends Zone {
     revenue_month_fcfa: number;
     avg_fare_fcfa: number;
   };
-  polygon_geojson?: {
-    type: "Polygon";
-    coordinates: number[][][];
-  };
+  polygon_geojson?: ZonePolygonGeoJson;
   surge_rules: { label: string; multiplier: number; hours: string }[];
   partners_in_zone: { id: number; name: string; drivers_count: number }[];
 }
+
+export interface DriverDocumentsSummary {
+  required_count: number;
+  uploaded_count: number;
+  approved_count: number;
+  pending_count: number;
+  rejected_count: number;
+  missing_count: number;
+  missing_types: string[];
+  is_complete: boolean;
+  has_any_document: boolean;
+}
+
+export type DriverComplianceStatus =
+  | "complete"
+  | "documents_incomplete"
+  | "vehicle_incomplete"
+  | "kyc_incomplete"
+  | "pending"
+  | (string & {});
 
 export interface Driver {
   id: string | number;
@@ -341,6 +364,8 @@ export interface DriverTimelineEvent {
 export interface DriverDetail extends Driver {
   driver_code?: string;
   email?: string;
+  /** UUID utilisateur Auth — distinct de `id` (fiche drivers). */
+  user_id?: string;
   owner_id?: number | string;
   /** UUID véhicule assigné — GET /v1/drivers/:id → current_vehicle_id / vehicle.id */
   vehicle_id?: string | null;

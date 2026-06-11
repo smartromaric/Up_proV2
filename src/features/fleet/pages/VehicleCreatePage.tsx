@@ -1,16 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { notificationService } from "@/core/http/notificationService";
 import { usePartnersList } from "@/features/network/api/partners.queries";
-import { useFranchiseDetail } from "@/features/network/api/franchiseDetail.queries";
 import { usePartnerDetail } from "@/features/network/api/partnerDetail.queries";
 import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
-import { useCatalogCountryForPartner } from "@/shared/hooks/useCatalogCountryForPartner";
-import type { Partner, PartnerDetail } from "@/shared/types";
 import {
   FleetPairCreateWizard,
   type AdminFleetPairSubmitPayload,
@@ -39,29 +35,6 @@ export function VehicleCreatePage({ lockedPartnerId }: VehicleCreatePageProps = 
   const { data: categories, isLoading: categoriesLoading } = useVehicleCategoriesCatalog();
   const { data: brands, isLoading: brandsLoading } = useVehicleBrandsCatalog();
   const { data: colors, isLoading: colorsLoading } = useVehicleColorsCatalog();
-
-  const selectedPartner = useMemo((): Partner | PartnerDetail | null => {
-    if (adminLocked && lockedPartner) return lockedPartner;
-    return null;
-  }, [adminLocked, lockedPartner]);
-
-  const franchiseIdForCountry = useMemo(() => {
-    const fid = selectedPartner?.franchise_id;
-    if (fid == null || fid === "—") return "";
-    return String(fid);
-  }, [selectedPartner?.franchise_id]);
-
-  const { data: franchiseDetail } = useFranchiseDetail(franchiseIdForCountry);
-
-  const { data: phoneCountry } = useCatalogCountryForPartner({
-    franchiseCountryId: franchiseDetail?.country_id,
-    cityId:
-      selectedPartner && "city_id" in selectedPartner
-        ? selectedPartner.city_id
-        : undefined,
-    cityLabel: selectedPartner?.city,
-    enabled: !legacy && Boolean(selectedPartner),
-  });
 
   const backHref = adminLocked && lockedPartnerId
     ? `/admin/network/partners/${lockedPartnerId}?tab=drivers`
@@ -121,7 +94,6 @@ export function VehicleCreatePage({ lockedPartnerId }: VehicleCreatePageProps = 
         lockedPartnerId={lockedPartnerId}
         backHref={backHref}
         legacyPhone={legacy}
-        phoneCountry={phoneCountry ?? null}
         partners={partners?.data ?? []}
         partnerDetailLoading={partnerDetailLoading}
         lockedPartner={lockedPartner ?? null}

@@ -7,6 +7,7 @@ export interface ListQuery extends PaginateParams {
   zone_id: number | null;
   availability: string | null;
   account_status: string | null;
+  compliance_status: string | null;
   type: string | null;
   service: string | null;
   franchise_id: number | null;
@@ -25,6 +26,7 @@ export function parseListQuery(request: Request): ListQuery {
     zone_id: zoneIdRaw ? Number(zoneIdRaw) : null,
     availability: url.searchParams.get("availability"),
     account_status: url.searchParams.get("account_status"),
+    compliance_status: url.searchParams.get("compliance_status"),
     type: url.searchParams.get("type"),
     service: url.searchParams.get("service"),
     franchise_id: parseIdParam(url.searchParams.get("franchise_id")),

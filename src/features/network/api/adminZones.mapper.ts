@@ -1,4 +1,11 @@
-import type { Paginated, Zone, ZoneDetail } from "@/shared/types";
+import type {
+  LiveMapHotZone,
+  Paginated,
+  Zone,
+  ZoneDetail,
+  ZonePolygonGeoJson,
+} from "@/shared/types";
+import { getZonePolygonRings } from "@/shared/components/map/zonesMapGeoJson";
 import type { ListParams } from "@/shared/types/listParams";
 import { paginateClientList } from "@/shared/lib/clientList";
 import type { ZoneMapItem } from "../components/AbidjanZonesMap";
@@ -27,17 +34,28 @@ function resolveSurgeMultiplier(
   return undefined;
 }
 
-export function geometryToPolygon(
+export function geometryToZoneGeoJson(
   geometry?: ApiV1ZoneItem["geometry"] | null
-): ZoneDetail["polygon_geojson"] | undefined {
-  if (!geometry || geometry.type !== "Polygon") return undefined;
-  const coords = geometry.coordinates;
-  if (!Array.isArray(coords) || coords.length === 0) return undefined;
-  return {
-    type: "Polygon",
-    coordinates: coords as number[][][],
-  };
+): ZonePolygonGeoJson | undefined {
+  if (!geometry?.type || !geometry.coordinates) return undefined;
+
+  if (geometry.type === "Polygon") {
+    const coords = geometry.coordinates as number[][][];
+    if (!Array.isArray(coords) || coords.length === 0) return undefined;
+    return { type: "Polygon", coordinates: coords };
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    const coords = geometry.coordinates as number[][][][];
+    if (!Array.isArray(coords) || coords.length === 0) return undefined;
+    return { type: "MultiPolygon", coordinates: coords };
+  }
+
+  return undefined;
 }
+
+/** @deprecated Utiliser geometryToZoneGeoJson */
+export const geometryToPolygon = geometryToZoneGeoJson;
 
 export function mapApiZoneToZone(
   item: ApiV1ZoneItem,
@@ -72,7 +90,7 @@ export function mapApiZoneToMapItem(
     type: base.type,
     city: base.city,
     franchise_name: base.franchise_name,
-    polygon_geojson: geometryToPolygon(item.geometry),
+    polygon_geojson: geometryToZoneGeoJson(item.geometry),
     center_lng: item.center_point?.coordinates?.[0],
     center_lat: item.center_point?.coordinates?.[1],
     heatLevel: item.heatLevel,
@@ -117,7 +135,7 @@ export function mapApiZoneToDetail(
       revenue_month_fcfa: 0,
       avg_fare_fcfa: 0,
     },
-    polygon_geojson: geometryToPolygon(item.geometry),
+    polygon_geojson: geometryToZoneGeoJson(item.geometry),
     center_lng: item.center_point?.coordinates?.[0],
     center_lat: item.center_point?.coordinates?.[1],
     surge_rules:
@@ -163,4 +181,83 @@ export function filterZonesByFranchise(
   franchiseId: string
 ): ApiV1ZoneItem[] {
   return items.filter((z) => String(z.franchise_id ?? "") === franchiseId);
+}
+
+function resolveZoneCenter(zone: ZoneMapItem): { lng: number; lat: number } | null {
+  if (
+    zone.center_lng != null &&
+    zone.center_lat != null &&
+    Number.isFinite(zone.center_lng) &&
+    Number.isFinite(zone.center_lat)
+  ) {
+    return { lng: zone.center_lng, lat: zone.center_lat };
+  }
+
+  const ring = getZonePolygonRings(zone.polygon_geojson)[0];
+  if (!ring?.length) return null;
+
+  const lng = ring.reduce((sum, coord) => sum + coord[0]!, 0) / ring.length;
+  const lat = ring.reduce((sum, coord) => sum + coord[1]!, 0) / ring.length;
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  return { lng, lat };
+}
+
+/** Halo « zone chaude » à partir des items carte (fallback mocks / enrichissement). */
+export function buildHotZonesFromMapItems(items: ZoneMapItem[]): LiveMapHotZone[] {
+  const rows: LiveMapHotZone[] = [];
+
+  for (const zone of items) {
+    const heatFromLevel = zone.heatLevel ?? 0;
+    const heatFromSurge =
+      zone.surge_multiplier != null && zone.surge_multiplier > 1.05 ? 2 : 0;
+    const heatFromType = zone.type === "surge" ? 2 : 0;
+    const heatLevel = Math.min(
+      3,
+      Math.max(1, heatFromLevel || heatFromSurge || heatFromType)
+    );
+
+    if (heatFromLevel < 1 && heatFromSurge < 2 && zone.type !== "surge") {
+      continue;
+    }
+
+    const center = resolveZoneCenter(zone);
+    if (!center) continue;
+
+    rows.push({
+      id: String(zone.id),
+      name: zone.name,
+      lng: center.lng,
+      lat: center.lat,
+      heatLevel,
+      surge: zone.surge_multiplier,
+      city: zone.city,
+    });
+  }
+
+  return rows;
+}
+
+export function enrichMapItemsWithHotZones(
+  items: ZoneMapItem[],
+  hotZones: LiveMapHotZone[]
+): ZoneMapItem[] {
+  if (hotZones.length === 0) return items;
+
+  const hotById = new Map(hotZones.map((zone) => [String(zone.id), zone]));
+  return items.map((item) => {
+    const hot = hotById.get(String(item.id));
+    if (!hot) return item;
+
+    return {
+      ...item,
+      heatLevel: hot.heatLevel,
+      surge_multiplier: hot.surge ?? item.surge_multiplier,
+      type:
+        hot.heatLevel >= 2 || (hot.surge != null && hot.surge > 1.05)
+          ? "surge"
+          : item.type,
+      center_lng: item.center_lng ?? hot.lng,
+      center_lat: item.center_lat ?? hot.lat,
+    };
+  });
 }
