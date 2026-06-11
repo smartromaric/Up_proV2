@@ -94,10 +94,16 @@ export function PartnerBookingsListPage() {
       exportValue: (b) => b.driver_name ?? "",
     },
     {
+      id: "payment_status",
+      header: "Paiement",
+      cell: (b) => b.payment_status ?? "—",
+      exportValue: (b) => b.payment_status ?? "",
+    },
+    {
       id: "amount",
       header: "Montant",
-      cell: (b) => formatFCFA(b.amount_fcfa),
-      exportValue: (b) => b.amount_fcfa,
+      cell: (b) => (b.amount_fcfa != null ? formatFCFA(b.amount_fcfa) : "—"),
+      exportValue: (b) => (b.amount_fcfa != null ? String(b.amount_fcfa) : ""),
     },
     {
       id: "status",

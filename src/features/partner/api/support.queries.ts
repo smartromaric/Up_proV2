@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useScope } from "@/core/auth/useScope";
 import { notificationService } from "@/core/http/notificationService";
 import { partnerSupportService } from "./support.service";
 import type { ListParams } from "@/shared/types/listParams";
@@ -13,26 +14,33 @@ export const partnerSupportKeys = {
 };
 
 export function usePartnerSupportChats(params?: ListParams) {
+  const { ownerId } = useScope();
   return useQuery({
     queryKey: partnerSupportKeys.chats(params),
-    queryFn: () => partnerSupportService.listChats(params),
+    queryFn: () => partnerSupportService.listChats(ownerId!, params),
+    enabled: ownerId != null,
   });
 }
 
-export function usePartnerSupportChat(id: string) {
+export function usePartnerSupportChat(chatId: string) {
+  const { ownerId } = useScope();
   return useQuery({
-    queryKey: partnerSupportKeys.chat(id),
-    queryFn: () => partnerSupportService.getChat(id),
-    enabled: Boolean(id),
+    queryKey: partnerSupportKeys.chat(chatId),
+    queryFn: () => partnerSupportService.getChat(ownerId!, chatId),
+    enabled: Boolean(chatId) && ownerId != null,
   });
 }
 
-export function useReplyPartnerChat(id: string) {
+export function useReplyPartnerChat(chatId: string) {
   const qc = useQueryClient();
+  const { ownerId } = useScope();
   return useMutation({
-    mutationFn: (body: string) => partnerSupportService.replyChat(id, body),
+    mutationFn: (body: string) => {
+      if (!ownerId) throw new Error("Partner ID non disponible");
+      return partnerSupportService.replyChat(ownerId, chatId, body);
+    },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: partnerSupportKeys.chat(id) });
+      void qc.invalidateQueries({ queryKey: partnerSupportKeys.chat(chatId) });
       void qc.invalidateQueries({ queryKey: partnerSupportKeys.all });
       notificationService.success("Message envoyé");
     },

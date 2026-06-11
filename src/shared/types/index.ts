@@ -292,10 +292,13 @@ export interface Driver {
   zone: string;
   owner_name?: string;
   vehicle_label?: string;
+  ride_category_code?: string;
   account_status: "pending" | "approved" | "suspended" | "banned";
   availability: "offline" | "online" | "on_trip" | "paused";
   franchise_id?: number | string;
   owner_id?: number | string;
+  created_at?: string;
+  suspended?: boolean;
 }
 
 export type KycDocumentStatus = "pending" | "approved" | "rejected";
@@ -623,6 +626,7 @@ export interface DashboardPartnerKpi {
   drivers_total: number;
   drivers_online: number;
   drivers_pending_kyc: number;
+  vehicles_total: number;
   revenue_today_fcfa: number;
   revenue_trend_pct: number;
   wallet_balance_fcfa: number;
@@ -642,7 +646,11 @@ export interface Vehicle {
   id: number | string;
   label: string;
   plate: string;
+  brand?: string;
+  model?: string;
   category: VehicleCategory;
+  category_code?: string;
+  category_label?: string;
   year: number;
   color: string;
   driver_name?: string | null;
@@ -650,7 +658,6 @@ export interface Vehicle {
   created_at: string;
   partner_id?: string | null;
   partner_name?: string | null;
-  category_label?: string;
 }
 
 export interface VehicleDetail extends Vehicle {
@@ -671,7 +678,7 @@ export interface AdminVehicleDetail extends VehicleDetail {
 }
 
 export interface PartnerProfile {
-  id: number;
+  id: string | number;
   company_name: string;
   legal_name: string;
   contact_email: string;
@@ -683,6 +690,13 @@ export interface PartnerProfile {
   status: "active" | "pending" | "suspended";
   notification_email: string;
   created_at: string;
+  /** Champs v1 API */
+  display_name?: string;
+  avatar_url?: string | null;
+  locale?: string;
+  account_type?: string;
+  country_id?: string;
+  city_id?: string;
 }
 
 export interface PartnerWallet {

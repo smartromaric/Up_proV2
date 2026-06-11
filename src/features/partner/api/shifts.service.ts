@@ -1,6 +1,32 @@
 import { apiClient } from "@/core/http/apiClient";
+import { LINKS } from "@/core/api/links";
 import type { Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
+
+interface ApiListResponse<T> {
+  status?: string;
+  items?: T[];
+  data?: T[];
+  pagination?: { page: number; limit: number; total: number; hasMore?: boolean };
+  meta?: { current_page: number; last_page: number; per_page: number; total: number };
+}
+
+function mapApiList<T>(res: ApiListResponse<T>): Paginated<T> {
+  if (res.meta && res.data) return res as Paginated<T>;
+  const items = res.items ?? res.data ?? [];
+  const p = res.pagination;
+  return {
+    data: items,
+    meta: p
+      ? {
+          current_page: p.page,
+          last_page: p.hasMore ? p.page + 1 : p.page,
+          per_page: p.limit,
+          total: p.total,
+        }
+      : { current_page: 1, last_page: 1, per_page: items.length || 20, total: items.length },
+  };
+}
 
 export interface PartnerShift {
   id: number;
@@ -35,22 +61,28 @@ export interface PartnerReport {
 }
 
 export const partnerShiftsService = {
-  list: (params?: ListParams) =>
-    apiClient.get<Paginated<PartnerShift>>(
-      `/partner/shifts${buildListQuery(params)}`
-    ),
+  list: async (partnerId: string | number, params?: ListParams) => {
+    const res = await apiClient.get<ApiListResponse<PartnerShift>>(
+      `${LINKS.partner.shifts.list(partnerId)}${buildListQuery(params)}`
+    );
+    return mapApiList(res);
+  },
 };
 
 export const partnerRecurringService = {
-  list: (params?: ListParams) =>
-    apiClient.get<Paginated<RecurringBooking>>(
-      `/partner/bookings/recurring${buildListQuery(params)}`
-    ),
+  list: async (partnerId: string | number, params?: ListParams) => {
+    const res = await apiClient.get<ApiListResponse<RecurringBooking>>(
+      `${LINKS.partner.bookings.recurring.list(partnerId)}${buildListQuery(params)}`
+    );
+    return mapApiList(res);
+  },
 };
 
 export const partnerReportsService = {
-  list: (params?: ListParams) =>
-    apiClient.get<Paginated<PartnerReport>>(
-      `/partner/reports${buildListQuery(params)}`
-    ),
+  list: async (partnerId: string | number, params?: ListParams) => {
+    const res = await apiClient.get<ApiListResponse<PartnerReport>>(
+      `${LINKS.partner.reports.list(partnerId)}${buildListQuery(params)}`
+    );
+    return mapApiList(res);
+  },
 };

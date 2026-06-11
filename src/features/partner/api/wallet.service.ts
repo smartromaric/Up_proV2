@@ -1,4 +1,5 @@
 import { apiClient } from "@/core/http/apiClient";
+import { LINKS } from "@/core/api/links";
 import type {
   PartnerDriverRechargeStats,
   PartnerDriverTransfer,
@@ -7,39 +8,119 @@ import type {
 } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
+interface WalletApiResponse {
+  success: boolean;
+  data?: {
+    id?: number;
+    partner_id?: number;
+    balance_fcfa?: number;
+    available_fcfa?: number;
+    pending_withdrawal_fcfa?: number;
+    currency?: string;
+    last_withdrawal?: {
+      id?: string;
+      amount_fcfa?: number;
+      status?: string;
+      processed_at?: string;
+    };
+    recent_movements?: {
+      id?: string;
+      label?: string;
+      amount_fcfa?: number;
+      direction?: "credit" | "debit";
+      created_at?: string;
+    }[];
+  };
+}
+
+function mapWalletResponse(response: WalletApiResponse | PartnerWallet): PartnerWallet {
+  if ("success" in response && response.success && response.data) {
+    const d = response.data;
+    return {
+      balance_fcfa: d.balance_fcfa ?? 0,
+      available_fcfa: d.available_fcfa ?? 0,
+      pending_withdrawal_fcfa: d.pending_withdrawal_fcfa ?? 0,
+      last_withdrawal: d.last_withdrawal
+        ? {
+            id: d.last_withdrawal.id ?? "",
+            amount_fcfa: d.last_withdrawal.amount_fcfa ?? 0,
+            status: d.last_withdrawal.status ?? "",
+            processed_at: d.last_withdrawal.processed_at ?? "",
+          }
+        : undefined,
+      recent_movements:
+        d.recent_movements?.map((m) => ({
+          id: m.id ?? "",
+          label: m.label ?? "",
+          amount_fcfa: m.amount_fcfa ?? 0,
+          direction: m.direction ?? "credit",
+          created_at: m.created_at ?? "",
+        })) ?? [],
+    };
+  }
+  return response as PartnerWallet;
+}
+
 export interface DriverRechargePayload {
   driver_id: number;
   amount_fcfa: number;
   note?: string;
 }
 
-export const partnerWalletService = {
-  get: () => apiClient.get<PartnerWallet>("/partner/wallet"),
+export interface LedgerEntry {
+  id: string;
+  label: string;
+  amount_fcfa: number;
+  direction: "credit" | "debit";
+  balance_after_fcfa?: number;
+  created_at: string;
+}
 
-  withdraw: (amount_fcfa: number) =>
+export const partnerWalletService = {
+  get: async (partnerId: string | number) => {
+    const response = await apiClient.get<WalletApiResponse>(
+      LINKS.partner.wallet.get(partnerId)
+    );
+    return mapWalletResponse(response);
+  },
+
+  ledger: (partnerId: string | number, params?: ListParams) =>
+    apiClient.get<Paginated<LedgerEntry>>(
+      `${LINKS.partner.wallet.ledger(partnerId)}${buildListQuery(params)}`
+    ),
+
+  settlements: (partnerId: string | number, params?: ListParams) =>
+    apiClient.get<Paginated<unknown>>(
+      `${LINKS.partner.wallet.settlements(partnerId)}${buildListQuery(params)}`
+    ),
+
+  revenue: (partnerId: string | number) =>
+    apiClient.get<unknown>(LINKS.partner.wallet.revenue(partnerId)),
+
+  withdraw: (partnerId: string | number, amount_fcfa: number) =>
     apiClient.post<{
       ok: boolean;
       message: string;
       withdrawal_id: string;
       wallet: PartnerWallet;
-    }>("/partner/wallet/withdraw", { amount_fcfa }),
+    }>(LINKS.partner.wallet.withdraw(partnerId), { amount_fcfa }),
 
-  getDriverRechargeStats: () =>
+  getDriverRechargeStats: (partnerId: string | number) =>
     apiClient.get<PartnerDriverRechargeStats>(
-      "/partner/wallet/driver-transfers/stats"
+      LINKS.partner.wallet.driverTransfers.stats(partnerId)
     ),
 
-  listDriverTransfers: (params?: ListParams) =>
+  listDriverTransfers: (partnerId: string | number, params?: ListParams) =>
     apiClient.get<Paginated<PartnerDriverTransfer>>(
-      `/partner/wallet/driver-transfers${buildListQuery(params)}`
+      `${LINKS.partner.wallet.driverTransfers.list(partnerId)}${buildListQuery(params)}`
     ),
 
-  rechargeDriver: (payload: DriverRechargePayload) =>
+  rechargeDriver: (partnerId: string | number, payload: DriverRechargePayload) =>
     apiClient.post<{
       ok: boolean;
       message: string;
       transfer: PartnerDriverTransfer;
       wallet: PartnerWallet;
       stats: PartnerDriverRechargeStats;
-    }>("/partner/wallet/driver-recharge", payload),
+    }>(LINKS.partner.wallet.driverRecharge(partnerId), payload),
 };
