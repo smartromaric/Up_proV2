@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { partnersKeys } from "@/features/network/api/partners.keys";
+import { useScope } from "@/core/auth/useScope";
 import { partnerDriversService } from "./drivers.service";
 import type { CreateDriverPayload } from "./drivers.service";
 import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
@@ -31,6 +32,7 @@ export function usePartnerDriverDetail(id: string) {
 
 export function useCreatePartnerDriver() {
   const qc = useQueryClient();
+  const { ownerId } = useScope();
   return useMutation({
     mutationFn: ({
       data,

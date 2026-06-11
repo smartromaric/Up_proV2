@@ -26,6 +26,12 @@ function mapCategoryCode(code?: string): VehicleCategory {
   return CATEGORY_CODE_TO_UI[code.toUpperCase()] ?? "taxi";
 }
 
+function resolveDriverName(item: ApiV1VehicleItem): string | null {
+  const d = (item as unknown as { driver?: { name?: string | null; first_name?: string | null; last_name?: string | null; profile?: { displayName?: string | null } | null } | null }).driver;
+  if (!d) return null;
+  return d.name ?? d.first_name ?? d.profile?.displayName ?? null;
+}
+
 function readLabelParts(
   item: ApiV1VehicleItem,
   lookups?: VehicleCatalogLookups
@@ -65,11 +71,14 @@ export function mapApiVehicleToVehicle(
     id: item.id,
     label,
     plate: item.plate_number?.trim() ?? "",
+    brand: parts.brand || undefined,
+    model: parts.model || undefined,
     category: mapCategoryCode(parts.categoryCode),
+    category_code: parts.categoryCode ?? undefined,
     category_label: parts.categoryLabel,
     year: item.manufacture_year ?? 0,
     color: parts.color || "—",
-    driver_name: null,
+    driver_name: resolveDriverName(item),
     approval_status: mapApiVehicleStatus(item.status),
     created_at: item.created_at ?? new Date().toISOString(),
     partner_id: item.partner_id ?? null,

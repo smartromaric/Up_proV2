@@ -29,6 +29,13 @@ function resolvePartnerIdForDrivers(): string | undefined {
   return String(ownerId);
 }
 
+function normalizePhoneE164(phone: string): string {
+  const digits = phone.replace(/\s/g, "");
+  if (digits.startsWith("+")) return digits;
+  if (digits.startsWith("0")) return `+225${digits.slice(1)}`;
+  return `+225${digits}`;
+}
+
 export const partnerDriversService = {
   list: async (params?: ListParams) => {
     if (useLegacyPortalApi()) {
@@ -60,10 +67,11 @@ export const partnerDriversService = {
   },
 
   create: (data: CreateDriverPayload, context?: CreateDriverV1Context) => {
+    const normalized = { ...data, phone: normalizePhoneE164(data.phone) };
     if (useLegacyPortalApi() && !context?.partnerId) {
-      return apiClient.post<DriverDetail>("/partner/drivers", data);
+      return apiClient.post<DriverDetail>("/partner/drivers", normalized);
     }
-    return createDriverViaV1(data, {
+    return createDriverViaV1(normalized, {
       partnerId: context?.partnerId ?? resolvePartnerIdForDrivers(),
       rideCategoryCode: context?.rideCategoryCode,
     });

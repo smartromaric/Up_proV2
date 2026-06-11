@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { formatDate } from "@/shared/lib/format";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { AccountStatusPill, AvailabilityPill } from "@/shared/ui/DriverPills";
@@ -27,6 +29,7 @@ interface PartnerDriversListPageProps {
 }
 
 export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPageProps) {
+  const router = useRouter();
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
   const table = useServerTableState([], {
@@ -45,7 +48,8 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
   const columns: Column<Driver>[] = [
     {
       id: "name",
-      header: "Chauffeur",
+      header: "Nom",
+      className: "min-w-[200px]",
       cell: (d) => (
         <div>
           <Link
@@ -54,10 +58,15 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
           >
             {d.first_name} {d.last_name}
           </Link>
-          <p className="text-xs text-muted">{d.phone}</p>
         </div>
       ),
-      exportValue: (d) => `${d.first_name} ${d.last_name} (${d.phone})`,
+      exportValue: (d) => `${d.first_name} ${d.last_name}`,
+    },
+    {
+      id: "phone",
+      header: "Téléphone",
+      cell: (d) => d.phone,
+      exportValue: (d) => d.phone,
     },
     {
       id: "zone",
@@ -67,13 +76,25 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
     },
     {
       id: "vehicle",
-      header: "Véhicule",
+      header: "Véhicule affecté",
       cell: (d) => d.vehicle_label ?? "—",
       exportValue: (d) => d.vehicle_label ?? "",
     },
     {
+      id: "category",
+      header: "Catégorie",
+      cell: (d) => d.ride_category_code ?? "—",
+      exportValue: (d) => d.ride_category_code ?? "",
+    },
+    {
+      id: "created",
+      header: "Date création",
+      cell: (d) => formatDate(d.created_at),
+      exportValue: (d) => d.created_at ?? "",
+    },
+    {
       id: "account",
-      header: "Compte",
+      header: "Statut",
       cell: (d) => <AccountStatusPill status={d.account_status} />,
       exportValue: (d) => getDriverAccountStatusLabel(d.account_status),
     },
@@ -82,6 +103,41 @@ export function PartnerDriversListPage({ pendingOnly }: PartnerDriversListPagePr
       header: "Disponibilité",
       cell: (d) => <AvailabilityPill status={d.availability} />,
       exportValue: (d) => getDriverAvailabilityLabel(d.availability),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: (d) => (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            className="px-2 py-1 text-xs"
+            onClick={() => router.push(`/partner/drivers/${d.id}`)}
+          >
+            Voir
+          </Button>
+          <Button
+            variant="ghost"
+            className="px-2 py-1 text-xs"
+            onClick={() => router.push(`/partner/drivers/${d.id}?edit=1`)}
+          >
+            Modifier
+          </Button>
+          <Button
+            variant="ghost"
+            className={`px-2 py-1 text-xs ${d.suspended ? "text-teal" : "text-red-600"}`}
+            onClick={() => {
+              notificationService.success(
+                d.suspended
+                  ? "Chauffeur réactivé (à brancher sur l'API)"
+                  : "Chauffeur suspendu (à brancher sur l'API)"
+              );
+            }}
+          >
+            {d.suspended ? "Réactiver" : "Suspendre"}
+          </Button>
+        </div>
+      ),
     },
   ];
 

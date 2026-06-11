@@ -494,65 +494,143 @@ export const LINKS = {
   },
 
   partner: {
-    dashboard: "/partner/dashboard",
+    dashboard: (id: string | number) => `/v1/partners/${id}/dashboard`,
     profile: {
-      get: "/partner/profile",
-      update: "/partner/profile",
+      get: (id: string | number) => `/v1/partners/${id}`,
+      update: (id: string | number) => `/v1/partners/${id}`,
+      me: "/v1/partners/me",
+      documents: {
+        list: (id: string | number) => `/v1/partners/${id}/documents`,
+        create: (id: string | number) => `/v1/partners/${id}/documents`,
+      },
     },
 
     drivers: {
-      ...createCrudEndpoints("/partner/drivers"),
-      documents: (driverId: string | number) => `/partner/drivers/${driverId}/documents`,
-      trips: (id: string | number) => `/partner/drivers/${id}/trips`,
-      walletTransactions: (id: string | number) =>
-        `/partner/drivers/${id}/wallet/transactions`,
-      live: (id: string | number) => `/partner/drivers/${id}/live`,
+      list: (id: string | number) => `/v1/partners/${id}/drivers`,
+      members: {
+        list: (id: string | number) => `/v1/partners/${id}/members`,
+        create: (id: string | number) => `/v1/partners/${id}/members`,
+        update: (id: string | number, memberId: string | number) =>
+          `/v1/partners/${id}/members/${memberId}`,
+        delete: (id: string | number, memberId: string | number) =>
+          `/v1/partners/${id}/members/${memberId}`,
+      },
+      create: (id: string | number) => `/v1/partners/${id}/drivers`,
+      getById: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}`,
+      documents: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/documents`,
+      trips: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/trips`,
+      walletTransactions: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/wallet/transactions`,
+      live: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/live`,
     },
 
     vehicles: {
-      ...createCrudEndpoints("/partner/vehicles"),
-      registration: (id: string | number) => `/partner/vehicles/${id}/registration`,
-      documents: (id: string | number) => `/partner/vehicles/${id}/documents`,
-      assignDriver: (vehicleId: string | number) =>
-        `/partner/vehicles/${vehicleId}/assign-driver`,
-    },
-
-    bookings: {
-      ...createCrudEndpoints("/partner/bookings"),
-      cancel: (id: string | number) => `/partner/bookings/${id}/cancel`,
-      recurring: {
-        list: "/partner/bookings/recurring",
+      list: (id: string | number) => `/v1/partners/${id}/vehicles`,
+      performance: (id: string | number) => `/v1/partners/${id}/vehicle-performance`,
+      driverPerformance: (id: string | number) => `/v1/partners/${id}/driver-performance`,
+      gpsDevices: {
+        list: (id: string | number) => `/v1/partners/${id}/gps-devices`,
+        create: (id: string | number) => `/v1/partners/${id}/gps-devices`,
+        update: (id: string | number, deviceId: string | number) =>
+          `/v1/partners/${id}/gps-devices/${deviceId}`,
+        delete: (id: string | number, deviceId: string | number) =>
+          `/v1/partners/${id}/gps-devices/${deviceId}`,
       },
-    },
-
-    shifts: {
-      list: "/partner/shifts",
-    },
-
-    reports: {
-      list: "/partner/reports",
+      create: (id: string | number) => `/v1/partners/${id}/vehicles`,
+      getById: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}`,
+      registration: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}/registration`,
+      documents: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}/documents`,
+      assignDriver: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}/assign-driver`,
     },
 
     wallet: {
-      get: "/partner/wallet",
-      withdraw: "/partner/wallet/withdraw",
+      get: (id: string | number) => `/v1/partners/${id}/wallet`,
+      ledger: (id: string | number) => `/v1/partners/${id}/ledger`,
+      settlements: (id: string | number) => `/v1/partners/${id}/settlements`,
+      cashReconciliations: (id: string | number) =>
+        `/v1/partners/${id}/cash-reconciliations`,
+      revenue: (id: string | number) => `/v1/partners/${id}/revenue`,
+      withdraw: (id: string | number) => `/v1/partners/${id}/wallet/withdraw`,
       driverTransfers: {
-        stats: "/partner/wallet/driver-transfers/stats",
-        list: "/partner/wallet/driver-transfers",
+        stats: (id: string | number) =>
+          `/v1/partners/${id}/wallet/driver-transfers/stats`,
+        list: (id: string | number) => `/v1/partners/${id}/wallet/driver-transfers`,
       },
-      driverRecharge: "/partner/wallet/driver-recharge",
+      driverRecharge: (id: string | number) =>
+        `/v1/partners/${id}/wallet/driver-recharge`,
+    },
+
+    freight: {
+      list: (id: string | number) => `/v1/partners/${id}/freight-offers`,
+      update: (id: string | number, offerId: string | number) =>
+        `/v1/partners/${id}/freight-offers/${offerId}`,
+    },
+
+    safety: {
+      sos: {
+        list: (id: string | number) => `/v1/partners/${id}/safety/sos`,
+        getById: (id: string | number, sosId: string | number) =>
+          `/v1/partners/${id}/safety/sos/${sosId}`,
+        acknowledge: (id: string | number, sosId: string | number) =>
+          `/v1/partners/${id}/safety/sos/${sosId}/acknowledge`,
+        dashboard: (id: string | number) => `/v1/partners/${id}/safety/sos/dashboard`,
+      },
+    },
+
+    bookings: {
+      list: (id: string | number) => `/v1/partners/${id}/bookings`,
+      create: (id: string | number) => `/v1/partners/${id}/bookings`,
+      getById: (id: string | number, bookingId: string | number) =>
+        `/v1/partners/${id}/bookings/${bookingId}`,
+      cancel: (id: string | number, bookingId: string | number) =>
+        `/v1/partners/${id}/bookings/${bookingId}/cancel`,
+      recurring: {
+        list: (id: string | number) => `/v1/partners/${id}/bookings/recurring`,
+      },
+    },
+
+    orders: {
+      list: (id: string | number) => `/v1/partners/${id}/orders`,
+      getById: (id: string | number, orderId: string | number) =>
+        `/v1/partners/${id}/orders/${orderId}`,
+    },
+
+    shifts: {
+      list: (id: string | number) => `/v1/partners/${id}/shifts`,
+    },
+
+    reports: {
+      list: (id: string | number) => `/v1/partners/${id}/reports`,
     },
 
     ops: {
-      map: "/partner/ops/map",
+      map: (id: string | number) => `/v1/partners/${id}/ops/map`,
     },
 
     support: {
       chat: {
-        list: "/partner/support/chat",
-        getById: (id: string | number) => `/partner/support/chat/${id}`,
-        reply: (id: string | number) => `/partner/support/chat/${id}/messages`,
+        list: (id: string | number) => `/v1/partners/${id}/support/chat`,
+        getById: (id: string | number, chatId: string | number) =>
+          `/v1/partners/${id}/support/chat/${chatId}`,
+        reply: (id: string | number, chatId: string | number) =>
+          `/v1/partners/${id}/support/chat/${chatId}/messages`,
       },
+    },
+
+    catalog: {
+      vehicleCategories: "/v1/catalog/vehicle-categories",
+      vehicleColors: "/v1/catalog/vehicle-colors",
+      vehicleBrands: "/v1/catalog/vehicle-brands",
+      vehicleBrandModels: (brandCode: string) =>
+        `/v1/catalog/vehicle-brands/${brandCode}/models`,
     },
   },
 

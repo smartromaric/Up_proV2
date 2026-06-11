@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useScope } from "@/core/auth/useScope";
 import {
   partnerWalletService,
   type DriverRechargeBatchPayload,
@@ -9,30 +10,37 @@ import { notificationService } from "@/core/http/notificationService";
 import type { ListParams } from "@/shared/types/listParams";
 
 export function usePartnerWallet() {
+  const { ownerId } = useScope();
   return useQuery({
-    queryKey: ["partner", "wallet"],
-    queryFn: () => partnerWalletService.get(),
+    queryKey: ["partner", "wallet", ownerId],
+    queryFn: () => partnerWalletService.get(ownerId!),
+    enabled: ownerId != null,
   });
 }
 
 export function usePartnerDriverRechargeStats() {
+  const { ownerId } = useScope();
   return useQuery({
-    queryKey: ["partner", "wallet", "driver-transfers", "stats"],
-    queryFn: () => partnerWalletService.getDriverRechargeStats(),
+    queryKey: ["partner", "wallet", "driver-transfers", "stats", ownerId],
+    queryFn: () => partnerWalletService.getDriverRechargeStats(ownerId!),
+    enabled: ownerId != null,
   });
 }
 
 export function usePartnerDriverTransfers(params?: ListParams) {
+  const { ownerId } = useScope();
   return useQuery({
-    queryKey: ["partner", "wallet", "driver-transfers", params],
-    queryFn: () => partnerWalletService.listDriverTransfers(params),
+    queryKey: ["partner", "wallet", "driver-transfers", ownerId, params],
+    queryFn: () => partnerWalletService.listDriverTransfers(ownerId!, params),
+    enabled: ownerId != null,
   });
 }
 
 export function usePartnerWalletWithdraw() {
   const qc = useQueryClient();
+  const { ownerId } = useScope();
   return useMutation({
-    mutationFn: (amount_fcfa: number) => partnerWalletService.withdraw(amount_fcfa),
+    mutationFn: (amount_fcfa: number) => partnerWalletService.withdraw(ownerId!, amount_fcfa),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ["partner", "wallet"] });
       notificationService.success(data.message);
@@ -42,9 +50,10 @@ export function usePartnerWalletWithdraw() {
 
 export function usePartnerDriverRecharge() {
   const qc = useQueryClient();
+  const { ownerId } = useScope();
   return useMutation({
-    mutationFn: (payload: DriverRechargeBatchPayload) =>
-      partnerWalletService.rechargeDrivers(payload),
+    mutationFn: (payload: DriverRechargePayload) =>
+      partnerWalletService.rechargeDriver(ownerId!, payload),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ["partner", "wallet"] });
       void qc.invalidateQueries({
@@ -52,5 +61,19 @@ export function usePartnerDriverRecharge() {
       });
       notificationService.success(data.message);
     },
+  });
+}
+
+export const partnerLedgerKeys = {
+  all: ["partner", "ledger"] as const,
+  list: (filters?: ListParams) => [...partnerLedgerKeys.all, "list", filters] as const,
+};
+
+export function usePartnerLedger(params?: ListParams) {
+  const { ownerId } = useScope();
+  return useQuery({
+    queryKey: partnerLedgerKeys.list(params),
+    queryFn: () => partnerWalletService.ledger(ownerId!, params),
+    enabled: ownerId != null,
   });
 }

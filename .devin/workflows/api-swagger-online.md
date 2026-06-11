@@ -1,0 +1,50 @@
+---
+description: Intégrations API v1 — toujours partir du Swagger en ligne avant d'intégrer ou modifier une route
+---
+
+# Intégration API UpJunoo — Swagger en ligne
+
+## Source de vérité
+
+**Toujours** consulter [https://api.upjunoo-dev.tech/docs](https://api.upjunoo-dev.tech/docs) avant d'intégrer ou modifier une route `/v1/...`.
+
+- `SWAGGER.md` (racine) = export local, **peut être en retard** sur l'API live.
+- Déploiement + état audit API : `VERCEL-DEPLOIEMENT.md`
+- Contexte complet : `docs/API-SWAGGER-CONTEXT.md`
+- Écarts UI : `docs/ECARTS-API-V1-BACKOFFICE.md`
+
+## Workflow obligatoire
+
+1. Trouver la route dans Swagger en ligne (tag **10 - Admin** pour le back-office).
+2. Tester avec compte admin dev ou `node scripts/test-v1-api.mjs`.
+3. Ajouter le chemin dans `src/core/api/links.ts` (`LINKS.admin.v1.*`).
+4. Créer `*.api.types.ts` + `*.mapper.ts` depuis la **réponse JSON réelle**.
+5. Brancher le service avec `useLegacyAdminApi()` pour le fallback mock.
+
+## Routes admin courses
+
+- Liste : `GET /v1/admin/orders`
+- **Détail** : `GET /v1/admin/orders/{orderId}` — route préférée (timeline, events, commission, clientPhone)
+- Fallback détail : live-map + liste (legacy front uniquement si détail admin échoue)
+- **Ne pas** utiliser `GET /v1/rides/{id}` pour l'admin (scope client)
+
+## Compléments dispatch (forensic / debug)
+
+- `GET /v1/dispatch/RIDE/{orderId}/status`
+- `GET /v1/dispatch/RIDE/{orderId}/logs`
+- `GET /v1/orders/RIDE/{orderId}/events`
+
+## Headers
+
+```
+Authorization: Bearer <accessToken>
+X-Client-Type: back-office
+```
+
+## Fichiers concernés
+
+Ce workflow s'applique dès que tu travailles sur :
+- `src/**/*.service.ts`
+- `src/**/*.mapper.ts`
+- `src/core/api/links.ts`
+- `docs/API*.md`

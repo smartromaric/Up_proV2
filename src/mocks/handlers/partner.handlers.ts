@@ -266,8 +266,26 @@ function vehicleDetailById(id: string) {
 }
 
 export const partnerHandlers = [
-  http.get("*/api/v2/partner/dashboard", () => {
-    return HttpResponse.json(dashboardPartner);
+  http.get("*/v1/partners/:id/dashboard", () => {
+    return HttpResponse.json({
+      status: "ok",
+      generatedAt: new Date().toISOString(),
+      dashboard: {
+        fleetName: dashboardPartner.fleet_name,
+        driversCount: dashboardPartner.drivers_total,
+        driversOnline: dashboardPartner.drivers_online,
+        driversPendingKyc: dashboardPartner.drivers_pending_kyc,
+        tripsToday: dashboardPartner.trips_today,
+        tripsCompletedToday: dashboardPartner.trips_completed_today,
+        tripsCancelledToday: dashboardPartner.trips_cancelled_today,
+        revenueToday: dashboardPartner.revenue_today_fcfa,
+        revenueTrendPct: dashboardPartner.revenue_trend_pct,
+        walletBalance: dashboardPartner.wallet_balance_fcfa,
+        pendingWithdrawal: dashboardPartner.pending_withdrawal_fcfa,
+        chartFlux: dashboardPartner.chart_flux,
+        recentTrips: dashboardPartner.recent_trips,
+      },
+    });
   }),
 
   http.get("*/api/v2/partner/profile", () => {

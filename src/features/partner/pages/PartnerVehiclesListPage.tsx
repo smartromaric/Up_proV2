@@ -68,30 +68,42 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
 
   const columns: Column<Vehicle>[] = [
     {
-      id: "vehicle",
-      header: "Véhicule",
+      id: "plate",
+      header: "Immatriculation",
       cell: (v) => (
-        <div>
-          <Link
-            href={`/partner/fleet/${v.id}`}
-            className="font-medium text-foreground hover:text-teal"
-          >
-            {v.label}
-          </Link>
-          <p className="text-xs text-muted">
-            {v.plate || "Plaque à renseigner"} · {getVehicleCategoryLabel(v.category)}
-          </p>
-        </div>
+        <Link
+          href={`/partner/fleet/${v.id}`}
+          className="font-medium text-foreground hover:text-teal"
+        >
+          {v.plate || "—"}
+        </Link>
       ),
-      exportValue: (v) =>
-        `${v.label} · ${v.plate || "Plaque à renseigner"} · ${getVehicleCategoryLabel(v.category)}`,
+      exportValue: (v) => v.plate ?? "",
+    },
+    {
+      id: "brand",
+      header: "Marque",
+      cell: (v) => v.brand ?? "—",
+      exportValue: (v) => v.brand ?? "",
+    },
+    {
+      id: "model",
+      header: "Modèle",
+      cell: (v) => v.model ?? "—",
+      exportValue: (v) => v.model ?? "",
+    },
+    {
+      id: "driver",
+      header: "Chauffeur affecté",
+      cell: (v) => v.driver_name ?? "—",
+      exportValue: (v) => v.driver_name ?? "",
     },
     {
       id: "year",
       header: "Année",
       className: "tabular-nums",
       cell: (v) => v.year,
-      exportValue: (v) => v.year,
+      exportValue: (v) => String(v.year),
     },
     {
       id: "color",
@@ -100,14 +112,20 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
       exportValue: (v) => v.color,
     },
     {
-      id: "driver",
-      header: "Chauffeur assigné",
-      cell: (v) => v.driver_name ?? "—",
-      exportValue: (v) => v.driver_name ?? "",
+      id: "category",
+      header: "Catégorie",
+      cell: (v) => v.category_code ?? v.category_label ?? "—",
+      exportValue: (v) => v.category_code ?? v.category_label ?? "",
+    },
+    {
+      id: "type",
+      header: "Type",
+      cell: (v) => getVehicleCategoryLabel(v.category),
+      exportValue: (v) => getVehicleCategoryLabel(v.category),
     },
     {
       id: "status",
-      header: "Validation",
+      header: "Statut",
       cell: (v) => <VehicleApprovalPill status={v.approval_status} />,
       exportValue: (v) => getVehicleApprovalLabel(v.approval_status),
     },

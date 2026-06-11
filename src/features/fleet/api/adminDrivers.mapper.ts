@@ -59,6 +59,13 @@ function driverDisplayName(item: ApiAdminDriverItem): {
     if (parts.length <= 1) return { first_name: profileName, last_name: "" };
     return { first_name: parts[0], last_name: parts.slice(1).join(" ") };
   }
+  // Format /v1/partners/{id}/drivers (snake_case via user object)
+  const uFirst = item.user?.first_name?.trim();
+  const uLast = item.user?.last_name?.trim();
+  if (uFirst || uLast) {
+    return { first_name: uFirst || "Chauffeur", last_name: uLast ?? "" };
+  }
+  // Format legacy /v1/admin/drivers (camelCase)
   const first = item.firstName?.trim();
   const last = item.lastName?.trim();
   if (first || last) {
@@ -67,6 +74,28 @@ function driverDisplayName(item: ApiAdminDriverItem): {
   const code = item.driver_code?.trim();
   const label = code || `Chauffeur ${item.id.slice(0, 8)}`;
   return { first_name: label, last_name: "" };
+}
+
+function resolveZone(item: ApiAdminDriverItem): string {
+  const meta = item.metadata ?? {};
+  const zoneLabel =
+    (meta.zoneLabel as string | undefined) ??
+    (meta.zone as string | undefined) ??
+    (meta.zoneCode as string | undefined);
+  if (zoneLabel) return zoneLabel;
+  return item.zoneName ?? item.city_id ?? "—";
+}
+
+function resolveVehicleLabel(item: ApiAdminDriverItem): string | undefined {
+  if (item.vehicle?.label) return item.vehicle.label;
+  if (item.vehicle?.plate) return item.vehicle.plate;
+  return item.vehicleLabel ?? undefined;
+}
+
+function resolveSuspended(item: ApiAdminDriverItem): boolean {
+  const meta = item.metadata ?? {};
+  if (typeof meta.suspended === "boolean") return meta.suspended;
+  return false;
 }
 
 export function mapAdminDriverItemToListDriver(
@@ -78,23 +107,22 @@ export function mapAdminDriverItemToListDriver(
     id: item.id,
     first_name,
     last_name,
-    phone: item.profile?.phone ?? item.phone ?? "—",
+    phone: item.user?.phone ?? item.profile?.phone ?? item.phone ?? "—",
     rating: item.rating_avg ?? 0,
-    zone: item.zoneName ?? item.city_id ?? "—",
+    zone: resolveZone(item),
     owner_name:
       item.partnerName ??
       (item.partner_id
         ? `Partenaire ${String(item.partner_id).slice(0, 8)}`
         : undefined),
-    vehicle_label: item.vehicleLabel ?? item.ride_category_code ?? undefined,
+    vehicle_label: resolveVehicleLabel(item),
+    ride_category_code: item.ride_category_code ?? undefined,
     account_status: mapAccountStatus(item),
     availability: mapAvailability(item),
-    franchise_id: item.franchise_id
-      ? String(item.franchise_id)
-      : undefined,
+    franchise_id: item.franchise_id ? String(item.franchise_id) : undefined,
     owner_id: item.partner_id ? String(item.partner_id) : undefined,
-    documents_summary: mapDocumentsSummary(item.documentsSummary),
-    compliance_status: mapComplianceStatus(item.complianceStatus),
+    created_at: item.created_at,
+    suspended: resolveSuspended(item),
   };
 }
 
