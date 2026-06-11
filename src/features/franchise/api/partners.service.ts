@@ -1,7 +1,7 @@
 import { apiClient } from "@/core/http/apiClient";
 import { fetchNetworkLookups } from "@/core/api/catalogLookup.service";
 import { resolveFranchiseId } from "@/core/api/franchiseContext.service";
-import { LINKS } from "@/core/api/links";
+import { LINKS, appendQuery, createUrl } from "@/core/api/links";
 import { buildV1ListQuery } from "@/core/api/v1Pagination";
 import { useLegacyPortalApi } from "@/core/api/portalApiMode";
 import type { ApiV1FranchisePartnersResponse } from "@/features/network/api/adminFranchises.api.types";
@@ -34,7 +34,10 @@ export const franchisePartnersService = {
     const franchiseId = await resolveFranchiseId();
     const [response, lookups] = await Promise.all([
       apiClient.get<ApiV1FranchisePartnersResponse>(
-        `${LINKS.admin.franchises.partners(franchiseId)}${buildV1ListQuery(params)}`
+        appendQuery(
+          LINKS.franchise.v1.partners(franchiseId),
+          buildV1ListQuery(params)
+        )
       ),
       fetchNetworkLookups(),
     ]);
@@ -54,10 +57,11 @@ export const franchisePartnersService = {
       );
     }
 
+    const franchiseId = await resolveFranchiseId();
     const response = await apiClient.get<{
       status: string;
       partner: Parameters<typeof mapAdminPartnerItemToPartner>[0];
-    }>(LINKS.admin.partners.getById(id));
+    }>(LINKS.franchise.v1.partnerById(franchiseId, id));
     const base = mapAdminPartnerItemToPartner(response.partner);
     return {
       ...base,

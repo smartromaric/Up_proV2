@@ -138,15 +138,30 @@ export function FranchiseDriversListPage({ pendingOnly }: FranchiseDriversListPa
   ];
 
   if (isError) {
-    return <p className="text-sm text-red-600">Impossible de charger les chauffeurs.</p>;
+    return (
+      <p className="text-sm text-red-600">
+        Impossible de charger les chauffeurs.{" "}
+        <Link href="/franchise/drivers" className="text-teal underline">
+          Réessayer
+        </Link>
+      </p>
+    );
   }
 
   return (
     <div className="animate-fade-up">
-      <PageHeader
-        title={pendingOnly ? "Modération KYC" : "Chauffeurs du territoire"}
-        breadcrumb={["Franchise", "Flotte"]}
-      />
+      {/* Header sticky */}
+      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+        <PageHeader
+          title={pendingOnly ? "Modération KYC" : "Chauffeurs du territoire"}
+          breadcrumb={["Franchise", "Flotte"]}
+        />
+        {meta && (
+          <p className="mt-1 text-sm text-muted">
+            {meta.total} chauffeur{meta.total > 1 ? "s" : ""} sur le territoire
+          </p>
+        )}
+      </div>
 
       <TableFiltersBar
         search={table.search}

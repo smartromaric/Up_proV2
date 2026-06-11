@@ -125,22 +125,35 @@ export function FranchisePricingPage() {
   ];
 
   if (isError) {
-    return <p className="text-sm text-red-600">Impossible de charger la tarification.</p>;
+    return (
+      <p className="text-sm text-red-600">
+        Impossible de charger la tarification.{" "}
+        <Link href="/franchise/pricing" className="text-teal underline">
+          Réessayer
+        </Link>
+      </p>
+    );
   }
 
   return (
     <div className="animate-fade-up">
-      <PageHeader
-        title="Tarification"
-        breadcrumb={["Franchise", "Tarification"]}
-        actions={
-          legacy ? (
-            <Link href="/franchise/pricing/new">
-              <Button>Nouvelle grille</Button>
-            </Link>
-          ) : undefined
-        }
-      />
+      {/* Header sticky */}
+      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+        <PageHeader
+          title="Tarification"
+          breadcrumb={["Franchise", "Tarification"]}
+          actions={
+            legacy ? (
+              <Link href="/franchise/pricing/new">
+                <Button>Nouvelle grille</Button>
+              </Link>
+            ) : undefined
+          }
+        />
+        <p className="mt-1 text-sm text-muted">
+          Grilles tarifaires de votre territoire ({summary?.franchise_name ?? "—"}) · {summary?.active_count ?? 0} actives · {summary?.draft_count ?? 0} brouillons
+        </p>
+      </div>
 
       <p className="mb-6 text-sm text-muted">
         Grilles tarifaires de votre territoire ({summary?.franchise_name ?? "—"}).

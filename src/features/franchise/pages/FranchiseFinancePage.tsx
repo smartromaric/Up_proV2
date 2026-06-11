@@ -1,6 +1,6 @@
 "use client";
 
-import { SimplePageSkeleton } from "@/shared/ui/skeletons";
+import Link from "next/link";
 import { useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { HeroKpi } from "@/features/ops/components/HeroKpi";
@@ -10,11 +10,10 @@ import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import {
   useFranchiseDriverRechargeStats,
   useFranchiseFinance,
-} from "../api/finance.queries";
-import { FranchisePartnerRechargeModal } from "../components/FranchisePartnerRechargeModal";
-import {
   useFranchisePartnerRechargeStats,
 } from "../api/finance.queries";
+import { FranchisePartnerRechargeModal } from "../components/FranchisePartnerRechargeModal";
+import { SimplePageSkeleton } from "@/shared/ui/skeletons";
 
 export function FranchiseFinancePage() {
   const [partnerRechargeOpen, setPartnerRechargeOpen] = useState(false);
@@ -27,26 +26,39 @@ export function FranchiseFinancePage() {
   }
 
   if (isError || !data) {
-    return <p className="text-sm text-red-600">Impossible de charger la finance.</p>;
+    return (
+      <p className="text-sm text-red-600">
+        Impossible de charger la finance.{" "}
+        <Link href="/franchise/finance" className="text-teal underline">
+          Réessayer
+        </Link>
+      </p>
+    );
   }
 
   const available = data.available_fcfa ?? 0;
 
   return (
     <div className="animate-fade-up">
-      <PageHeader
-        title="Finance locale"
-        breadcrumb={["Franchise", "Finance"]}
-        actions={
-          <Button
-            variant="primary"
-            disabled={available <= 0}
-            onClick={() => setPartnerRechargeOpen(true)}
-          >
-            Recharger un partenaire
-          </Button>
-        }
-      />
+      {/* Header sticky */}
+      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+        <PageHeader
+          title="Finance locale"
+          breadcrumb={["Franchise", "Finance"]}
+          actions={
+            <Button
+              variant="primary"
+              disabled={available <= 0}
+              onClick={() => setPartnerRechargeOpen(true)}
+            >
+              Recharger un partenaire
+            </Button>
+          }
+        />
+        <p className="mt-1 text-sm text-muted">
+          Solde: {formatFCFA(data.balance_fcfa)} · Disponible: {formatFCFA(available)} · Commissions: {formatFCFA(data.commission_month_fcfa)}
+        </p>
+      </div>
 
       <div className="animate-stagger space-y-6">
         <HeroKpi amount={data.balance_fcfa} trendPct={0} label="Solde territoire" />

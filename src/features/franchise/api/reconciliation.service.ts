@@ -1,4 +1,7 @@
 import { apiClient } from "@/core/http/apiClient";
+import { LINKS, appendQuery } from "@/core/api/links";
+import { buildV1ListQuery } from "@/core/api/v1Pagination";
+import { useLegacyPortalApi } from "@/core/api/portalApiMode";
 import type { LiveMapData, Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
@@ -21,7 +24,11 @@ export interface FranchiseReconciliationListResponse
 
 export const franchiseReconciliationService = {
   list: (params?: ListParams) =>
-    apiClient.get<FranchiseReconciliationListResponse>(
-      `/franchise/finance/reconciliation${buildListQuery(params)}`
-    ),
+    useLegacyPortalApi()
+      ? apiClient.get<FranchiseReconciliationListResponse>(
+          `/franchise/finance/reconciliation${buildListQuery(params)}`
+        )
+      : apiClient.get<FranchiseReconciliationListResponse>(
+          appendQuery(LINKS.franchise.v1.reconciliation, buildV1ListQuery(params))
+        ),
 };

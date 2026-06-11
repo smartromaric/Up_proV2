@@ -27,7 +27,12 @@ export function FranchiseLiveMapPage() {
   if (isLoading) return <MapPageSkeleton />;
   if (isError || !data) {
     return (
-      <p className="text-sm text-red-600">Impossible de charger la carte live.</p>
+      <p className="text-sm text-red-600">
+        Impossible de charger la carte live.{" "}
+        <Link href="/franchise/map" className="text-teal underline">
+          Réessayer
+        </Link>
+      </p>
     );
   }
 
@@ -36,22 +41,31 @@ export function FranchiseLiveMapPage() {
     minute: "2-digit",
   });
 
+  const driverCount = data.drivers?.length ?? 0;
+  const onlineCount = data.drivers?.filter((d: { availability: string }) => d.availability === "online").length ?? 0;
+
   return (
     <div className="animate-fade-up">
-      <PageHeader
-        title="Carte live — Territoire"
-        breadcrumb={breadcrumb}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-navy/8 px-3 py-1 text-xs font-medium text-muted">
-              MAJ {updated} · refresh 30s
-            </span>
-            <Link href="/franchise/drivers">
-              <Button variant="secondary">Liste chauffeurs</Button>
-            </Link>
-          </div>
-        }
-      />
+      {/* Header sticky */}
+      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+        <PageHeader
+          title="Carte live — Territoire"
+          breadcrumb={breadcrumb}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-navy/8 px-3 py-1 text-xs font-medium text-muted">
+                MAJ {updated} · refresh 30s
+              </span>
+              <Link href="/franchise/drivers">
+                <Button variant="secondary">Liste chauffeurs</Button>
+              </Link>
+            </div>
+          }
+        />
+        <p className="mt-1 text-sm text-muted">
+          {driverCount} chauffeur{driverCount > 1 ? "s" : ""} · {onlineCount} en ligne · {data.zone_name ?? "Territoire"}
+        </p>
+      </div>
 
       <p className="mb-4 max-w-3xl text-sm text-muted">
         Chauffeurs en temps réel sur votre territoire. Filtrez par partenaire pour

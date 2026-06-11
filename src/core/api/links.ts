@@ -42,6 +42,13 @@ export const createUrl = (
   return qs ? `${baseUrl}?${qs}` : baseUrl;
 };
 
+export const appendQuery = (baseUrl: string, query: string) => {
+  if (!query) return baseUrl;
+  const normalizedQuery = query.startsWith("?") ? query.slice(1) : query;
+  if (!normalizedQuery) return baseUrl;
+  return `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}${normalizedQuery}`;
+};
+
 /** Auth Supabase — base `/v1` (voir SWAGGER.md § 02 - Auth) */
 export const AUTH_V1_BASE = "/v1/auth" as const;
 
@@ -55,36 +62,9 @@ export const LINKS = {
   v1: {
     drivers: {
       getById: (id: string) => `${DRIVERS_V1_BASE}/${id}`,
-      wallet: (id: string) => `${DRIVERS_V1_BASE}/${id}/wallet`,
-      ledger: (id: string) => `${DRIVERS_V1_BASE}/${id}/ledger`,
-      onboardingStart: "/v1/drivers/onboarding/start",
     },
     files: {
       getById: (id: string) => `/v1/files/${id}`,
-    },
-    vehicles: {
-      create: "/v1/vehicles",
-      me: "/v1/vehicles/me",
-      getById: (id: string) => `/v1/vehicles/${id}`,
-      assignDriver: (id: string) => `/v1/vehicles/${id}/assign-driver`,
-    },
-    partners: {
-      create: "/v1/partners",
-      vehicles: (partnerId: string) => `/v1/partners/${partnerId}/vehicles`,
-      vehicleById: (partnerId: string, vehicleId: string) =>
-        `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
-      drivers: (partnerId: string) => `/v1/partners/${partnerId}/drivers`,
-      members: (partnerId: string) => `/v1/partners/${partnerId}/members`,
-    },
-    catalog: {
-      bootstrap: "/v1/catalog/bootstrap",
-      countryCities: (countryCode: string) =>
-        `/v1/catalog/countries/${countryCode}/cities`,
-      vehicleCategories: "/v1/catalog/vehicle-categories",
-      vehicleBrands: "/v1/catalog/vehicle-brands",
-      vehicleBrandModels: (brandCode: string) =>
-        `/v1/catalog/vehicle-brands/${brandCode}/models`,
-      vehicleColors: "/v1/catalog/vehicle-colors",
     },
   },
 
@@ -95,15 +75,14 @@ export const LINKS = {
       adminLogin: `${AUTH_V1_BASE}/admin/login`,
       clientLogin: `${AUTH_V1_BASE}/client/login`,
       driverLogin: `${AUTH_V1_BASE}/driver/login`,
-      driverRegister: `${AUTH_V1_BASE}/driver/register`,
+      franchiseLogin: `${AUTH_V1_BASE}/franchise/login`,
+      franchiseRegister: `${AUTH_V1_BASE}/franchise/register`,
       me: `${AUTH_V1_BASE}/me`,
       logout: `${AUTH_V1_BASE}/logout`,
       refresh: `${AUTH_V1_BASE}/refresh`,
       forgotPassword: `${AUTH_V1_BASE}/forgot-password`,
       otpSend: `${AUTH_V1_BASE}/otp/send`,
       otpVerify: `${AUTH_V1_BASE}/otp/verify`,
-      /** Inscription compte portail franchise (bootstrap membre — franchiseId requis) */
-      franchiseRegister: `${AUTH_V1_BASE}/franchise/register`,
     },
     /** MSW / back-office legacy (`/api/v2`) */
     legacy: {
@@ -140,32 +119,10 @@ export const LINKS = {
       franchises: `${ADMIN_V1_BASE}/franchises`,
       partners: `${ADMIN_V1_BASE}/partners`,
       withdrawals: `${ADMIN_V1_BASE}/withdrawals`,
-      withdrawalById: (id: string) => `${ADMIN_V1_BASE}/withdrawals/${id}`,
       withdrawalApprove: (id: string) =>
         `${ADMIN_V1_BASE}/withdrawals/${id}/approve`,
       withdrawalReject: (id: string) =>
         `${ADMIN_V1_BASE}/withdrawals/${id}/reject`,
-      partnerById: (id: string) => `${ADMIN_V1_BASE}/partners/${id}`,
-      partnerActivate: (id: string) =>
-        `${ADMIN_V1_BASE}/partners/${id}/activate`,
-      partnerSuspend: (id: string) =>
-        `${ADMIN_V1_BASE}/partners/${id}/suspend`,
-      partnerDocuments: (id: string) =>
-        `${ADMIN_V1_BASE}/partners/${id}/documents`,
-      compliance: {
-        summary: `${ADMIN_V1_BASE}/compliance/summary`,
-        drivers: `${ADMIN_V1_BASE}/compliance/drivers`,
-        vehicles: `${ADMIN_V1_BASE}/compliance/vehicles`,
-      },
-      marketing: {
-        promos: `${ADMIN_V1_BASE}/marketing/promos`,
-        campaigns: `${ADMIN_V1_BASE}/marketing/campaigns`,
-        banners: `${ADMIN_V1_BASE}/marketing/banners`,
-        promoById: (id: string) => `${ADMIN_V1_BASE}/marketing/promos/${id}`,
-        campaignById: (id: string) =>
-          `${ADMIN_V1_BASE}/marketing/campaigns/${id}`,
-        bannerById: (id: string) => `${ADMIN_V1_BASE}/marketing/banners/${id}`,
-      },
       users: `${ADMIN_V1_BASE}/users`,
       userById: (id: string) => `${ADMIN_V1_BASE}/users/${id}`,
       userSuspend: (id: string) => `${ADMIN_V1_BASE}/users/${id}/suspend`,
@@ -174,56 +131,19 @@ export const LINKS = {
       driverApprove: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/approve`,
       driverReject: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/reject`,
       vehicles: `${ADMIN_V1_BASE}/vehicles`,
-      franchiseById: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
-      paydunyaConfig: `${ADMIN_V1_BASE}/paydunya-config`,
-      weatherConfig: `${ADMIN_V1_BASE}/weather-config`,
-      weatherRefresh: `${ADMIN_V1_BASE}/weather/refresh`,
-      paymentReconcile: (id: string) => `${ADMIN_V1_BASE}/payments/${id}/reconcile`,
-      paymentsReconcileBatch: `${ADMIN_V1_BASE}/payments/reconcile-batch`,
-      pricingRules: `${ADMIN_V1_BASE}/pricing-rules`,
-      pricingRuleById: (id: string) => `${ADMIN_V1_BASE}/pricing-rules/${id}`,
-      franchiseDelete: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
-      finance: {
-        dashboard: `${ADMIN_V1_BASE}/finance/dashboard`,
-        transactions: `${ADMIN_V1_BASE}/finance/transactions`,
-        transactionById: (id: string) =>
-          `${ADMIN_V1_BASE}/finance/transactions/${id}`,
-        wallets: `${ADMIN_V1_BASE}/finance/wallets`,
-        commissions: `${ADMIN_V1_BASE}/finance/commissions`,
-        reconciliation: `${ADMIN_V1_BASE}/finance/reconciliation`,
-        driverTransfers: `${ADMIN_V1_BASE}/finance/driver-transfers`,
-        driverTransferStats: `${ADMIN_V1_BASE}/finance/driver-transfers/stats`,
-      },
-      /** @deprecated Préférer `marketing.promos` */
-      promotions: `${ADMIN_V1_BASE}/promotions`,
-      promotionById: (id: string) => `${ADMIN_V1_BASE}/promotions/${id}`,
-      roles: `${ADMIN_V1_BASE}/roles`,
-      roleById: (id: string) => `${ADMIN_V1_BASE}/roles/${id}`,
-      auditLog: `${ADMIN_V1_BASE}/audit-log`,
-      dispatchers: `${ADMIN_V1_BASE}/dispatchers`,
-      dispatcherById: (id: string) => `${ADMIN_V1_BASE}/dispatchers/${id}`,
-      settingsGeneral: `${ADMIN_V1_BASE}/settings/general`,
-      supportTickets: "/v1/support/tickets",
     },
 
-    /** Franchises — détail module 99 ; liste via `admin.v1.franchises` */
+    /** Franchises — /v1/admin/franchises (Swagger § 11 - Admin) */
     franchises: {
-      getById: (id: string) => `/v1/franchises/${id}`,
-      partners: (id: string) => `/v1/franchises/${id}/partners`,
-      drivers: (id: string) => `/v1/franchises/${id}/drivers`,
-      orders: (id: string) => `/v1/franchises/${id}/orders`,
-      revenue: (id: string) => `/v1/franchises/${id}/revenue`,
-      wallet: (id: string) => `/v1/franchises/${id}/wallet`,
-      ledger: (id: string) => `/v1/franchises/${id}/ledger`,
+      list: `${ADMIN_V1_BASE}/franchises`,
+      getById: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
+      reports: `${ADMIN_V1_BASE}/reports/franchises`,
+      // Note: Les sous-routes /partners, /drivers, /orders, /revenue n'existent pas dans Swagger
+      // Utiliser les endpoints admin généraux avec paramètre de requête franchiseId
     },
 
     partners: {
       getById: (id: string) => `/v1/partners/${id}`,
-      drivers: (id: string) => `/v1/partners/${id}/drivers`,
-      vehicleById: (partnerId: string, vehicleId: string) =>
-        `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
-      wallet: (id: string) => `/v1/partners/${id}/wallet`,
-      ledger: (id: string) => `/v1/partners/${id}/ledger`,
     },
 
     /** Zones géographiques — GET /v1/zones (Swagger § 99) */
@@ -362,10 +282,52 @@ export const LINKS = {
 
   franchise: {
     v1: {
-      dashboard: "/v1/franchise/dashboard",
+      // Contextuels (token franchise suffit)
       me: "/v1/franchises/me",
-      pricingRules: (franchiseId: string) =>
-        `/v1/franchises/${franchiseId}/pricing-rules`,
+      dashboard: "/v1/franchise/dashboard",
+      drivers: "/v1/franchise/drivers",
+      driverByIdCtx: (driverId: string) => `/v1/franchise/drivers/${driverId}`,
+      partners: (id: string) => `/v1/franchises/${id}/partners`,
+      partnerById: (franchiseId: string, partnerId: string) => `/v1/franchises/${franchiseId}/partners/${partnerId}`,
+      orders: (id: string) => `/v1/franchises/${id}/orders`,
+      orderById: (franchiseId: string, orderId: string) => `/v1/franchises/${franchiseId}/orders/${orderId}`,
+      liveMap: (id: string) => `/v1/franchises/${id}/livemap`,
+      liveMapCtx: "/v1/franchise/livemap",
+      territory: "/v1/franchise/territory",
+      extensionRequest: "/v1/franchise/territory/extension-request",
+      // Finance
+      finance: "/v1/franchise/finance",
+      driverTransfers: "/v1/franchise/finance/driver-transfers",
+      driverTransfersStats: "/v1/franchise/finance/driver-transfers/stats",
+      driverRecharge: "/v1/franchise/finance/driver-recharge",
+      partnerTransfers: "/v1/franchise/finance/partner-transfers",
+      partnerTransfersStats: "/v1/franchise/finance/partner-transfers/stats",
+      partnerRecharge: "/v1/franchise/finance/partner-recharge",
+      commissions: "/v1/franchise/finance/commissions",
+      reconciliation: "/v1/franchise/finance/reconciliation",
+      // Clients
+      clients: "/v1/franchise/clients",
+      // Support
+      supportTickets: "/v1/franchise/support/tickets",
+      supportTicketById: (id: string) => `/v1/franchise/support/tickets/${id}`,
+      supportTicketReply: (id: string) => `/v1/franchise/support/tickets/${id}/messages`,
+      supportChats: "/v1/franchise/support/chat",
+      supportChatById: (id: string) => `/v1/franchise/support/chat/${id}`,
+      supportChatReply: (id: string) => `/v1/franchise/support/chat/${id}/messages`,
+      // Marketing / Promos / Pricing
+      promos: "/v1/franchise/promos",
+      promoById: (id: string) => `/v1/franchise/promos/${id}`,
+      marketing: {
+        banners: "/v1/franchise/marketing/banners",
+        campaigns: "/v1/franchise/marketing/campaigns",
+      },
+      pricing: "/v1/franchise/pricing",
+      pricingRules: (franchiseId: string) => `/v1/franchises/${franchiseId}/pricing-rules`,
+      // Dispatch
+      dispatchOrders: "/v1/franchise/dispatch/orders",
+      dispatchAssign: (tripId: string) => `/v1/franchise/dispatch/orders/${tripId}/assign`,
+      // Drivers (par ID franchise)
+      driverById: (franchiseId: string, driverId: string) => `/v1/franchises/${franchiseId}/drivers/${driverId}`,
     },
 
     dashboard: "/franchise/dashboard",

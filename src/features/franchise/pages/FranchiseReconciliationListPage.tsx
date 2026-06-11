@@ -151,16 +151,33 @@ export function FranchiseReconciliationListPage() {
 
   if (isError) {
     return (
-      <p className="text-sm text-red-600">Impossible de charger la réconciliation.</p>
+      <p className="text-sm text-red-600">
+        Impossible de charger la réconciliation.{" "}
+        <Link href="/franchise/finance/reconciliation" className="text-teal underline">
+          Réessayer
+        </Link>
+      </p>
     );
   }
 
+  // Calcul des stats
+  const matchedCount = rows.filter((r) => r.status === "matched").length;
+  const discrepancyCount = rows.filter((r) => r.status === "discrepancy").length;
+
   return (
     <div className="animate-fade-up">
-      <PageHeader
-        title="Réconciliation"
-        breadcrumb={["Franchise", "Finance", "Réconciliation"]}
-      />
+      {/* Header sticky */}
+      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+        <PageHeader
+          title="Réconciliation"
+          breadcrumb={["Franchise", "Finance", "Réconciliation"]}
+        />
+        {meta && (
+          <p className="mt-1 text-sm text-muted">
+            {meta.total} lignes · {matchedCount} rapproché{matchedCount > 1 ? "s" : ""} · {discrepancyCount} écart{discrepancyCount > 1 ? "s" : ""}
+          </p>
+        )}
+      </div>
 
       {data?.filter_options && (
         <FranchiseLiveMapPartnerFilter
