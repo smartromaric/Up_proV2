@@ -40,13 +40,13 @@ export const franchiseLiveMapService = {
       apiClient.get<ApiAdminLiveMapResponse>(
         buildFranchiseLiveMapEndpoint(filters)
       ),
-      apiClient.get<{ items?: { id: string; trade_name?: string; legal_name?: string; city_id?: string }[] }>(
-        createUrl(LINKS.admin.v1.partners, { franchiseId, limit: 100 })
+      apiClient.get<{ partners?: { id: string; trade_name?: string; legal_name?: string; city_id?: string }[] }>(
+        createUrl(LINKS.franchise.v1.partners(franchiseId), { page: 1, limit: 100 })
       ),
     ]);
 
     const mapped = mapApiLiveMapToData(data, scopeFilters);
-    const partnerOptions = (partners.items ?? []).map((p) => ({
+    const partnerOptions = (partners.partners ?? []).map((p) => ({
       id: p.id,
       name: p.trade_name?.trim() || p.legal_name?.trim() || `Partenaire ${p.id.slice(0, 8)}`,
       franchise_id: franchiseId,

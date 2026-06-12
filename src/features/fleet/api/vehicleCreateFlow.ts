@@ -1,4 +1,5 @@
 import { apiClient } from "@/core/http/apiClient";
+import { ApiError } from "@/core/http/errorHandler";
 import { LINKS } from "@/core/api/links";
 import type { CreateDriverPayload } from "@/features/partner/api/drivers.service";
 import type { VehiclePieceFile } from "@/features/partner/components/VehicleCreatePiecesSection";
@@ -13,10 +14,12 @@ export interface VehicleCreateFlowOptions {
   driverDocuments?: DriverDocumentFile[];
   partnerId?: string;
   rideCategoryCode?: string;
+  driverPhoneVerified?: boolean;
 }
 
 type CreatedDriver = {
   id: string | number;
+  user_id?: string;
   first_name: string;
   last_name: string;
 };
@@ -57,6 +60,7 @@ export async function applyVehicleCreateFlow(
     const driverContext: CreateDriverV1Context = {
       partnerId: options.partnerId,
       rideCategoryCode: options.rideCategoryCode,
+      phoneVerified: options.driverPhoneVerified,
     };
     const createdDriver = await handlers.createDriverWithDocuments(
       driver,
@@ -81,24 +85,55 @@ export function legacyAdminDocumentsPath(vehicleId: string | number): string {
   return `/admin/fleet/vehicles/${vehicleId}/documents`;
 }
 
+export interface AssignDriverV1Options {
+  baseVehicle?: VehicleDetail;
+  /** Scope partenaire (admin / portail partenaire) — requis pour retrouver le véhicule côté API. */
+  partnerId?: string;
+}
+
+function buildAssignDriverBodies(driver: CreatedDriver): Record<string, string>[] {
+  const driverId = String(driver.id);
+  return [{ driverId }, { driver_id: driverId }];
+}
+
 export async function assignDriverV1(
   vehicleId: string | number,
   driver: CreatedDriver,
-  baseVehicle?: VehicleDetail
+  options: AssignDriverV1Options = {}
 ): Promise<VehicleDetail> {
-  const response = await apiClient.post<{
-    vehicle?: VehicleDetail;
-    assignment?: { vehicle?: VehicleDetail };
-  }>(LINKS.v1.vehicles.assignDriver(String(vehicleId)), {
-    driverId: String(driver.id),
-  });
+  const partnerId = options.partnerId?.trim();
+  const endpoint = partnerId
+    ? LINKS.v1.partners.assignDriver(partnerId, String(vehicleId))
+    : LINKS.v1.vehicles.assignDriver(String(vehicleId));
 
-  const assigned =
-    response.vehicle ?? response.assignment?.vehicle ?? baseVehicle ?? ({} as VehicleDetail);
+  const bodies = buildAssignDriverBodies(driver);
+  let lastError: unknown;
 
-  return {
-    ...assigned,
-    id: assigned.id ?? vehicleId,
-    driver_name: `${driver.first_name} ${driver.last_name}`.trim(),
-  };
+  for (const body of bodies) {
+    try {
+      const response = await apiClient.post<{
+        vehicle?: VehicleDetail;
+        assignment?: { vehicle?: VehicleDetail };
+      }>(endpoint, body);
+
+      const assigned =
+        response.vehicle ??
+        response.assignment?.vehicle ??
+        options.baseVehicle ??
+        ({} as VehicleDetail);
+
+      return {
+        ...assigned,
+        id: assigned.id ?? vehicleId,
+        driver_name: `${driver.first_name} ${driver.last_name}`.trim(),
+      };
+    } catch (error) {
+      lastError = error;
+      const code =
+        error instanceof ApiError ? error.code : undefined;
+      if (code !== "DRIVER_NOT_FOUND") throw error;
+    }
+  }
+
+  throw lastError ?? new Error("Assignation chauffeur impossible.");
 }

@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/shared/ui/Button";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { AdminDriverRechargeModal } from "../components/AdminDriverRechargeModal";
 import { KpiCard } from "@/shared/ui/KpiCard";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { FilterChips } from "@/shared/ui/FilterChips";
 import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
@@ -12,8 +15,14 @@ import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
-import type { PlatformDriverTransfer } from "@/shared/types";
-import { DriverTransferStatusBadge } from "@/shared/wallet/driverTransferStatus";
+import type {
+  PartnerDriverTransferStatus,
+  PlatformDriverTransfer,
+} from "@/shared/types";
+import {
+  DRIVER_TRANSFER_STATUS,
+  DriverTransferStatusBadge,
+} from "@/shared/wallet/driverTransferStatus";
 import {
   useAdminDriverRechargeStats,
   useAdminDriverTransfers,
@@ -25,12 +34,27 @@ const SOURCE_OPTIONS = [
   { value: "franchise" as const, label: "Franchises" },
 ];
 
+const STATUS_FILTERS: {
+  value: PartnerDriverTransferStatus | "all";
+  label: string;
+}[] = [
+  { value: "all", label: "Tous" },
+  { value: "completed", label: DRIVER_TRANSFER_STATUS.completed.label },
+  { value: "pending", label: DRIVER_TRANSFER_STATUS.pending.label },
+  { value: "failed", label: DRIVER_TRANSFER_STATUS.failed.label },
+];
+
 export function AdminDriverTransfersPage() {
+  const [rechargeOpen, setRechargeOpen] = useState(false);
   const [sourceFilter, setSourceFilter] =
     useState<(typeof SOURCE_OPTIONS)[number]["value"]>("all");
+  const [statusFilter, setStatusFilter] = useState<
+    PartnerDriverTransferStatus | "all"
+  >("all");
 
-  const table = useServerTableState([sourceFilter], {
+  const table = useServerTableState([sourceFilter, statusFilter], {
     type: sourceFilter !== "all" ? sourceFilter : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
@@ -40,6 +64,11 @@ export function AdminDriverTransfersPage() {
         value: sourceFilter,
         defaultValue: "all",
         reset: () => setSourceFilter("all"),
+      },
+      {
+        value: statusFilter,
+        defaultValue: "all",
+        reset: () => setStatusFilter("all"),
       },
     ],
   });
@@ -122,6 +151,11 @@ export function AdminDriverTransfersPage() {
       <PageHeader
         title="Recharges chauffeurs"
         breadcrumb={["Admin", "Finance", "Recharges"]}
+        actions={
+          <Button variant="primary" onClick={() => setRechargeOpen(true)}>
+            Nouvelle recharge
+          </Button>
+        }
       />
 
       <p className="mb-6 max-w-2xl text-sm text-muted">
@@ -173,6 +207,11 @@ export function AdminDriverTransfersPage() {
           options={SOURCE_OPTIONS}
           onChange={setSourceFilter}
         />
+        <FilterChips
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
       </TableFiltersBar>
 
       {isError ? (
@@ -194,6 +233,11 @@ export function AdminDriverTransfersPage() {
           )}
         />
       )}
+
+      <AdminDriverRechargeModal
+        open={rechargeOpen}
+        onClose={() => setRechargeOpen(false)}
+      />
     </div>
   );
 }

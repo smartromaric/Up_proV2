@@ -6,18 +6,25 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, breadcrumb, actions }: PageHeaderProps) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
+    <header className="mb-6 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+      <div className="min-w-0">
         {breadcrumb && breadcrumb.length > 0 && (
-          <nav className="mb-1 text-xs text-muted" aria-label="Fil d'Ariane">
+          <nav
+            className="mb-1 truncate text-xs text-muted"
+            aria-label="Fil d'Ariane"
+          >
             {breadcrumb.join(" / ")}
           </nav>
         )}
-        <h1 className="text-[22px] font-semibold tracking-tight text-heading">
+        <h1 className="text-lg font-semibold tracking-tight text-heading sm:text-[22px]">
           {title}
         </h1>
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions ? (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+          {actions}
+        </div>
+      ) : null}
     </header>
   );
 }

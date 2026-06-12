@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useScope } from "@/core/auth/useScope";
 import {
   partnerDriverDetailService,
   partnerLiveMapService,
@@ -19,34 +20,39 @@ export const partnerLiveMapKeys = {
 };
 
 export function usePartnerDriverTrips(id: string) {
+  const { ownerId } = useScope();
   return useQuery({
     queryKey: partnerDriverDetailKeys.trips(id),
-    queryFn: () => partnerDriverDetailService.getTrips(id),
-    enabled: Boolean(id),
+    queryFn: () => partnerDriverDetailService.getTrips(ownerId!, id),
+    enabled: Boolean(id) && ownerId != null,
   });
 }
 
 export function usePartnerDriverWalletTransactions(id: string, enabled = true) {
+  const { ownerId } = useScope();
   return useQuery({
     queryKey: partnerDriverDetailKeys.wallet(id),
-    queryFn: () => partnerDriverDetailService.getWalletTransactions(id),
-    enabled: Boolean(id) && enabled,
+    queryFn: () => partnerDriverDetailService.getWalletTransactions(ownerId!, id),
+    enabled: Boolean(id) && enabled && ownerId != null,
   });
 }
 
 export function usePartnerDriverLive(id: string, enabled = true) {
+  const { ownerId } = useScope();
   return useQuery({
     queryKey: partnerDriverDetailKeys.live(id),
-    queryFn: () => partnerDriverDetailService.getLivePosition(id),
-    enabled: Boolean(id) && enabled,
+    queryFn: () => partnerDriverDetailService.getLivePosition(ownerId!, id),
+    enabled: Boolean(id) && enabled && ownerId != null,
     refetchInterval: 30_000,
   });
 }
 
 export function usePartnerLiveMap() {
+  const { ownerId } = useScope();
   return useQuery({
     queryKey: partnerLiveMapKeys.all,
-    queryFn: () => partnerLiveMapService.get(),
+    queryFn: () => partnerLiveMapService.get(ownerId!),
+    enabled: ownerId != null,
     refetchInterval: 30_000,
   });
 }

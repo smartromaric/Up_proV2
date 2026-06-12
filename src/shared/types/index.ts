@@ -97,12 +97,16 @@ export interface TripDriverLocation {
 export interface TripDetail extends Trip {
   from_coords?: { lat: number; lng: number };
   to_coords?: { lat: number; lng: number };
+  client_id?: string | number;
   client_phone?: string;
   driver_id?: string | number;
   driver_phone?: string;
   vehicle_id?: string;
   vehicle_label?: string;
   vehicle_plate?: string;
+  vehicle_color?: string | null;
+  vehicle_color_label?: string | null;
+  vehicle_icon_url?: string | null;
   driver_location?: TripDriverLocation;
   commission_fcfa: number;
   driver_earning_fcfa: number;
@@ -164,6 +168,7 @@ export interface TransactionsResponse extends Paginated<Transaction> {
     credits_today_fcfa: number;
     debits_today_fcfa: number;
   };
+  filter_options?: TripsScopeFilterOptions;
 }
 
 export type WithdrawalStatus = "pending" | "approved" | "rejected";
@@ -259,6 +264,10 @@ export interface PartnerDetail extends Partner {
   }[];
 }
 
+export type ZonePolygonGeoJson =
+  | { type: "Polygon"; coordinates: number[][][] }
+  | { type: "MultiPolygon"; coordinates: number[][][][] };
+
 export interface ZoneDetail extends Zone {
   franchise_id: number | string;
   status: "active" | "inactive";
@@ -272,13 +281,30 @@ export interface ZoneDetail extends Zone {
     revenue_month_fcfa: number;
     avg_fare_fcfa: number;
   };
-  polygon_geojson?: {
-    type: "Polygon";
-    coordinates: number[][][];
-  };
+  polygon_geojson?: ZonePolygonGeoJson;
   surge_rules: { label: string; multiplier: number; hours: string }[];
   partners_in_zone: { id: number; name: string; drivers_count: number }[];
 }
+
+export interface DriverDocumentsSummary {
+  required_count: number;
+  uploaded_count: number;
+  approved_count: number;
+  pending_count: number;
+  rejected_count: number;
+  missing_count: number;
+  missing_types: string[];
+  is_complete: boolean;
+  has_any_document: boolean;
+}
+
+export type DriverComplianceStatus =
+  | "complete"
+  | "documents_incomplete"
+  | "vehicle_incomplete"
+  | "kyc_incomplete"
+  | "pending"
+  | (string & {});
 
 export interface Driver {
   id: string | number;
@@ -289,10 +315,15 @@ export interface Driver {
   zone: string;
   owner_name?: string;
   vehicle_label?: string;
+  ride_category_code?: string;
   account_status: "pending" | "approved" | "suspended" | "banned";
   availability: "offline" | "online" | "on_trip" | "paused";
   franchise_id?: number | string;
   owner_id?: number | string;
+  created_at?: string;
+  suspended?: boolean;
+  documents_summary?: DriverDocumentsSummary;
+  compliance_status?: DriverComplianceStatus;
 }
 
 export type KycDocumentStatus = "pending" | "approved" | "rejected";
@@ -335,6 +366,8 @@ export interface DriverTimelineEvent {
 export interface DriverDetail extends Driver {
   driver_code?: string;
   email?: string;
+  /** UUID utilisateur Auth — distinct de `id` (fiche drivers). */
+  user_id?: string;
   owner_id?: number | string;
   /** UUID véhicule assigné — GET /v1/drivers/:id → current_vehicle_id / vehicle.id */
   vehicle_id?: string | null;
@@ -483,6 +516,14 @@ export interface LiveMapDriver {
   speed_kmh?: number;
   availability: Driver["availability"];
   vehicle: string;
+  /** Code ou libellé couleur véhicule (catalogue) */
+  vehicle_color?: string | null;
+  /** Libellé affichable (ex. « Bleu ») */
+  vehicle_color_label?: string | null;
+  /** Hex catalogue (#1E5AA8) pour pastille couleur */
+  vehicle_color_hex?: string | null;
+  /** Icône carte selon couleur — fallback gps-navigation.png */
+  vehicle_icon_url?: string;
   franchise_id?: number | string;
   franchise_name?: string;
   partner_id?: number | string;
@@ -675,6 +716,7 @@ export interface DashboardPartnerKpi {
   drivers_total: number;
   drivers_online: number;
   drivers_pending_kyc: number;
+  vehicles_total: number;
   revenue_today_fcfa: number;
   revenue_trend_pct: number;
   wallet_balance_fcfa: number;
@@ -694,7 +736,11 @@ export interface Vehicle {
   id: number | string;
   label: string;
   plate: string;
+  brand?: string;
+  model?: string;
   category: VehicleCategory;
+  category_code?: string;
+  category_label?: string;
   year: number;
   color: string;
   driver_name?: string | null;
@@ -702,7 +748,6 @@ export interface Vehicle {
   created_at: string;
   partner_id?: string | null;
   partner_name?: string | null;
-  category_label?: string;
 }
 
 export interface VehicleDetail extends Vehicle {
@@ -723,7 +768,7 @@ export interface AdminVehicleDetail extends VehicleDetail {
 }
 
 export interface PartnerProfile {
-  id: number;
+  id: string | number;
   company_name: string;
   legal_name: string;
   contact_email: string;
@@ -735,6 +780,13 @@ export interface PartnerProfile {
   status: "active" | "pending" | "suspended";
   notification_email: string;
   created_at: string;
+  /** Champs v1 API */
+  display_name?: string;
+  avatar_url?: string | null;
+  locale?: string;
+  account_type?: string;
+  country_id?: string;
+  city_id?: string;
 }
 
 export interface PartnerWallet {

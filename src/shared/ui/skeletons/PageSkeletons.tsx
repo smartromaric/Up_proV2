@@ -111,7 +111,7 @@ export function DetailPageSkeleton({
           <KpiCardSkeleton key={variant} variant={variant} compact />
         ))}
       </div>
-      <div className={showSidebar ? "grid gap-6 lg:grid-cols-[1fr_300px]" : ""}>
+      <div className={showSidebar ? "detail-page-grid" : ""}>
         <div className="space-y-4">
           <div className="flex gap-2">
             {Array.from({ length: 3 }).map((_, i) => (

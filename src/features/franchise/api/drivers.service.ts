@@ -257,4 +257,12 @@ export const franchiseDriversService = {
     const franchiseId = await resolveFranchiseId();
     await apiClient.delete(LINKS.franchise.v1.driverById(franchiseId, id));
   },
+
+  setAvailability: async (id: string, availability: "online" | "offline"): Promise<void> => {
+    const franchiseId = await resolveFranchiseId();
+    await apiClient.patch(LINKS.franchise.v1.driverById(franchiseId, id), {
+      availability_status: availability,
+      availability,
+    });
+  },
 };

@@ -13,12 +13,16 @@ interface PortalSidebarProps {
   nav: NavGroup[];
   subtitle: string;
   filterByPermission?: boolean;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export function PortalSidebar({
   nav,
   subtitle,
   filterByPermission = true,
+  mobileOpen = false,
+  onMobileClose,
 }: PortalSidebarProps) {
   const pathname = usePathname();
   const hasPermission = useAuthStore((s) => s.hasPermission);
@@ -47,7 +51,11 @@ export function PortalSidebar({
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen max-h-screen w-60 shrink-0 flex-col overflow-hidden border-r border-border bg-surface">
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen max-h-screen w-60 max-w-[85vw] shrink-0 flex-col overflow-hidden border-r border-border bg-surface transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:max-w-none lg:translate-x-0 ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      }`}
+    >
       <div className="shrink-0 border-b border-border px-5 py-5">
         <AppLogo size="md" subtitle={subtitle} />
       </div>
@@ -89,6 +97,7 @@ export function PortalSidebar({
                       <li key={item.path}>
                         <Link
                           href={item.path}
+                          onClick={() => onMobileClose?.()}
                           className={`relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                             active
                               ? "bg-teal/10 text-teal-dark"

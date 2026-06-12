@@ -4,8 +4,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { env } from "@/core/config/env";
+import { resolveMapEngine } from "@/core/config/mapProvider";
 import type { MapBounds } from "@/shared/lib/mapProjection";
+import {
+  getZonePolygonRings,
+  zonesToGeoJson,
+} from "@/shared/components/map/zonesMapGeoJson";
+import { syncHotZonesLayers } from "@/shared/components/map/mapboxHotZones";
+import type { LiveMapHotZone } from "@/shared/types";
 import type { ZoneMapItem } from "./AbidjanZonesMap";
+
+const POLYGON_GEOMETRY_FILTER: mapboxgl.Expression = [
+  "in",
+  ["geometry-type"],
+  ["literal", ["Polygon", "MultiPolygon"]],
+];
 
 mapboxgl.accessToken = env.mapboxToken;
 
@@ -97,55 +110,6 @@ function isValidCoord(lng: number, lat: number): boolean {
   );
 }
 
-function zonesToGeoJson(
-  zones: ZoneMapItem[],
-  selectedZoneId?: number | string | null,
-  interactive = true
-): GeoJSON.FeatureCollection {
-  const features: GeoJSON.Feature[] = [];
-
-  zones.forEach((zone, index) => {
-    const selected = String(selectedZoneId) === String(zone.id);
-    const props = {
-      id: String(zone.id),
-      name: zone.name,
-      selected,
-      colorIndex: index % ZONE_FILL_COLORS.length,
-      interactive,
-    };
-
-    const ring = zone.polygon_geojson?.coordinates?.[0];
-    if (ring?.length) {
-      features.push({
-        type: "Feature",
-        properties: props,
-        geometry: {
-          type: "Polygon",
-          coordinates: zone.polygon_geojson!.coordinates,
-        },
-      });
-      return;
-    }
-
-    if (
-      zone.center_lng != null &&
-      zone.center_lat != null &&
-      isValidCoord(zone.center_lng, zone.center_lat)
-    ) {
-      features.push({
-        type: "Feature",
-        properties: props,
-        geometry: {
-          type: "Point",
-          coordinates: [zone.center_lng, zone.center_lat],
-        },
-      });
-    }
-  });
-
-  return { type: "FeatureCollection", features };
-}
-
 function draftToGeoJson(draftRing: number[][]): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
   if (draftRing.length >= 2) {
@@ -183,12 +147,14 @@ function computeFitBounds(zones: ZoneMapItem[]): mapboxgl.LngLatBounds | null {
   let hasPoint = false;
 
   for (const zone of zones) {
-    const ring = zone.polygon_geojson?.coordinates?.[0];
-    if (ring?.length) {
-      for (const [lng, lat] of ring) {
-        if (isValidCoord(lng, lat)) {
-          bounds.extend([lng, lat]);
-          hasPoint = true;
+    const rings = getZonePolygonRings(zone.polygon_geojson);
+    if (rings.length) {
+      for (const ring of rings) {
+        for (const [lng, lat] of ring) {
+          if (isValidCoord(lng, lat)) {
+            bounds.extend([lng, lat]);
+            hasPoint = true;
+          }
         }
       }
     } else if (
@@ -235,7 +201,7 @@ function ensureMapLayers(map: mapboxgl.Map): void {
       id: ZONES_FILL,
       type: "fill",
       source: ZONES_SOURCE,
-      filter: ["==", ["geometry-type"], "Polygon"],
+      filter: POLYGON_GEOMETRY_FILTER,
       paint: {
         "fill-color": [
           "case",
@@ -265,7 +231,7 @@ function ensureMapLayers(map: mapboxgl.Map): void {
       id: ZONES_OUTLINE,
       type: "line",
       source: ZONES_SOURCE,
-      filter: ["==", ["geometry-type"], "Polygon"],
+      filter: POLYGON_GEOMETRY_FILTER,
       paint: {
         "line-color": ["case", ["get", "selected"], "#0ab39c", "#405189"],
         "line-width": ["case", ["get", "selected"], 2.5, 1.2],
@@ -325,7 +291,7 @@ function ensureMapLayers(map: mapboxgl.Map): void {
       id: DRAFT_FILL,
       type: "fill",
       source: DRAFT_SOURCE,
-      filter: ["==", ["geometry-type"], "Polygon"],
+      filter: POLYGON_GEOMETRY_FILTER,
       paint: {
         "fill-color": "rgba(10,179,156,0.3)",
         "fill-outline-color": "#0ab39c",
@@ -351,6 +317,7 @@ function ensureMapLayers(map: mapboxgl.Map): void {
 
 interface ZonesMapboxMapProps {
   zones: ZoneMapItem[];
+  hotZones?: LiveMapHotZone[];
   cityLabel?: string;
   selectedZoneId?: number | string | null;
   onSelectZone?: (zone: ZoneMapItem) => void;
@@ -365,6 +332,7 @@ interface ZonesMapboxMapProps {
 
 export function ZonesMapboxMap({
   zones,
+  hotZones = [],
   cityLabel = "Zones",
   selectedZoneId = null,
   onSelectZone,
@@ -477,6 +445,12 @@ export function ZonesMapboxMap({
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !ready || !layersReadyRef.current) return;
+    syncHotZonesLayers(map, hotZones);
+  }, [hotZones, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || !ready) return;
 
     const handleZoneClick = (
@@ -524,16 +498,8 @@ export function ZonesMapboxMap({
     };
   }, [mode, ready]);
 
-  if (!env.mapboxToken) {
-    return (
-      <div
-        className={`flex items-center justify-center rounded-card border border-dashed border-border bg-canvas p-6 text-center text-sm text-muted ${className}`}
-      >
-        Ajoutez{" "}
-        <code className="mx-1 text-xs">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</code> dans
-        .env.local pour afficher la carte.
-      </div>
-    );
+  if (resolveMapEngine() !== "mapbox") {
+    return null;
   }
 
   return (
@@ -544,6 +510,12 @@ export function ZonesMapboxMap({
       <p className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg bg-surface/95 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur">
         {cityLabel}
       </p>
+      {hotZones.length > 0 && mode === "select" && (
+        <p className="pointer-events-none absolute right-3 top-3 z-10 max-w-[calc(100%-1.5rem)] whitespace-nowrap rounded-lg bg-surface/95 px-2.5 py-1 text-xs text-muted shadow-sm backdrop-blur">
+          <span className="mr-2 inline-block h-2 w-2 rounded-full bg-amber-500" />
+          {hotZones.length} zone{hotZones.length > 1 ? "s chaudes" : " chaude"}
+        </p>
+      )}
       {mode === "draw" && (
         <p className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg bg-teal/90 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
           {draftRing.length} point{draftRing.length !== 1 ? "s" : ""}

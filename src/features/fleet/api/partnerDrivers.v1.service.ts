@@ -9,6 +9,7 @@ const DEV_DRIVER_PASSWORD = "Upjunoo@Dev2026!";
 export interface CreateDriverV1Context {
   partnerId?: string;
   rideCategoryCode?: string;
+  phoneVerified?: boolean;
 }
 
 interface ApiDriverRegisterResponse {
@@ -19,6 +20,14 @@ interface ApiDriverRegisterResponse {
 }
 
 interface ApiDriverOnboardingResponse {
+  driver?: {
+    id: string;
+    user_id?: string;
+    partner_id?: string | null;
+  };
+}
+
+interface ApiPartnerDriverCreateResponse {
   driver?: {
     id: string;
     user_id?: string;
@@ -41,7 +50,7 @@ function mapToDriverDetail(
     first_name: payload.first_name.trim(),
     last_name: payload.last_name.trim(),
     phone: payload.phone.trim(),
-    zone: payload.zone.trim(),
+    zone: payload.zone?.trim() || "—",
     rating: 0,
     availability: "offline",
     account_status: "pending",
@@ -60,10 +69,50 @@ function mapToDriverDetail(
   };
 }
 
+/** Backoffice partenaire — chauffeur rattaché au bon `partner_id` (testé live). */
+async function createDriverViaPartnerApi(
+  payload: CreateDriverPayload,
+  context: CreateDriverV1Context
+): Promise<DriverDetail> {
+  if (context.phoneVerified !== true) {
+    throw new Error(
+      "Le numéro de téléphone doit être vérifié par OTP avant la création du chauffeur."
+    );
+  }
+
+  const partnerId = context.partnerId!.trim();
+  const email = payload.email?.trim() || buildPlaceholderEmail(payload.phone);
+
+  const response = await apiClient.post<ApiPartnerDriverCreateResponse>(
+    LINKS.v1.partners.drivers(partnerId),
+    {
+      firstName: payload.first_name.trim(),
+      lastName: payload.last_name.trim(),
+      phone: payload.phone.trim(),
+      email,
+      password: DEV_DRIVER_PASSWORD,
+      rideCategoryCode: context.rideCategoryCode ?? "ECO",
+    }
+  );
+
+  const driverId = response.driver?.id;
+  if (!driverId) {
+    throw new Error("Création chauffeur partenaire : identifiant manquant en réponse.");
+  }
+
+  const detail = mapToDriverDetail(driverId, payload);
+  if (response.driver?.user_id) detail.user_id = response.driver.user_id;
+  return detail;
+}
+
 export async function createDriverViaV1(
   payload: CreateDriverPayload,
   context: CreateDriverV1Context = {}
 ): Promise<DriverDetail> {
+  if (context.partnerId?.trim()) {
+    return createDriverViaPartnerApi(payload, context);
+  }
+
   const email = payload.email?.trim() || buildPlaceholderEmail(payload.phone);
 
   const register = await apiClient.post<ApiDriverRegisterResponse>(
@@ -106,18 +155,33 @@ export async function createDriverViaV1(
     throw new Error("Onboarding chauffeur : identifiant manquant en réponse.");
   }
 
-  if (context.partnerId && userId) {
+  const resolvedUserId = onboard.driver?.user_id ?? userId;
+
+  if (context.partnerId) {
     try {
-      await apiClient.post(LINKS.v1.partners.members(context.partnerId), {
-        userId,
-        role: "DRIVER",
+      await requestWithToken(driverToken, LINKS.v1.drivers.me, {
+        method: "PATCH",
+        data: { partnerId: context.partnerId },
       });
     } catch {
-      // Membre déjà lié ou route optionnelle
+      // Rattachement partenaire via profil chauffeur indisponible — suite via members
+    }
+
+    if (resolvedUserId) {
+      try {
+        await apiClient.post(LINKS.v1.partners.members(context.partnerId), {
+          userId: resolvedUserId,
+          role: "DRIVER",
+        });
+      } catch {
+        // Membre déjà lié ou route optionnelle
+      }
     }
   }
 
-  return mapToDriverDetail(driverId, payload);
+  const detail = mapToDriverDetail(driverId, payload);
+  if (resolvedUserId) detail.user_id = resolvedUserId;
+  return detail;
 }
 
 export async function createDriverWithDocumentsViaV1(

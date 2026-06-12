@@ -40,7 +40,13 @@ export interface FranchiseFinance {
 }
 
 export interface FranchiseDriverRechargePayload {
-  driver_id: number;
+  driver_id: string | number;
+  amount_fcfa: number;
+  note?: string;
+}
+
+export interface FranchiseDriverRechargeBatchPayload {
+  driver_ids: (string | number)[];
   amount_fcfa: number;
   note?: string;
 }
@@ -197,6 +203,33 @@ export const franchiseFinanceService = {
     return {
       ok: raw.status === "ok",
       message: raw.message ?? "Recharge effectuée",
+      transfer: mapV1DriverTransfer(raw.transfer ?? raw.entry ?? {}),
+      finance: mapV1Finance(raw.wallet ? raw : {}),
+      stats: mapV1RechargeStats(raw.stats ?? {}),
+    };
+  },
+
+  rechargeDrivers: async (batch: FranchiseDriverRechargeBatchPayload) => {
+    if (useLegacyPortalApi()) {
+      let last: Awaited<ReturnType<typeof franchiseFinanceService.rechargeDriver>> | undefined;
+      for (const driver_id of batch.driver_ids) {
+        last = await franchiseFinanceService.rechargeDriver({
+          driver_id,
+          amount_fcfa: batch.amount_fcfa,
+          note: batch.note,
+        });
+      }
+      if (!last) throw new Error("Aucun chauffeur sélectionné.");
+      return last;
+    }
+    const raw = await apiClient.post<Record<string, any>>(LINKS.franchise.v1.driverRecharge, {
+      driver_ids: batch.driver_ids,
+      amount_xof: batch.amount_fcfa,
+      note: batch.note,
+    });
+    return {
+      ok: raw.status === "ok",
+      message: raw.message ?? "Recharges effectuées",
       transfer: mapV1DriverTransfer(raw.transfer ?? raw.entry ?? {}),
       finance: mapV1Finance(raw.wallet ? raw : {}),
       stats: mapV1RechargeStats(raw.stats ?? {}),

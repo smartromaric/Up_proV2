@@ -10,6 +10,15 @@ export function orderRef(order: { id: string; order_reference?: string | null })
   return `TR-${String(order.id).slice(0, 8).toUpperCase()}`;
 }
 
+export function resolveOrderClientId(
+  order: Pick<ApiLiveMapOrderBase, "client_id" | "client">
+): string | undefined {
+  const id = order.client_id ?? order.client?.id;
+  if (id == null) return undefined;
+  const value = String(id).trim();
+  return value || undefined;
+}
+
 const SERVICE_MAP: Record<string, Trip["service"]> = {
   RIDE: "taxi",
   TAXI: "taxi",

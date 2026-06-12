@@ -103,7 +103,7 @@ export function PartnerWalletPage() {
           <h2 className="text-sm font-semibold">Mouvements récents</h2>
         </div>
         <ul className="divide-y divide-border/50">
-          {data.recent_movements.map((m) => (
+          {(data.recent_movements ?? []).map((m) => (
             <li
               key={m.id}
               className="flex items-center justify-between gap-4 px-6 py-4"

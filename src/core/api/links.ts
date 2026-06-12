@@ -61,10 +61,58 @@ export const DRIVERS_V1_BASE = "/v1/drivers" as const;
 export const LINKS = {
   v1: {
     drivers: {
+      me: "/v1/drivers/me",
       getById: (id: string) => `${DRIVERS_V1_BASE}/${id}`,
     },
     files: {
       getById: (id: string) => `/v1/files/${id}`,
+    },
+    vehicles: {
+      create: "/v1/vehicles",
+      me: "/v1/vehicles/me",
+      getById: (id: string) => `/v1/vehicles/${id}`,
+      assignDriver: (id: string) => `/v1/vehicles/${id}/assign-driver`,
+    },
+    partners: {
+      create: "/v1/partners",
+      vehicles: (partnerId: string) => `/v1/partners/${partnerId}/vehicles`,
+      vehicleById: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
+      assignDriver: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}/assign-driver`,
+      drivers: (partnerId: string) => `/v1/partners/${partnerId}/drivers`,
+      members: (partnerId: string) => `/v1/partners/${partnerId}/members`,
+      wallet: (partnerId: string) => `/v1/partners/${partnerId}/wallet`,
+      ledger: (partnerId: string) => `/v1/partners/${partnerId}/ledger`,
+      driverRecharge: (partnerId: string) =>
+        `/v1/partners/${partnerId}/wallet/driver-recharge`,
+      driverTransfers: (partnerId: string) =>
+        `/v1/partners/${partnerId}/wallet/driver-transfers`,
+      driverTransferStats: (partnerId: string) =>
+        `/v1/partners/${partnerId}/wallet/driver-transfers/stats`,
+    },
+    franchise: {
+      finance: {
+        driverRecharge: "/v1/franchise/finance/driver-recharge",
+        driverTransfers: "/v1/franchise/finance/driver-transfers",
+        driverTransferStats: "/v1/franchise/finance/driver-transfers/stats",
+      },
+      driverRecharge: (franchiseId: string) =>
+        `/v1/franchises/${franchiseId}/driver-recharge`,
+      driverTransfers: (franchiseId: string) =>
+        `/v1/franchises/${franchiseId}/driver-transfers`,
+      driverTransferStats: (franchiseId: string) =>
+        `/v1/franchises/${franchiseId}/driver-transfers/stats`,
+    },
+    catalog: {
+      bootstrap: "/v1/catalog/bootstrap",
+      countryCities: (countryCode: string) =>
+        `/v1/catalog/countries/${countryCode}/cities`,
+      vehicleCategories: "/v1/catalog/vehicle-categories",
+      vehicleBrands: "/v1/catalog/vehicle-brands",
+      vehicleBrandModels: (brandCode: string) =>
+        `/v1/catalog/vehicle-brands/${brandCode}/models`,
+      vehicleColors: "/v1/catalog/vehicle-colors",
     },
   },
 
@@ -83,6 +131,9 @@ export const LINKS = {
       forgotPassword: `${AUTH_V1_BASE}/forgot-password`,
       otpSend: `${AUTH_V1_BASE}/otp/send`,
       otpVerify: `${AUTH_V1_BASE}/otp/verify`,
+      driverResendOtp: `${AUTH_V1_BASE}/driver/resend-otp`,
+      driverVerifyOtp: `${AUTH_V1_BASE}/driver/verify-otp`,
+      devOtpLast: "/v1/dev/otp/last",
     },
     /** MSW / back-office legacy (`/api/v2`) */
     legacy: {
@@ -128,9 +179,50 @@ export const LINKS = {
       userSuspend: (id: string) => `${ADMIN_V1_BASE}/users/${id}/suspend`,
       userActivate: (id: string) => `${ADMIN_V1_BASE}/users/${id}/activate`,
       filterOptions: `${ADMIN_V1_BASE}/filter-options`,
+      driverById: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}`,
       driverApprove: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/approve`,
       driverReject: (id: string) => `${ADMIN_V1_BASE}/drivers/${id}/reject`,
       vehicles: `${ADMIN_V1_BASE}/vehicles`,
+      franchiseById: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
+      paydunyaConfig: `${ADMIN_V1_BASE}/paydunya-config`,
+      weatherConfig: `${ADMIN_V1_BASE}/weather-config`,
+      weatherRefresh: `${ADMIN_V1_BASE}/weather/refresh`,
+      paymentReconcile: (id: string) => `${ADMIN_V1_BASE}/payments/${id}/reconcile`,
+      paymentsReconcileBatch: `${ADMIN_V1_BASE}/payments/reconcile-batch`,
+      pricingRules: `${ADMIN_V1_BASE}/pricing-rules`,
+      pricingRuleById: (id: string) => `${ADMIN_V1_BASE}/pricing-rules/${id}`,
+      commissionRules: `${ADMIN_V1_BASE}/commission-rules`,
+      commissionRuleById: (id: string) => `${ADMIN_V1_BASE}/commission-rules/${id}`,
+      franchiseDelete: (id: string) => `${ADMIN_V1_BASE}/franchises/${id}`,
+      finance: {
+        dashboard: `${ADMIN_V1_BASE}/finance/dashboard`,
+        transactions: `${ADMIN_V1_BASE}/finance/transactions`,
+        transactionById: (id: string) =>
+          `${ADMIN_V1_BASE}/finance/transactions/${id}`,
+        wallets: `${ADMIN_V1_BASE}/finance/wallets`,
+        commissions: `${ADMIN_V1_BASE}/finance/commissions`,
+        reconciliation: `${ADMIN_V1_BASE}/finance/reconciliation`,
+        driverTransfers: `${ADMIN_V1_BASE}/finance/driver-transfers`,
+        driverTransferStats: `${ADMIN_V1_BASE}/finance/driver-transfers/stats`,
+      },
+      /** @deprecated Préférer `marketing.promos` */
+      promotions: `${ADMIN_V1_BASE}/promotions`,
+      promotionById: (id: string) => `${ADMIN_V1_BASE}/promotions/${id}`,
+      roles: `${ADMIN_V1_BASE}/roles`,
+      roleById: (id: string) => `${ADMIN_V1_BASE}/roles/${id}`,
+      auditLog: `${ADMIN_V1_BASE}/audit-log`,
+      dispatchers: `${ADMIN_V1_BASE}/dispatchers`,
+      dispatcherById: (id: string) => `${ADMIN_V1_BASE}/dispatchers/${id}`,
+      settingsGeneral: `${ADMIN_V1_BASE}/settings/general`,
+      supportTickets: "/v1/support/tickets",
+      safety: {
+        sos: `${ADMIN_V1_BASE}/safety/sos`,
+        sosDashboard: `${ADMIN_V1_BASE}/safety/sos/dashboard`,
+        sosById: (id: string) => `${ADMIN_V1_BASE}/safety/sos/${id}`,
+        sosAcknowledge: (id: string) =>
+          `${ADMIN_V1_BASE}/safety/sos/${id}/acknowledge`,
+        sosResolve: (id: string) => `${ADMIN_V1_BASE}/safety/sos/${id}/resolve`,
+      },
     },
 
     /** Franchises — /v1/admin/franchises (Swagger § 11 - Admin) */
@@ -144,6 +236,13 @@ export const LINKS = {
 
     partners: {
       getById: (id: string) => `/v1/partners/${id}`,
+      drivers: (id: string) => `/v1/partners/${id}/drivers`,
+      vehicleById: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}`,
+      assignDriver: (partnerId: string, vehicleId: string) =>
+        `/v1/partners/${partnerId}/vehicles/${vehicleId}/assign-driver`,
+      wallet: (id: string) => `/v1/partners/${id}/wallet`,
+      ledger: (id: string) => `/v1/partners/${id}/ledger`,
     },
 
     /** Zones géographiques — GET /v1/zones (Swagger § 99) */
@@ -195,6 +294,13 @@ export const LINKS = {
       crisis: {
         get: "/admin/ops/crisis",
         update: "/admin/ops/crisis",
+      },
+      sos: {
+        dashboard: "/admin/ops/sos/dashboard",
+        list: "/admin/ops/sos/incidents",
+        getById: (id: string) => `/admin/ops/sos/incidents/${id}`,
+        acknowledge: (id: string) => `/admin/ops/sos/incidents/${id}/acknowledge`,
+        resolve: (id: string) => `/admin/ops/sos/incidents/${id}/resolve`,
       },
     },
 
@@ -333,6 +439,14 @@ export const LINKS = {
       dispatchAssign: (tripId: string) => `/v1/franchise/dispatch/orders/${tripId}/assign`,
       // Drivers (par ID franchise)
       driverById: (franchiseId: string, driverId: string) => `/v1/franchises/${franchiseId}/drivers/${driverId}`,
+      // Safety / SOS Guardian
+      sos: {
+        dashboard: "/v1/franchise/safety/sos/dashboard",
+        list: "/v1/franchise/safety/sos",
+        byId: (id: string) => `/v1/franchise/safety/sos/${id}`,
+        acknowledge: (id: string) => `/v1/franchise/safety/sos/${id}/acknowledge`,
+        resolve: (id: string) => `/v1/franchise/safety/sos/${id}/resolve`,
+      },
     },
 
     dashboard: "/franchise/dashboard",
@@ -369,6 +483,12 @@ export const LINKS = {
         suspend: (id: string | number) => `/franchise/fleet/clients/${id}/suspend`,
         activate: (id: string | number) => `/franchise/fleet/clients/${id}/activate`,
       },
+      vehicles: {
+        ...createCrudEndpoints("/v1/franchise/fleet/vehicles"),
+        byId: (id: string | number) => `/v1/franchise/fleet/vehicles/${id}`,
+        approve: (id: string | number) => `/v1/franchise/fleet/vehicles/${id}/approve`,
+        reject: (id: string | number) => `/v1/franchise/fleet/vehicles/${id}/reject`,
+      },
     },
 
     finance: {
@@ -400,6 +520,12 @@ export const LINKS = {
 
     pricing: createCrudEndpoints("/franchise/pricing"),
 
+    settings: {
+      weatherConfig: "/v1/franchise/settings/weather-config",
+      weatherRefresh: "/v1/franchise/settings/weather/refresh",
+      general: "/v1/franchise/settings/general",
+    },
+
     support: {
       tickets: {
         ...createCrudEndpoints("/franchise/support/tickets"),
@@ -414,65 +540,143 @@ export const LINKS = {
   },
 
   partner: {
-    dashboard: "/partner/dashboard",
+    dashboard: (id: string | number) => `/v1/partners/${id}/dashboard`,
     profile: {
-      get: "/partner/profile",
-      update: "/partner/profile",
+      get: (id: string | number) => `/v1/partners/${id}`,
+      update: (id: string | number) => `/v1/partners/${id}`,
+      me: "/v1/partners/me",
+      documents: {
+        list: (id: string | number) => `/v1/partners/${id}/documents`,
+        create: (id: string | number) => `/v1/partners/${id}/documents`,
+      },
     },
 
     drivers: {
-      ...createCrudEndpoints("/partner/drivers"),
-      documents: (driverId: string | number) => `/partner/drivers/${driverId}/documents`,
-      trips: (id: string | number) => `/partner/drivers/${id}/trips`,
-      walletTransactions: (id: string | number) =>
-        `/partner/drivers/${id}/wallet/transactions`,
-      live: (id: string | number) => `/partner/drivers/${id}/live`,
+      list: (id: string | number) => `/v1/partners/${id}/drivers`,
+      members: {
+        list: (id: string | number) => `/v1/partners/${id}/members`,
+        create: (id: string | number) => `/v1/partners/${id}/members`,
+        update: (id: string | number, memberId: string | number) =>
+          `/v1/partners/${id}/members/${memberId}`,
+        delete: (id: string | number, memberId: string | number) =>
+          `/v1/partners/${id}/members/${memberId}`,
+      },
+      create: (id: string | number) => `/v1/partners/${id}/drivers`,
+      getById: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}`,
+      documents: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/documents`,
+      trips: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/trips`,
+      walletTransactions: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/wallet/transactions`,
+      live: (id: string | number, driverId: string | number) =>
+        `/v1/partners/${id}/drivers/${driverId}/live`,
     },
 
     vehicles: {
-      ...createCrudEndpoints("/partner/vehicles"),
-      registration: (id: string | number) => `/partner/vehicles/${id}/registration`,
-      documents: (id: string | number) => `/partner/vehicles/${id}/documents`,
-      assignDriver: (vehicleId: string | number) =>
-        `/partner/vehicles/${vehicleId}/assign-driver`,
-    },
-
-    bookings: {
-      ...createCrudEndpoints("/partner/bookings"),
-      cancel: (id: string | number) => `/partner/bookings/${id}/cancel`,
-      recurring: {
-        list: "/partner/bookings/recurring",
+      list: (id: string | number) => `/v1/partners/${id}/vehicles`,
+      performance: (id: string | number) => `/v1/partners/${id}/vehicle-performance`,
+      driverPerformance: (id: string | number) => `/v1/partners/${id}/driver-performance`,
+      gpsDevices: {
+        list: (id: string | number) => `/v1/partners/${id}/gps-devices`,
+        create: (id: string | number) => `/v1/partners/${id}/gps-devices`,
+        update: (id: string | number, deviceId: string | number) =>
+          `/v1/partners/${id}/gps-devices/${deviceId}`,
+        delete: (id: string | number, deviceId: string | number) =>
+          `/v1/partners/${id}/gps-devices/${deviceId}`,
       },
-    },
-
-    shifts: {
-      list: "/partner/shifts",
-    },
-
-    reports: {
-      list: "/partner/reports",
+      create: (id: string | number) => `/v1/partners/${id}/vehicles`,
+      getById: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}`,
+      registration: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}/registration`,
+      documents: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}/documents`,
+      assignDriver: (id: string | number, vehicleId: string | number) =>
+        `/v1/partners/${id}/vehicles/${vehicleId}/assign-driver`,
     },
 
     wallet: {
-      get: "/partner/wallet",
-      withdraw: "/partner/wallet/withdraw",
+      get: (id: string | number) => `/v1/partners/${id}/wallet`,
+      ledger: (id: string | number) => `/v1/partners/${id}/ledger`,
+      settlements: (id: string | number) => `/v1/partners/${id}/settlements`,
+      cashReconciliations: (id: string | number) =>
+        `/v1/partners/${id}/cash-reconciliations`,
+      revenue: (id: string | number) => `/v1/partners/${id}/revenue`,
+      withdraw: (id: string | number) => `/v1/partners/${id}/wallet/withdraw`,
       driverTransfers: {
-        stats: "/partner/wallet/driver-transfers/stats",
-        list: "/partner/wallet/driver-transfers",
+        stats: (id: string | number) =>
+          `/v1/partners/${id}/wallet/driver-transfers/stats`,
+        list: (id: string | number) => `/v1/partners/${id}/wallet/driver-transfers`,
       },
-      driverRecharge: "/partner/wallet/driver-recharge",
+      driverRecharge: (id: string | number) =>
+        `/v1/partners/${id}/wallet/driver-recharge`,
+    },
+
+    freight: {
+      list: (id: string | number) => `/v1/partners/${id}/freight-offers`,
+      update: (id: string | number, offerId: string | number) =>
+        `/v1/partners/${id}/freight-offers/${offerId}`,
+    },
+
+    safety: {
+      sos: {
+        list: (id: string | number) => `/v1/partners/${id}/safety/sos`,
+        getById: (id: string | number, sosId: string | number) =>
+          `/v1/partners/${id}/safety/sos/${sosId}`,
+        acknowledge: (id: string | number, sosId: string | number) =>
+          `/v1/partners/${id}/safety/sos/${sosId}/acknowledge`,
+        dashboard: (id: string | number) => `/v1/partners/${id}/safety/sos/dashboard`,
+      },
+    },
+
+    bookings: {
+      list: (id: string | number) => `/v1/partners/${id}/bookings`,
+      create: (id: string | number) => `/v1/partners/${id}/bookings`,
+      getById: (id: string | number, bookingId: string | number) =>
+        `/v1/partners/${id}/bookings/${bookingId}`,
+      cancel: (id: string | number, bookingId: string | number) =>
+        `/v1/partners/${id}/bookings/${bookingId}/cancel`,
+      recurring: {
+        list: (id: string | number) => `/v1/partners/${id}/bookings/recurring`,
+      },
+    },
+
+    orders: {
+      list: (id: string | number) => `/v1/partners/${id}/orders`,
+      getById: (id: string | number, orderId: string | number) =>
+        `/v1/partners/${id}/orders/${orderId}`,
+    },
+
+    shifts: {
+      list: (id: string | number) => `/v1/partners/${id}/shifts`,
+    },
+
+    reports: {
+      list: (id: string | number) => `/v1/partners/${id}/reports`,
     },
 
     ops: {
-      map: "/partner/ops/map",
+      map: (id: string | number) => `/v1/partners/${id}/ops/map`,
     },
 
     support: {
       chat: {
-        list: "/partner/support/chat",
-        getById: (id: string | number) => `/partner/support/chat/${id}`,
-        reply: (id: string | number) => `/partner/support/chat/${id}/messages`,
+        list: (id: string | number) => `/v1/partners/${id}/support/chat`,
+        getById: (id: string | number, chatId: string | number) =>
+          `/v1/partners/${id}/support/chat/${chatId}`,
+        reply: (id: string | number, chatId: string | number) =>
+          `/v1/partners/${id}/support/chat/${chatId}/messages`,
       },
+    },
+
+    catalog: {
+      vehicleCategories: "/v1/catalog/vehicle-categories",
+      vehicleColors: "/v1/catalog/vehicle-colors",
+      vehicleBrands: "/v1/catalog/vehicle-brands",
+      vehicleBrandModels: (brandCode: string) =>
+        `/v1/catalog/vehicle-brands/${brandCode}/models`,
     },
   },
 

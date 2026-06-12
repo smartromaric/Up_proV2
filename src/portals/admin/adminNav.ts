@@ -24,6 +24,12 @@ export const ADMIN_NAV: NavGroup[] = [
         icon: "trips",
         permission: "ops.trips.view",
       },
+      {
+        label: "SOS Guardian",
+        path: "/admin/ops/sos",
+        icon: "crisis",
+        permission: "ops.trips.view",
+      },
       // {
       //   label: "Dispatch",
       //   path: "/admin/ops/dispatch",
@@ -111,12 +117,12 @@ export const ADMIN_NAV: NavGroup[] = [
         icon: "withdrawals",
         permission: "finance.withdrawals.approve",
       },
-      {
-        label: "Portefeuilles",
-        path: "/admin/finance/wallets",
-        icon: "wallet",
-        permission: "finance.transactions.view",
-      },
+      // {
+      //   label: "Portefeuilles",
+      //   path: "/admin/finance/wallets",
+      //   icon: "wallet",
+      //   permission: "finance.transactions.view",
+      // },
       {
         label: "Recharges chauffeurs",
         path: "/admin/finance/driver-transfers",
@@ -126,6 +132,12 @@ export const ADMIN_NAV: NavGroup[] = [
       {
         label: "Commissions",
         path: "/admin/finance/commissions",
+        icon: "commissions",
+        permission: "finance.transactions.view",
+      },
+      {
+        label: "Règles commission",
+        path: "/admin/finance/commission-rules",
         icon: "commissions",
         permission: "finance.transactions.view",
       },
@@ -174,12 +186,12 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     group: "PARAMÈTRES",
     items: [
-      {
-        label: "Dispatchers",
-        path: "/admin/settings/dispatchers",
-        icon: "dispatch",
-        permission: "settings.dispatchers.view",
-      },
+      // {
+      //   label: "Dispatchers",
+      //   path: "/admin/settings/dispatchers",
+      //   icon: "dispatch",
+      //   permission: "settings.dispatchers.view",
+      // },
       {
         label: "Règles de dispatch",
         path: "/admin/settings/dispatch-rules",

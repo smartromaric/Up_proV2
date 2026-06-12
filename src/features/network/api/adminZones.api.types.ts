@@ -11,8 +11,8 @@ export interface ApiV1ZoneItem {
   label?: string | null;
   zone_type?: string | null;
   geometry?: {
-    type?: string;
-    coordinates?: number[][][] | number[][];
+    type?: "Polygon" | "MultiPolygon" | string;
+    coordinates?: number[][][] | number[][][][];
   } | null;
   center_point?: ApiGeoPoint | null;
   active?: boolean;

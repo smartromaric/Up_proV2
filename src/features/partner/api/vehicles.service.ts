@@ -27,12 +27,106 @@ import type { DriverDocumentFile } from "@/shared/types/driverDocuments";
 import type { VehiclePieceFile } from "../components/VehicleCreatePiecesSection";
 
 export interface VehiclesListResponse extends Paginated<Vehicle> {
-  summary: {
+  summary?: {
     approved: number;
     pending: number;
     rejected: number;
     draft: number;
   };
+}
+
+interface ApiVehicleItem {
+  id: string;
+  partner_id: string;
+  driver_id: string | null;
+  brand_id: string | null;
+  model_id: string | null;
+  color_id: string | null;
+  category_id: string | null;
+  plate_number: string | null;
+  vin: string | null;
+  manufacture_year: number | null;
+  seats_count: number | null;
+  max_weight_kg: number | null;
+  status: "pending" | "approved" | "rejected" | "draft";
+  approved_at: string | null;
+  metadata?: {
+    brand?: string;
+    model?: string;
+    color?: string;
+    category?: string;
+    createdFrom?: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+interface VehiclesApiResponse {
+  status: string;
+  items?: ApiVehicleItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+  };
+  summary?: {
+    approved: number;
+    pending: number;
+    rejected: number;
+    draft: number;
+  };
+}
+
+function mapApiVehicleToVehicle(item: ApiVehicleItem): Vehicle {
+  const brand = item.metadata?.brand || "";
+  const model = item.metadata?.model || "";
+  const color = item.metadata?.color || "—";
+
+  // Mapping category_id vers VehicleCategory
+  const categoryMap: Record<string, Vehicle["category"]> = {
+    "4c67cefb-f9a6-4937-bbb7-6530540298b5": "taxi",
+  };
+  const categoryCode = (item.metadata?.category as string) || "";
+  const category = categoryMap[item.category_id || ""] || (categoryCode as Vehicle["category"]) || "taxi";
+
+  return {
+    id: item.id as unknown as number,
+    label: model ? `${brand} ${model}` : brand || `Véhicule ${item.id.slice(0, 8)}`,
+    plate: item.plate_number?.trim() || "",
+    brand: brand || undefined,
+    model: model || undefined,
+    category,
+    category_code: categoryCode || undefined,
+    category_label: categoryCode || undefined,
+    year: item.manufacture_year || new Date().getFullYear(),
+    color,
+    driver_name: item.driver_id ? "Assigné" : null,
+    approval_status: item.status,
+    created_at: item.created_at,
+  };
+}
+
+function mapVehiclesResponse(response: VehiclesApiResponse | VehiclesListResponse): VehiclesListResponse {
+  // Si la réponse est wrappée avec status: "ok" et items[] (nouveau format backend)
+  if ("status" in response && response.status === "ok" && response.items) {
+    const vehicles = response.items.map(mapApiVehicleToVehicle);
+    return {
+      data: vehicles,
+      meta: response.pagination ? {
+        current_page: response.pagination.page,
+        last_page: response.pagination.hasMore ? response.pagination.page + 1 : response.pagination.page,
+        per_page: response.pagination.limit,
+        total: response.pagination.total,
+      } : { current_page: 1, last_page: 1, per_page: 20, total: response.items.length },
+      summary: response.summary,
+    };
+  }
+  // Si la réponse est déjà au format VehiclesListResponse (sans wrapper)
+  if ("data" in response && Array.isArray(response.data)) {
+    return response as VehiclesListResponse;
+  }
+  return response as VehiclesListResponse;
 }
 
 export interface CreateVehiclePayload {
@@ -210,12 +304,8 @@ export const partnerVehiclesService = {
       );
     }
 
-    return apiClient.post<VehicleDetail>(
-      LINKS.v1.vehicles.assignDriver(String(vehicleId)),
-      {
-        driverId: String(driver.id),
-      }
-    );
+    const partnerId = resolvePartnerId();
+    return assignDriverV1(vehicleId, driver, { partnerId });
   },
 
   /** Création véhicule, pièces et chauffeur optionnels */
@@ -225,6 +315,7 @@ export const partnerVehiclesService = {
       pieces?: VehiclePieceFile[];
       driver?: CreateDriverPayload | null;
       driverDocuments?: DriverDocumentFile[];
+      driverPhoneVerified?: boolean;
     } = {}
   ): Promise<VehicleDetail> => {
     const legacy = useLegacyPortalApi();
@@ -249,6 +340,7 @@ export const partnerVehiclesService = {
           );
           return {
             id: created.id,
+            user_id: created.user_id,
             first_name: driver.first_name,
             last_name: driver.last_name,
           };
@@ -263,7 +355,10 @@ export const partnerVehiclesService = {
               }
             );
           }
-          return assignDriverV1(vehicleId, driver, vehicle);
+          return assignDriverV1(vehicleId, driver, {
+            baseVehicle: vehicle,
+            partnerId: resolvePartnerId(),
+          });
         },
       }
     );

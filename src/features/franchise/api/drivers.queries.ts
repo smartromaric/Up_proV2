@@ -2,9 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notificationService } from "@/core/http/notificationService";
+import type { Driver } from "@/shared/types";
 import { franchiseDashboardKeys } from "./dashboard.queries";
 import { franchiseDriversService } from "./drivers.service";
 import type { ListParams } from "@/shared/types/listParams";
+import {
+  runBulkActivateDrivers,
+  runBulkDriverAvailability,
+  runBulkSuspendDrivers,
+  type DriverAvailabilityAction,
+} from "./driverFranchiseActions.service";
 
 export const franchiseDriversKeys = {
   all: ["franchise", "drivers"] as const,
@@ -150,5 +157,70 @@ export function useDeleteFranchiseDriver() {
       notificationService.success("Chauffeur supprimé");
     },
     onError: () => notificationService.error("Suppression impossible"),
+  });
+}
+
+export function useBulkDriverAvailability() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      drivers,
+      ids,
+      availability,
+    }: {
+      drivers: Driver[];
+      ids: Array<string | number>;
+      availability: DriverAvailabilityAction;
+    }) => runBulkDriverAvailability(drivers, ids, availability),
+    onSuccess: (result) => {
+      void qc.invalidateQueries({ queryKey: franchiseDriversKeys.all });
+      if (result.count === 0) {
+        notificationService.warning("Aucun chauffeur éligible (compte approuvé requis).");
+        return;
+      }
+      notificationService.success(result.message);
+    },
+  });
+}
+
+export function useBulkSuspendDrivers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      drivers,
+      ids,
+    }: {
+      drivers: Driver[];
+      ids: Array<string | number>;
+    }) => runBulkSuspendDrivers(drivers, ids),
+    onSuccess: (result) => {
+      void qc.invalidateQueries({ queryKey: franchiseDriversKeys.all });
+      if (result.count === 0) {
+        notificationService.warning("Aucun chauffeur éligible (compte approuvé requis).");
+        return;
+      }
+      notificationService.success(result.message);
+    },
+  });
+}
+
+export function useBulkActivateDrivers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      drivers,
+      ids,
+    }: {
+      drivers: Driver[];
+      ids: Array<string | number>;
+    }) => runBulkActivateDrivers(drivers, ids),
+    onSuccess: (result) => {
+      void qc.invalidateQueries({ queryKey: franchiseDriversKeys.all });
+      if (result.count === 0) {
+        notificationService.warning("Aucun chauffeur suspendu sélectionné.");
+        return;
+      }
+      notificationService.success(result.message);
+    },
   });
 }

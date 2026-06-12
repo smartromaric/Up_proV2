@@ -13,13 +13,15 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
-    <div className="flex gap-1 border-b border-border">
+    <div className="tabs-scroll" role="tablist">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
+          role="tab"
+          aria-selected={active === tab.id}
           onClick={() => onChange(tab.id)}
-          className={`relative px-4 py-3 text-sm font-medium transition-colors duration-150 ${
+          className={`relative shrink-0 whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors duration-150 sm:px-4 ${
             active === tab.id
               ? "text-teal-dark"
               : "text-muted hover:text-foreground"

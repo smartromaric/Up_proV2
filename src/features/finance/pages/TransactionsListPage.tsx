@@ -19,6 +19,10 @@ import {
 import { getPaymentLabel } from "@/shared/lib/paymentLabels";
 import type { Transaction, TransactionStatus, TransactionType } from "@/shared/types";
 import { useTransactionsList } from "../api/transactions.queries";
+import {
+  TripsScopeFilters,
+  type TripsScopeFiltersValue,
+} from "@/features/ops/components/TripsScopeFilters";
 
 const TRANSACTION_STATUS_LABELS = {
   completed: "Validé",
@@ -44,17 +48,33 @@ const STATUS_FILTERS: { value: TransactionStatus | "all"; label: string }[] = [
 export function TransactionsListPage() {
   const [typeFilter, setTypeFilter] = useState<TransactionType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | "all">("all");
-
-  const table = useServerTableState([typeFilter, statusFilter], {
-    type: typeFilter !== "all" ? typeFilter : undefined,
-    status: statusFilter !== "all" ? statusFilter : undefined,
+  const [scope, setScope] = useState<TripsScopeFiltersValue>({
+    franchiseId: null,
+    partnerId: null,
   });
+
+  const scopeActive = scope.franchiseId != null || scope.partnerId != null;
+
+  const table = useServerTableState(
+    [typeFilter, statusFilter, scope.franchiseId, scope.partnerId],
+    {
+      type: typeFilter !== "all" ? typeFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      franchise_id: scope.franchiseId ?? undefined,
+      partner_id: scope.partnerId ?? undefined,
+    }
+  );
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
     fields: [
       { value: typeFilter, defaultValue: "all", reset: () => setTypeFilter("all") },
       { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+      {
+        value: scopeActive,
+        defaultValue: false,
+        reset: () => setScope({ franchiseId: null, partnerId: null }),
+      },
     ],
   });
 
@@ -62,6 +82,7 @@ export function TransactionsListPage() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
+  const filterOptions = data?.filter_options;
 
   const columns: Column<Transaction>[] = [
     {
@@ -175,6 +196,16 @@ export function TransactionsListPage() {
               value={formatFCFA(data.summary.debits_today_fcfa)}
             />
           </div>
+        </div>
+      )}
+
+      {filterOptions && (
+        <div className="mb-4">
+          <TripsScopeFilters
+            options={filterOptions}
+            value={scope}
+            onChange={setScope}
+          />
         </div>
       )}
 
