@@ -49,6 +49,14 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
     usePartnerDriverWalletTransactions(driverId, showWallet);
   const uploadDoc = useUploadPartnerDriverDocument(driverId);
 
+  const stats = driver?.stats ?? {
+    trips_total: 0,
+    trips_completed: 0,
+    trips_cancelled: 0,
+    acceptance_rate_pct: 0,
+    wallet_balance_fcfa: 0,
+  };
+
   if (isLoading) {
     return <DetailPageSkeleton title="Chauffeur" breadcrumb={["Partenaire", "Flotte"]} />;
   }
@@ -188,12 +196,12 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
                   <KpiCard
                     index={0}
                     label="Courses totales"
-                    value={String(driver.stats.trips_total)}
+                    value={String(stats.trips_total)}
                   />
                   <KpiCard
                     index={1}
                     label="Taux d'acceptation"
-                    value={`${driver.stats.acceptance_rate_pct} %`}
+                    value={`${stats.acceptance_rate_pct} %`}
                   />
                   <KpiCard
                     index={2}
@@ -203,7 +211,7 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
                   <KpiCard
                     index={3}
                     label="Solde portefeuille"
-                    value={formatFCFA(driver.stats.wallet_balance_fcfa)}
+                    value={formatFCFA(stats.wallet_balance_fcfa)}
                   />
                 </div>
 
@@ -277,7 +285,7 @@ export function PartnerDriverDetailPage({ driverId }: PartnerDriverDetailPagePro
               Portefeuille mobile
             </p>
             <p className="mt-2 text-2xl font-semibold tabular-nums text-heading">
-              {formatFCFA(driver.stats.wallet_balance_fcfa)}
+              {formatFCFA(stats.wallet_balance_fcfa)}
             </p>
             <p className="mt-1 text-xs text-muted">
               Solde app chauffeur · rechargeable depuis votre portefeuille

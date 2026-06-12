@@ -15,6 +15,7 @@ import { formatFCFA } from "@/shared/lib/format";
 import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import { useZoneDetail, useUpdateZonePolygon } from "../api/zoneDetail.queries";
 import { useZonesMapOverview } from "../api/zones.queries";
+import { getZonePolygonRings } from "@/shared/components/map/zonesMapGeoJson";
 
 interface ZoneDetailPageProps {
   zoneId: string;
@@ -45,7 +46,7 @@ export function ZoneDetailPage({ zoneId }: ZoneDetailPageProps) {
 
   return (
     <div className="animate-fade-up">
-      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+      <div className="page-sticky-header">
         <PageHeader
           title={data.name}
           breadcrumb={["Admin", "Réseau", "Zones", data.name]}
@@ -71,7 +72,7 @@ export function ZoneDetailPage({ zoneId }: ZoneDetailPageProps) {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="detail-page-grid">
         <div>
           <Tabs
             tabs={[
@@ -185,7 +186,9 @@ export function ZoneDetailPage({ zoneId }: ZoneDetailPageProps) {
         open={editPolygonOpen}
         zoneId={data.id}
         zoneName={data.name}
-        initialRing={data.polygon_geojson?.coordinates?.[0] ?? []}
+        initialRing={
+          getZonePolygonRings(data.polygon_geojson)[0] ?? []
+        }
         referenceZones={mapOverview?.zones ?? []}
         cityLabel={data.city}
         onClose={() => setEditPolygonOpen(false)}

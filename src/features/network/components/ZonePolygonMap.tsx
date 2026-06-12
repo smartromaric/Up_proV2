@@ -1,20 +1,19 @@
 "use client";
 
 import { useMemo } from "react";
-import { env } from "@/core/config/env";
+import { resolveMapEngine } from "@/core/config/mapProvider";
 import {
   boundsFromGeoPoints,
   ringLngLatToSvgPoints,
   type MapBounds,
 } from "@/shared/lib/mapProjection";
-import { ZonesMapboxMap } from "./ZonesMapboxMap";
+import { getZonePolygonRings } from "@/shared/components/map/zonesMapGeoJson";
+import type { ZonePolygonGeoJson } from "@/shared/types";
+import { ZonesMap } from "./ZonesMap";
 import type { ZoneMapItem } from "./AbidjanZonesMap";
 
 interface ZonePolygonMapProps {
-  polygon?: {
-    type: "Polygon";
-    coordinates: number[][][];
-  };
+  polygon?: ZonePolygonGeoJson;
   zoneName: string;
   center_lng?: number;
   center_lat?: number;
@@ -30,13 +29,14 @@ export function ZonePolygonMap({
   className = "h-64",
   mapBounds,
 }: ZonePolygonMapProps) {
-  const ring = polygon?.coordinates?.[0];
+  const rings = getZonePolygonRings(polygon);
   const bounds = useMemo(() => {
     if (mapBounds) return mapBounds;
-    if (ring?.length) {
-      return boundsFromGeoPoints(
+    if (rings.length) {
+      const points = rings.flatMap((ring) =>
         ring.map(([lng, lat]) => ({ lng, lat }))
       );
+      return boundsFromGeoPoints(points);
     }
     if (
       center_lng != null &&
@@ -47,12 +47,9 @@ export function ZonePolygonMap({
       return boundsFromGeoPoints([{ lng: center_lng, lat: center_lat }]);
     }
     return boundsFromGeoPoints([]);
-  }, [mapBounds, ring, center_lng, center_lat]);
+  }, [mapBounds, rings, center_lng, center_lat]);
 
-  const hasPolygon = Boolean(ring?.length);
-  const points = hasPolygon
-    ? ringLngLatToSvgPoints(ring!, bounds)
-    : "";
+  const hasPolygon = rings.length > 0;
   const centerPoint =
     center_lng != null &&
     center_lat != null &&
@@ -63,7 +60,7 @@ export function ZonePolygonMap({
   const [centerX, centerY] = centerPoint?.split(",") ?? [];
 
   const mapboxZone = useMemo((): ZoneMapItem[] => {
-    if (hasPolygon && ring) {
+    if (hasPolygon && polygon) {
       return [
         {
           id: "zone-detail",
@@ -85,12 +82,12 @@ export function ZonePolygonMap({
       ];
     }
     return [];
-  }, [hasPolygon, ring, polygon, zoneName, center_lng, center_lat]);
+  }, [hasPolygon, polygon, zoneName, center_lng, center_lat]);
 
-  if (env.mapboxToken) {
+  if (resolveMapEngine() !== "legacy") {
     return (
       <div className="space-y-2">
-        <ZonesMapboxMap
+        <ZonesMap
           zones={mapboxZone}
           cityLabel={zoneName}
           className={className}
@@ -127,14 +124,16 @@ export function ZonePolygonMap({
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
-        {hasPolygon && (
-          <polygon
-            points={points}
-            fill="rgba(10,179,156,0.25)"
-            stroke="#0ab39c"
-            strokeWidth="0.8"
-          />
-        )}
+        {hasPolygon &&
+          rings.map((ring, index) => (
+            <polygon
+              key={index}
+              points={ringLngLatToSvgPoints(ring, bounds)}
+              fill="rgba(10,179,156,0.25)"
+              stroke="#0ab39c"
+              strokeWidth="0.8"
+            />
+          ))}
         {!hasPolygon && centerX && centerY && (
           <>
             <circle

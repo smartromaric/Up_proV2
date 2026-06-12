@@ -3,6 +3,7 @@ import { mapV1PaginationToMeta } from "@/core/api/v1Pagination";
 import type { KycQueueItem, Paginated } from "@/shared/types";
 import type { ListParams } from "@/shared/types/listParams";
 import { paginateClientList } from "@/shared/lib/clientList";
+import { hasListDateFilter } from "@/shared/lib/listDateRange";
 import type { ApiAdminDriverItem } from "./adminDrivers.api.types";
 import type {
   ApiAdminKycDocumentItem,
@@ -83,7 +84,7 @@ export function mapAdminKycToPaginated(
   params?: ListParams
 ): Paginated<KycQueueItem> {
   const rows = groupKycDocumentsByDriver(docs, driversById);
-  return paginateClientList(rows, params);
+  return paginateClientList(rows, params, undefined, (row) => row.submitted_at);
 }
 
 function parseSubmittedAt(value?: string | null): string {
@@ -118,11 +119,13 @@ export function mapNativeKycQueueToPaginated(
   serverPagination?: ApiV1Pagination
 ): Paginated<KycQueueItem> {
   const rows = items.map(mapNativeKycQueueItem);
-  if (serverPagination) {
+
+  if (serverPagination && !hasListDateFilter(params)) {
     return {
       data: rows,
       meta: mapV1PaginationToMeta(serverPagination, params),
     };
   }
-  return paginateClientList(rows, params);
+
+  return paginateClientList(rows, params, undefined, (row) => row.submitted_at);
 }

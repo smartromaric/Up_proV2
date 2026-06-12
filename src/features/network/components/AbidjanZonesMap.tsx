@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Zone } from "@/shared/types";
-import { env } from "@/core/config/env";
+import type { LiveMapHotZone, Zone, ZonePolygonGeoJson } from "@/shared/types";
+import { getZonePolygonRings } from "@/shared/components/map/zonesMapGeoJson";
+import { resolveMapEngine } from "@/core/config/mapProvider";
 import {
   boundsFromGeoPoints,
   ringLngLatToSvgPoints,
@@ -11,7 +12,7 @@ import {
 } from "@/shared/lib/mapProjection";
 import { ZoneTypePill } from "@/shared/ui/ZoneTypePill";
 import { Button } from "@/shared/ui/Button";
-import { ZonesMapboxMap } from "./ZonesMapboxMap";
+import { ZonesMap } from "./ZonesMap";
 
 export interface ZoneMapItem {
   id: number | string;
@@ -19,10 +20,7 @@ export interface ZoneMapItem {
   type: Zone["type"];
   city?: string;
   franchise_name?: string;
-  polygon_geojson?: {
-    type: "Polygon";
-    coordinates: number[][][];
-  };
+  polygon_geojson?: ZonePolygonGeoJson;
   center_lng?: number;
   center_lat?: number;
   heatLevel?: number;
@@ -40,11 +38,13 @@ const ZONE_COLORS = [
 export function computeZonesMapBounds(zones: ZoneMapItem[]): MapBounds {
   const points: Array<{ lng: number; lat: number }> = [];
   for (const zone of zones) {
-    const ring = zone.polygon_geojson?.coordinates?.[0];
-    if (ring?.length) {
-      for (const [lng, lat] of ring) {
-        if (Number.isFinite(lng) && Number.isFinite(lat)) {
-          points.push({ lng, lat });
+    const rings = getZonePolygonRings(zone.polygon_geojson);
+    if (rings.length) {
+      for (const ring of rings) {
+        for (const [lng, lat] of ring) {
+          if (Number.isFinite(lng) && Number.isFinite(lat)) {
+            points.push({ lng, lat });
+          }
         }
       }
     } else if (
@@ -62,6 +62,7 @@ export function computeZonesMapBounds(zones: ZoneMapItem[]): MapBounds {
 interface AbidjanZonesMapProps {
   mode: "select" | "draw";
   zones: ZoneMapItem[];
+  hotZones?: LiveMapHotZone[];
   cityLabel?: string;
   selectedZoneId?: number | string | null;
   onSelectZone?: (zone: ZoneMapItem) => void;
@@ -75,6 +76,7 @@ interface AbidjanZonesMapProps {
 export function AbidjanZonesMap({
   mode,
   zones,
+  hotZones = [],
   cityLabel = "Abidjan",
   selectedZoneId = null,
   onSelectZone,
@@ -121,11 +123,12 @@ export function AbidjanZonesMap({
       ? ringLngLatToSvgPoints([...draftRing, draftRing[0]], bounds)
       : draftPoints;
 
-  if (env.mapboxToken) {
+  if (resolveMapEngine() !== "legacy") {
     return (
       <div className="space-y-3">
-        <ZonesMapboxMap
+        <ZonesMap
           zones={zones}
+          hotZones={hotZones}
           cityLabel={cityLabel}
           selectedZoneId={selectedZoneId}
           onSelectZone={onSelectZone}
@@ -186,6 +189,12 @@ export function AbidjanZonesMap({
         <p className="absolute left-3 top-3 z-10 rounded-lg bg-surface/90 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm">
           {cityLabel}
         </p>
+        {hotZones.length > 0 && mode === "select" && (
+          <p className="absolute right-3 top-3 z-10 max-w-[calc(100%-1.5rem)] whitespace-nowrap rounded-lg bg-surface/90 px-2.5 py-1 text-xs text-muted shadow-sm">
+            <span className="mr-2 inline-block h-2 w-2 rounded-full bg-amber-500" />
+            {hotZones.length} zone{hotZones.length > 1 ? "s chaudes" : " chaude"}
+          </p>
+        )}
         {mode === "draw" && (
           <p className="absolute right-3 top-3 z-10 rounded-lg bg-teal/90 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
             {draftRing.length} point{draftRing.length !== 1 ? "s" : ""}
@@ -200,36 +209,72 @@ export function AbidjanZonesMap({
           preserveAspectRatio="none"
           onClick={handleMapClick}
         >
+          {hotZones.map((zone) => {
+            const pt = ringLngLatToSvgPoints([[zone.lng, zone.lat]], bounds);
+            const [cx, cy] = pt.split(",").map((value) => Number(value.trim()));
+            if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+            const heat = Math.min(3, Math.max(1, zone.heatLevel));
+            const radius = heat >= 3 ? 4.5 : heat >= 2 ? 3.6 : 2.8;
+            return (
+              <g key={`hot-${zone.id}`} className="pointer-events-none">
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius * 1.8}
+                  fill={
+                    heat >= 3
+                      ? "rgba(239,68,68,0.28)"
+                      : heat >= 2
+                        ? "rgba(249,115,22,0.24)"
+                        : "rgba(245,158,11,0.22)"
+                  }
+                />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill={
+                    heat >= 3 ? "#ef4444" : heat >= 2 ? "#f97316" : "#f59e0b"
+                  }
+                  stroke="#ffffff"
+                  strokeWidth="0.35"
+                  opacity="0.92"
+                />
+              </g>
+            );
+          })}
           {zones.map((zone, i) => {
-            const ring = zone.polygon_geojson?.coordinates?.[0];
+            const rings = getZonePolygonRings(zone.polygon_geojson);
             const selected = String(selectedZoneId) === String(zone.id);
             const isReference = mode === "draw";
             const color = ZONE_COLORS[i % ZONE_COLORS.length];
 
-            if (ring?.length) {
-              const points = ringLngLatToSvgPoints(ring, bounds);
-              return (
-                <polygon
-                  key={zone.id}
-                  points={points}
-                  fill={color}
-                  stroke={selected ? "#0ab39c" : "#405189"}
-                  strokeWidth={selected ? 1.2 : 0.5}
-                  className={
-                    isReference
-                      ? "pointer-events-none opacity-35"
-                      : "cursor-pointer transition-opacity hover:opacity-90"
-                  }
-                  onClick={
-                    isReference
-                      ? undefined
-                      : (ev) => {
-                          ev.stopPropagation();
-                          onSelectZone?.(zone);
-                        }
-                  }
-                />
-              );
+            if (rings.length) {
+              return rings.map((ring, ringIndex) => {
+                const points = ringLngLatToSvgPoints(ring, bounds);
+                return (
+                  <polygon
+                    key={`${zone.id}-${ringIndex}`}
+                    points={points}
+                    fill={color}
+                    stroke={selected ? "#0ab39c" : "#405189"}
+                    strokeWidth={selected ? 1.2 : 0.5}
+                    className={
+                      isReference
+                        ? "pointer-events-none opacity-35"
+                        : "cursor-pointer transition-opacity hover:opacity-90"
+                    }
+                    onClick={
+                      isReference
+                        ? undefined
+                        : (ev) => {
+                            ev.stopPropagation();
+                            onSelectZone?.(zone);
+                          }
+                    }
+                  />
+                );
+              });
             }
 
             if (

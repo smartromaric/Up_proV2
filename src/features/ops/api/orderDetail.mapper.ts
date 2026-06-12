@@ -15,10 +15,16 @@ import {
   mapApiLocationToTripDriverLocation,
 } from "./adminOrderVehicle";
 import {
+  extractLiveMapDriverVehicleColor,
+  extractLiveMapDriverVehicleColorLabel,
+} from "./liveMapVehicleColor";
+import { resolveVehicleMapIconUrl } from "@/shared/lib/vehicleMapIcons";
+import {
   mapApiOrderStatus,
   mapApiPaymentMethod,
   mapApiServiceType,
   orderRef,
+  resolveOrderClientId,
 } from "@/features/admin/api/adminOrder.shared";
 
 interface DispatchOffer {
@@ -190,6 +196,8 @@ export function mapApiOrderToTripDetail(
       (order.client_id
         ? `Client ${String(order.client_id).slice(0, 8)}`
         : "Client"),
+    client_id: resolveOrderClientId(order),
+    client_phone: order.client?.phone ?? undefined,
     driver_id: order.driver_id ?? undefined,
     driver_name: order.driver_id
       ? driverNameById(order.driver_id, driversById)
@@ -220,6 +228,15 @@ export function mapApiOrderToTripDetail(
       formatApiVehicleLabel(undefined, assignedDriver?.vehicleLabel) ??
       assignedDriver?.vehicleLabel ??
       undefined,
+    vehicle_color: assignedDriver
+      ? extractLiveMapDriverVehicleColor(assignedDriver) ?? null
+      : null,
+    vehicle_color_label: assignedDriver
+      ? extractLiveMapDriverVehicleColorLabel(assignedDriver) ?? null
+      : null,
+    vehicle_icon_url: assignedDriver
+      ? resolveVehicleMapIconUrl(extractLiveMapDriverVehicleColor(assignedDriver))
+      : null,
     driver_location: mapApiLocationToTripDriverLocation(assignedDriver?.location),
   };
 }

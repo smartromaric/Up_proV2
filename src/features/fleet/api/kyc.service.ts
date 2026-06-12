@@ -4,12 +4,48 @@ import { useLegacyAdminApi } from "@/core/api/v1AdminMode";
 import { fetchAdminDriversList } from "@/features/admin/api/adminEntityLookup.service";
 import type { KycQueueItem, Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
-import { buildV1ListQuery } from "@/core/api/v1Pagination";
+import { buildV1ListQuery, type ApiV1Pagination } from "@/core/api/v1Pagination";
+import { hasListDateFilter } from "@/shared/lib/listDateRange";
 import type {
   ApiAdminKycDocumentItem,
   ApiAdminKycDocumentsResponse,
+  ApiAdminKycQueueItem,
   ApiAdminKycQueueResponse,
 } from "./adminKyc.api.types";
+
+const KYC_QUEUE_FETCH_ALL_MAX_PAGES = 50;
+
+/** L’API v1 n’applique pas encore dateFrom/dateTo — on charge toutes les pages puis filtre côté client. */
+async function fetchAllNativeKycQueueItems(
+  params?: ListParams
+): Promise<ApiAdminKycQueueItem[]> {
+  const collected: ApiAdminKycQueueItem[] = [];
+  const baseQuery: ListParams = {
+    ...params,
+    date_from: undefined,
+    date_to: undefined,
+    per_page: 100,
+  };
+
+  for (let page = 1; page <= KYC_QUEUE_FETCH_ALL_MAX_PAGES; page += 1) {
+    const response = await apiClient.get<ApiAdminKycQueueResponse>(
+      `${LINKS.admin.v1.kycQueue}${buildV1ListQuery({ ...baseQuery, page })}`
+    );
+    const batch = response.items ?? [];
+    collected.push(...batch);
+
+    const pagination: ApiV1Pagination | undefined = response.pagination;
+    const hasMore =
+      pagination?.hasMore === true ||
+      pagination?.hasNext === true ||
+      (pagination?.totalPages != null &&
+        page < (pagination.totalPages ?? page));
+
+    if (!hasMore || batch.length === 0) break;
+  }
+
+  return collected;
+}
 import {
   mapAdminKycToPaginated,
   mapNativeKycQueueToPaginated,
@@ -57,17 +93,20 @@ export const kycService = {
       );
     }
 
+    const dateFilterActive = hasListDateFilter(params);
+
     try {
+      if (dateFilterActive) {
+        const allItems = await fetchAllNativeKycQueueItems(params);
+        return mapNativeKycQueueToPaginated(allItems, params);
+      }
+
       const queue = await apiClient.get<ApiAdminKycQueueResponse>(
         `${LINKS.admin.v1.kycQueue}${buildV1ListQuery(params)}`
       );
       const items = queue.items ?? [];
       if (items.length > 0 || queue.pagination) {
-        return mapNativeKycQueueToPaginated(
-          items,
-          params,
-          queue.pagination
-        );
+        return mapNativeKycQueueToPaginated(items, params, queue.pagination);
       }
     } catch {
       // Fallback composition documents + drivers

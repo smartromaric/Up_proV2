@@ -4,6 +4,8 @@ import Link from "next/link";
 import { adminPaths } from "@/core/routes/adminPaths";
 import type { LiveMapData, LiveMapDriver } from "@/shared/types";
 import { AvailabilityPill } from "@/shared/ui/DriverPills";
+import { formatLiveMapVehicleLine } from "../lib/liveMapDriverDisplay";
+import { LiveMapVehicleColorInfo } from "./LiveMapVehicleColorInfo";
 
 function DriverRow({
   driver,
@@ -18,11 +20,28 @@ function DriverRow({
 }) {
   const trip = driver.active_trip;
 
-  const inner = (
-    <>
+  const rowClass =
+    "flex items-center justify-between gap-2 border-t border-border/50 py-3 first:border-0";
+
+  const driverName = driverHref ? (
+    <Link
+      href={driverHref(driver.id)}
+      className="truncate text-sm font-medium text-foreground hover:text-teal-dark hover:underline"
+    >
+      {driver.name}
+    </Link>
+  ) : (
+    <p className="truncate text-sm font-medium text-foreground">{driver.name}</p>
+  );
+
+  return (
+    <div className={rowClass}>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{driver.name}</p>
-        <p className="truncate text-xs text-muted">{driver.vehicle}</p>
+        {driverName}
+        {formatLiveMapVehicleLine(driver) ? (
+          <p className="truncate text-xs text-muted">{formatLiveMapVehicleLine(driver)}</p>
+        ) : null}
+        <LiveMapVehicleColorInfo driver={driver} />
         {trip && (
           <p className="mt-1 truncate text-[10px] font-medium text-navy">
             {trip.ref} · {trip.status_label}
@@ -38,7 +57,6 @@ function DriverRow({
             <Link
               href={adminPaths.trip(trip.id)}
               className="text-teal-dark hover:underline"
-              onClick={(e) => e.stopPropagation()}
             >
               Course
             </Link>
@@ -46,7 +64,6 @@ function DriverRow({
               <Link
                 href={driverHref(driver.id)}
                 className="text-teal-dark hover:underline"
-                onClick={(e) => e.stopPropagation()}
               >
                 Chauffeur
               </Link>
@@ -65,23 +82,6 @@ function DriverRow({
         )}
       </div>
       <AvailabilityPill status={driver.availability} />
-    </>
-  );
-
-  if (driverHref) {
-    return (
-      <Link
-        href={driverHref(driver.id)}
-        className="flex items-center justify-between gap-2 border-t border-border/50 py-3 first:border-0 transition-colors hover:bg-surface-hover"
-      >
-        {inner}
-      </Link>
-    );
-  }
-
-  return (
-    <div className="flex items-center justify-between gap-2 border-t border-border/50 py-3 first:border-0">
-      {inner}
     </div>
   );
 }
@@ -92,12 +92,15 @@ interface LiveMapDriversPanelProps {
   adminDriverLinks?: boolean;
   /** Liens franchise vers fiche chauffeur */
   franchiseDriverLinks?: boolean;
+  /** Liens partenaire vers fiche chauffeur */
+  partnerDriverLinks?: boolean;
 }
 
 export function LiveMapDriversPanel({
   data,
   adminDriverLinks = false,
   franchiseDriverLinks = false,
+  partnerDriverLinks = false,
 }: LiveMapDriversPanelProps) {
   const online = data.drivers.filter(
     (d) => d.availability === "online" || d.availability === "on_trip"
@@ -118,7 +121,9 @@ export function LiveMapDriversPanel({
     ? (id: string | number) => adminPaths.driver(id)
     : franchiseDriverLinks
       ? (id: string | number) => `/franchise/drivers/${id}`
-      : undefined;
+      : partnerDriverLinks
+        ? (id: string | number) => `/partner/drivers/${id}`
+        : undefined;
 
   const grouped =
     data.scope === "global" && data.franchise_summary

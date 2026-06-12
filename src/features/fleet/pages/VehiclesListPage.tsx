@@ -10,11 +10,11 @@ import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { Button } from "@/shared/ui/Button";
 import { VehicleApprovalPill } from "@/shared/ui/VehicleApprovalPill";
 import { formatDateTime } from "@/shared/lib/format";
-import {
-  getVehicleApprovalLabel,
-  getVehicleCategoryLabel,
-} from "@/shared/lib/vehicleLabels";
+import { getVehicleApprovalLabel } from "@/shared/lib/vehicleLabels";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
+import { VehicleIdentityCell } from "@/shared/ui/VehicleIdentityCell";
 import {
   serverPaginationFromMeta,
   useServerTableState,
@@ -36,10 +36,16 @@ export function VehiclesListPage() {
   const [statusFilter, setStatusFilter] = useState<VehicleApprovalStatus | "all">("all");
   const [partnerFilter, setPartnerFilter] = useState<string>("all");
 
-  const table = useServerTableState([statusFilter, partnerFilter], {
-    status: statusFilter !== "all" ? statusFilter : undefined,
-    partner_id: partnerFilter !== "all" ? partnerFilter : undefined,
-  });
+  const dateRange = useDateRangeFilter({ defaultPreset: "all" });
+
+  const table = useServerTableState(
+    [statusFilter, partnerFilter, dateRange.dateFrom, dateRange.dateTo],
+    {
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      partner_id: partnerFilter !== "all" ? partnerFilter : undefined,
+      ...dateRange.listParams,
+    }
+  );
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
@@ -54,6 +60,7 @@ export function VehiclesListPage() {
         defaultValue: "all",
         reset: () => setPartnerFilter("all"),
       },
+      dateRange.resetField,
     ],
   });
 
@@ -68,21 +75,12 @@ export function VehiclesListPage() {
       id: "vehicle",
       header: "Véhicule",
       cell: (v) => (
-        <div>
-          <Link
-            href={buildAdminVehicleDetailPath(v.id, v.partner_id)}
-            className="font-medium text-foreground hover:text-teal"
-          >
-            {v.label}
-          </Link>
-          <p className="text-xs text-muted">
-            {v.plate || "Plaque à renseigner"} ·{" "}
-            {v.category_label ?? getVehicleCategoryLabel(v.category)}
-          </p>
-        </div>
+        <VehicleIdentityCell
+          vehicle={v}
+          href={buildAdminVehicleDetailPath(v.id, v.partner_id)}
+        />
       ),
-      exportValue: (v) =>
-        `${v.label} · ${v.plate || "—"} · ${v.category_label ?? getVehicleCategoryLabel(v.category)}`,
+      exportValue: (v) => `${v.label} · ${v.plate || "—"} · ${v.category}`,
     },
     {
       id: "partner",
@@ -133,6 +131,11 @@ export function VehiclesListPage() {
         search={table.search}
         onSearchChange={table.setSearch}
         searchPlaceholder="Rechercher plaque, partenaire…"
+        totalLabel={
+          meta
+            ? `${meta.total.toLocaleString("fr-CI")} véhicules au total`
+            : undefined
+        }
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
       >
@@ -152,6 +155,16 @@ export function VehiclesListPage() {
               label: p.name,
             })),
           ]}
+        />
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          showAllPreset
+          rangeLabel={dateRange.rangeLabel}
         />
       </TableFiltersBar>
 

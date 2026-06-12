@@ -36,8 +36,14 @@ export const PARTNER_NAV: NavGroup[] = [
         permission: "fleet.drivers.view",
       },
       {
-        label: "Courses",
+        label: "Réservations",
         path: "/partner/bookings",
+        icon: "trips",
+        permission: "ops.trips.view",
+      },
+      {
+        label: "Courses",
+        path: "/partner/orders",
         icon: "trips",
         permission: "ops.trips.view",
       },
@@ -46,6 +52,35 @@ export const PARTNER_NAV: NavGroup[] = [
         path: "/partner/map",
         icon: "map",
         permission: "ops.map.view",
+      },
+      {
+        label: "Performance",
+        path: "/partner/performance",
+        icon: "reports",
+        permission: "fleet.drivers.view",
+      },
+      {
+        label: "Balises GPS",
+        path: "/partner/gps-devices",
+        icon: "map",
+        permission: "fleet.drivers.view",
+      },
+      {
+        label: "Sécurité / SOS",
+        path: "/partner/safety",
+        icon: "drivers-pending",
+        permission: "fleet.drivers.view",
+      },
+    ],
+  },
+  {
+    group: "OPPORTUNITÉS",
+    items: [
+      {
+        label: "Offres de fret",
+        path: "/partner/freight",
+        icon: "trips",
+        permission: "fleet.drivers.view",
       },
     ],
   },
@@ -93,6 +128,12 @@ export const PARTNER_NAV: NavGroup[] = [
         icon: "wallet-transfer",
         permission: "finance.wallets.view",
       },
+      {
+        label: "Grand livre",
+        path: "/partner/wallet/ledger",
+        icon: "wallet",
+        permission: "finance.wallets.view",
+      },
     ],
   },
   {
@@ -113,6 +154,12 @@ export const PARTNER_NAV: NavGroup[] = [
         label: "Mon profil",
         path: "/partner/profile",
         icon: "profile",
+        permission: "ops.dashboard.view",
+      },
+      {
+        label: "Membres de l'équipe",
+        path: "/partner/members",
+        icon: "drivers",
         permission: "ops.dashboard.view",
       },
     ],

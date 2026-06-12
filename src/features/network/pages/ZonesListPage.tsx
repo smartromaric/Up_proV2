@@ -134,6 +134,7 @@ export function ZonesListPage() {
           <AbidjanZonesMap
             mode="select"
             zones={mapOverview?.zones ?? []}
+            hotZones={mapOverview?.hotZones ?? []}
             cityLabel={mapOverview?.city ?? "Zones"}
             selectedZoneId={selectedMapZoneId}
             onSelectZone={(zone) => {

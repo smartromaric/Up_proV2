@@ -15,6 +15,7 @@ import { isTripLiveOnMap } from "@/shared/lib/tripDriver";
 import { DetailPageSkeleton } from "@/shared/ui/skeletons";
 import { useTripDetail } from "../api/tripDetail.queries";
 import { useTripDriverLiveLocation } from "../hooks/useTripDriverLiveLocation";
+import { adminPaths } from "@/core/routes/adminPaths";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getPaymentLabel } from "@/shared/lib/paymentLabels";
 interface TripDetailPageProps {
@@ -64,7 +65,7 @@ export function TripDetailPage({ tripId }: TripDetailPageProps) {
 
   return (
     <div className="animate-fade-up">
-      <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
+      <div className="page-sticky-header">
         <PageHeader
           title={trip.ref}
           breadcrumb={["Admin", "Opérations", "Courses", trip.ref]}
@@ -82,7 +83,7 @@ export function TripDetailPage({ tripId }: TripDetailPageProps) {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="detail-page-grid">
         <div className="space-y-6">
           <TripRoutePreview
             fromLabel={trip.from_label}
@@ -91,6 +92,7 @@ export function TripDetailPage({ tripId }: TripDetailPageProps) {
             toCoords={trip.to_coords}
             driverLocation={showDriverOnMap ? driverLiveLocation : undefined}
             driverLive={isRealtime}
+            vehicleIconUrl={trip.vehicle_icon_url}
           />
 
           <div className="rounded-card border border-border bg-surface p-6 shadow-card">
@@ -105,7 +107,16 @@ export function TripDetailPage({ tripId }: TripDetailPageProps) {
               <h3 className="text-xs font-medium uppercase tracking-wider text-muted">
                 Client
               </h3>
-              <p className="mt-2 font-medium text-foreground">{trip.client_name}</p>
+              {trip.client_id != null ? (
+                <Link
+                  href={adminPaths.client(trip.client_id)}
+                  className="mt-2 block font-medium text-foreground hover:text-teal"
+                >
+                  {trip.client_name}
+                </Link>
+              ) : (
+                <p className="mt-2 font-medium text-foreground">{trip.client_name}</p>
+              )}
               {trip.client_phone && (
                 <p className="text-sm text-muted">{trip.client_phone}</p>
               )}

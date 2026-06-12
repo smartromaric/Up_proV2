@@ -14,14 +14,23 @@ import {
 import driverTripsSeed from "../data/driver-trips.json";
 import driverWalletTxSeed from "../data/driver-wallet-transactions.json";
 import type {
+  Driver,
   DriverDetail,
   Paginated,
   TripMatchingOutcome,
   TripStatus,
 } from "@/shared/types";
-import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
-
-const accountOverrides: Record<string, DriverDetail["account_status"]> = {};
+import {
+  applyDriverAdminOverrides,
+  driverAccountStatusOverrides,
+  driverAvailabilityOverrides,
+} from "../lib/driverAdminOverrides";
+import {
+  matchesDateRange,
+  paginatedList,
+  parseListQuery,
+  matchesSearch,
+} from "../lib/listQuery";
 
 type DriverTripRow = {
   id: string;
@@ -63,10 +72,7 @@ function getDriver(id: string): DriverDetail {
   const base =
     DRIVER_DETAILS[id] ??
     ({ ...driverDetail, id: Number(id) || driverDetail.id } as DriverDetail);
-  if (accountOverrides[id]) {
-    return { ...base, account_status: accountOverrides[id] };
-  }
-  return base;
+  return applyDriverAdminOverrides(base as Driver) as DriverDetail;
 }
 
 export const fleetHandlers = [
@@ -76,15 +82,16 @@ export const fleetHandlers = [
 
   http.get("*/api/v2/admin/fleet/kyc", ({ request }) => {
     const query = parseListQuery(request);
-    const list = kycQueue.data.filter((row) =>
-      matchesSearch(
-        query.search,
-        row.first_name,
-        row.last_name,
-        row.phone,
-        row.zone,
-        row.owner_name
-      )
+    const list = kycQueue.data.filter(
+      (row) =>
+        matchesSearch(
+          query.search,
+          row.first_name,
+          row.last_name,
+          row.phone,
+          row.zone,
+          row.owner_name
+        ) && matchesDateRange(row.submitted_at, query)
     );
     return HttpResponse.json(paginatedList(list, query));
   }),
@@ -103,7 +110,8 @@ export const fleetHandlers = [
 
   http.post("*/api/v2/admin/drivers/:id/suspend", ({ params }) => {
     const id = String(params.id);
-    accountOverrides[id] = "suspended";
+    driverAccountStatusOverrides[id] = "suspended";
+    driverAvailabilityOverrides[id] = "offline";
     return HttpResponse.json({
       ok: true,
       message: "Chauffeur suspendu",
@@ -113,10 +121,25 @@ export const fleetHandlers = [
 
   http.post("*/api/v2/admin/drivers/:id/activate", ({ params }) => {
     const id = String(params.id);
-    accountOverrides[id] = "approved";
+    driverAccountStatusOverrides[id] = "approved";
     return HttpResponse.json({
       ok: true,
       message: "Chauffeur réactivé",
+      driver: getDriver(id),
+    });
+  }),
+
+  http.post("*/api/v2/admin/drivers/:id/set-availability", async ({ params, request }) => {
+    const id = String(params.id);
+    const body = (await request.json()) as { availability?: DriverDetail["availability"] };
+    const availability = body.availability ?? "offline";
+    driverAvailabilityOverrides[id] = availability;
+    return HttpResponse.json({
+      ok: true,
+      message:
+        availability === "online"
+          ? "Chauffeur mis en ligne"
+          : "Chauffeur mis hors ligne",
       driver: getDriver(id),
     });
   }),

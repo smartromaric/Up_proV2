@@ -1,5 +1,10 @@
 import { apiClient } from "@/core/http/apiClient";
+import { LINKS } from "@/core/api/links";
 import type { LiveMapData, LiveMapDriver, Paginated, TripStatus } from "@/shared/types";
+import {
+  mapApiPartnerLiveMapToData,
+  type ApiPartnerLiveMapResponse,
+} from "./partnerLiveMap.mapper";
 
 export interface PartnerDriverTripRow {
   id: string;
@@ -29,18 +34,27 @@ export interface PartnerDriverLiveMap {
 }
 
 export const partnerDriverDetailService = {
-  getTrips: (id: string) =>
-    apiClient.get<Paginated<PartnerDriverTripRow>>(`/partner/drivers/${id}/trips`),
-
-  getWalletTransactions: (id: string) =>
-    apiClient.get<Paginated<PartnerDriverWalletTransaction>>(
-      `/partner/drivers/${id}/wallet/transactions`
+  getTrips: (partnerId: string | number, driverId: string) =>
+    apiClient.get<Paginated<PartnerDriverTripRow>>(
+      LINKS.partner.drivers.trips(partnerId, driverId)
     ),
 
-  getLivePosition: (id: string) =>
-    apiClient.get<PartnerDriverLiveMap>(`/partner/drivers/${id}/live`),
+  getWalletTransactions: (partnerId: string | number, driverId: string) =>
+    apiClient.get<Paginated<PartnerDriverWalletTransaction>>(
+      LINKS.partner.drivers.walletTransactions(partnerId, driverId)
+    ),
+
+  getLivePosition: (partnerId: string | number, driverId: string) =>
+    apiClient.get<PartnerDriverLiveMap>(
+      LINKS.partner.drivers.live(partnerId, driverId)
+    ),
 };
 
 export const partnerLiveMapService = {
-  get: () => apiClient.get<LiveMapData>("/partner/ops/map"),
+  get: async (partnerId: string | number): Promise<LiveMapData> => {
+    const response = await apiClient.get<ApiPartnerLiveMapResponse>(
+      LINKS.partner.ops.map(partnerId)
+    );
+    return mapApiPartnerLiveMapToData(response);
+  },
 };

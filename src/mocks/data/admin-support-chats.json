@@ -1,0 +1,43 @@
+{
+  "data": [
+    {
+      "id": "ADM-CH-001",
+      "participant_name": "UPJUNOO Côte d'Ivoire",
+      "franchise_id": "fr-ci-abidjan",
+      "franchise_city": "Abidjan",
+      "subject": "Validation commissions Q2",
+      "last_message_preview": "Pouvez-vous confirmer le taux appliqué sur Treichville ?",
+      "unread_count": 2,
+      "status": "open",
+      "updated_at": "2026-06-12T10:30:00Z"
+    },
+    {
+      "id": "ADM-CH-002",
+      "participant_name": "UPJUNOO Burkina Faso",
+      "franchise_id": "fr-bf-ouaga",
+      "franchise_city": "Ouagadougou",
+      "subject": "Extension zone Bougouriba",
+      "last_message_preview": "Dossier extension envoyé — en attente de votre retour.",
+      "unread_count": 0,
+      "status": "open",
+      "updated_at": "2026-06-11T15:20:00Z"
+    },
+    {
+      "id": "ADM-CH-003",
+      "participant_name": "UPJUNOO Mali",
+      "franchise_id": "fr-ml-bamako",
+      "franchise_city": "Bamako",
+      "subject": "Incident dispatch",
+      "last_message_preview": "Merci, le paramétrage météo est rétabli.",
+      "unread_count": 0,
+      "status": "closed",
+      "updated_at": "2026-06-08T09:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 3,
+    "per_page": 25,
+    "current_page": 1,
+    "last_page": 1
+  }
+}

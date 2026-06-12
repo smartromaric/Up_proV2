@@ -6,12 +6,18 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
+<<<<<<< HEAD
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
+=======
+import { formatFCFA } from "@/shared/lib/format";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
+>>>>>>> 6795ec00f89c1ec8711d7a95d3fdfb0bf0eb5153
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
 import { FranchiseLiveMapPartnerFilter } from "../components/FranchiseLiveMapPartnerFilter";
 import type { FranchiseLiveMapFiltersValue } from "../api/liveMap.types";
 import type { FranchiseReconciliationRow } from "../api/reconciliation.service";
@@ -31,10 +37,16 @@ export function FranchiseReconciliationListPage() {
     partnerId: null,
   });
 
-  const table = useServerTableState([statusFilter, scope.partnerId], {
-    status: statusFilter !== "all" ? statusFilter : undefined,
-    partner_id: scope.partnerId ?? undefined,
-  });
+  const dateRange = useDateRangeFilter({ defaultPreset: "7d" });
+
+  const table = useServerTableState(
+    [statusFilter, scope.partnerId, dateRange.dateFrom, dateRange.dateTo],
+    {
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      partner_id: scope.partnerId ?? undefined,
+      ...dateRange.listParams,
+    }
+  );
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
@@ -45,6 +57,7 @@ export function FranchiseReconciliationListPage() {
         defaultValue: false,
         reset: () => setScope({ partnerId: null }),
       },
+      dateRange.resetField,
     ],
   });
 
@@ -223,6 +236,15 @@ export function FranchiseReconciliationListPage() {
           options={STATUS_FILTERS}
           value={statusFilter}
           onChange={setStatusFilter}
+        />
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          rangeLabel={dateRange.rangeLabel}
         />
       </TableFiltersBar>
 

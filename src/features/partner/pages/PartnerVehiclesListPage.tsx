@@ -9,11 +9,12 @@ import { FilterChips } from "@/shared/ui/FilterChips";
 import { VehicleApprovalPill } from "@/shared/ui/VehicleApprovalPill";
 import { Button } from "@/shared/ui/Button";
 import { KpiCard } from "@/shared/ui/KpiCard";
-import {
-  getVehicleApprovalLabel,
-  getVehicleCategoryLabel,
-} from "@/shared/lib/vehicleLabels";
+import { getVehicleApprovalLabel } from "@/shared/lib/vehicleLabels";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
+import { IvorianPlateBadge } from "@/shared/ui/IvorianPlateBadge";
+import { VehicleTypeBadge } from "@/shared/ui/VehicleTypeBadge";
 import {
   serverPaginationFromMeta,
   useServerTableState,
@@ -38,27 +39,34 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
     pendingOnly ? "pending" : "all"
   );
 
-  const table = useServerTableState([statusFilter, pendingOnly], {
-    status: pendingOnly
-      ? "pending"
-      : statusFilter !== "all"
-        ? statusFilter
-        : undefined,
-  });
+  const dateRange = useDateRangeFilter({ defaultPreset: "all" });
+
+  const table = useServerTableState(
+    [statusFilter, pendingOnly, dateRange.dateFrom, dateRange.dateTo],
+    {
+      status: pendingOnly
+        ? "pending"
+        : statusFilter !== "all"
+          ? statusFilter
+          : undefined,
+      ...dateRange.listParams,
+    }
+  );
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
-    ...(!pendingOnly
-      ? {
-          fields: [
+    fields: [
+      ...(!pendingOnly
+        ? [
             {
               value: statusFilter,
-              defaultValue: "all",
+              defaultValue: "all" as const,
               reset: () => setStatusFilter("all"),
             },
-          ],
-        }
-      : {}),
+          ]
+        : []),
+      dateRange.resetField,
+    ],
   });
 
   const { data, isLoading, isError } = usePartnerVehiclesList(table.listParams);
@@ -68,30 +76,39 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
 
   const columns: Column<Vehicle>[] = [
     {
-      id: "vehicle",
-      header: "Véhicule",
+      id: "plate",
+      header: "Immatriculation",
       cell: (v) => (
-        <div>
-          <Link
-            href={`/partner/fleet/${v.id}`}
-            className="font-medium text-foreground hover:text-teal"
-          >
-            {v.label}
-          </Link>
-          <p className="text-xs text-muted">
-            {v.plate || "Plaque à renseigner"} · {getVehicleCategoryLabel(v.category)}
-          </p>
-        </div>
+        <Link href={`/partner/fleet/${v.id}`} className="inline-block hover:opacity-90">
+          {v.plate ? <IvorianPlateBadge plate={v.plate} size="sm" /> : "—"}
+        </Link>
       ),
-      exportValue: (v) =>
-        `${v.label} · ${v.plate || "Plaque à renseigner"} · ${getVehicleCategoryLabel(v.category)}`,
+      exportValue: (v) => v.plate ?? "",
+    },
+    {
+      id: "brand",
+      header: "Marque",
+      cell: (v) => v.brand ?? "—",
+      exportValue: (v) => v.brand ?? "",
+    },
+    {
+      id: "model",
+      header: "Modèle",
+      cell: (v) => v.model ?? "—",
+      exportValue: (v) => v.model ?? "",
+    },
+    {
+      id: "driver",
+      header: "Chauffeur affecté",
+      cell: (v) => v.driver_name ?? "—",
+      exportValue: (v) => v.driver_name ?? "",
     },
     {
       id: "year",
       header: "Année",
       className: "tabular-nums",
       cell: (v) => v.year,
-      exportValue: (v) => v.year,
+      exportValue: (v) => String(v.year),
     },
     {
       id: "color",
@@ -100,14 +117,15 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
       exportValue: (v) => v.color,
     },
     {
-      id: "driver",
-      header: "Chauffeur assigné",
-      cell: (v) => v.driver_name ?? "—",
-      exportValue: (v) => v.driver_name ?? "",
+      id: "type",
+      header: "Type & service",
+      cell: (v) => <VehicleTypeBadge vehicle={v} />,
+      exportValue: (v) =>
+        [v.category_code, v.category_label, v.category].filter(Boolean).join(" · "),
     },
     {
       id: "status",
-      header: "Validation",
+      header: "Statut",
       cell: (v) => <VehicleApprovalPill status={v.approval_status} />,
       exportValue: (v) => getVehicleApprovalLabel(v.approval_status),
     },
@@ -153,6 +171,16 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
             onChange={setStatusFilter}
           />
         )}
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          showAllPreset
+          rangeLabel={dateRange.rangeLabel}
+        />
       </TableFiltersBar>
 
       <DataTable

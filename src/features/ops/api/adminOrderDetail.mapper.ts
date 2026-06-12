@@ -10,6 +10,7 @@ import {
   mapApiPaymentMethod,
   mapApiServiceType,
   orderRef,
+  resolveOrderClientId,
 } from "@/features/admin/api/adminOrder.shared";
 import type {
   ApiAdminOrderDetailPayload,
@@ -194,6 +195,7 @@ export function mapAdminOrderDetailToTripDetail(
     from_coords: readCoord(ride.pickup_latitude, ride.pickup_longitude),
     to_coords: readCoord(ride.dropoff_latitude, ride.dropoff_longitude),
     client_name: payload.clientName ?? ride.client?.displayName ?? "Client",
+    client_id: resolveOrderClientId(ride),
     client_phone: payload.clientPhone ?? ride.client?.phone ?? undefined,
     driver_id: ride.driver_id ?? payload.driver?.id ?? undefined,
     driver_name:

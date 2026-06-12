@@ -9,8 +9,8 @@ import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
-import type { RecurringBooking } from "../api/shifts.service";
-import { usePartnerRecurringBookings } from "../api/shifts.queries";
+import type { RecurringBooking } from "../api/bookings.service";
+import { usePartnerRecurringBookings } from "../api/bookings.queries";
 
 const FREQ_LABELS: Record<RecurringBooking["frequency"], string> = {
   daily: "Quotidien",
@@ -59,7 +59,7 @@ export function PartnerRecurringBookingsPage() {
       cell: (b) => (
         <span className="text-sm">
           {FREQ_LABELS[b.frequency]}
-          {b.weekdays.length > 0 ? ` (${b.weekdays.join(", ")})` : ""} · {b.time}
+          {b.weekdays?.length > 0 ? ` (${b.weekdays.join(", ")})` : ""} · {b.time}
         </span>
       ),
       exportValue: (b) => FREQ_LABELS[b.frequency],

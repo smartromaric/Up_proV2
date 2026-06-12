@@ -8,19 +8,29 @@ import { BulkActionBar } from "@/shared/ui/BulkActionBar";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { AccountStatusPill, AvailabilityPill } from "@/shared/ui/DriverPills";
-import { notificationService } from "@/core/http/notificationService";
-import { driverBulkStatusMessage } from "@/shared/lib/bulkLabels";
 import {
   getDriverAccountStatusLabel,
   getDriverAvailabilityLabel,
 } from "@/shared/lib/driverLabels";
+import {
+  DRIVER_COMPLIANCE_FILTER_OPTIONS,
+  getDriverComplianceLabel,
+  getDriverComplianceStyle,
+} from "@/shared/lib/complianceLabels";
+import type { DriverComplianceStatus } from "@/shared/types";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
 import type { Driver } from "@/shared/types";
-import { useDriversList } from "../api/drivers.queries";
+import {
+  useBulkActivateDrivers,
+  useBulkDriverAvailability,
+  useBulkSuspendDrivers,
+  useDriversList,
+} from "../api/drivers.queries";
+import { getDriverTableRowClassName } from "../lib/driverRowStyles";
 
 const ZONE_OPTIONS = [
   { value: "all" as const, label: "Toutes les zones" },
@@ -40,7 +50,7 @@ const ACCOUNT_OPTIONS = [
 ];
 
 const AVAILABILITY_OPTIONS = [
-  { value: "all" as const, label: "Toutes dispo." },
+  { value: "all" as const, label: "Toutes les disponibilités" },
   { value: "online", label: "En ligne" },
   { value: "offline", label: "Hors ligne" },
   { value: "on_trip", label: "En course" },
@@ -53,14 +63,21 @@ export function DriversListPage() {
     useState<(typeof ACCOUNT_OPTIONS)[number]["value"]>("all");
   const [availabilityFilter, setAvailabilityFilter] =
     useState<(typeof AVAILABILITY_OPTIONS)[number]["value"]>("all");
+  const [complianceFilter, setComplianceFilter] = useState<
+    (typeof DRIVER_COMPLIANCE_FILTER_OPTIONS)[number]["value"]
+  >("all");
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
   const table = useServerTableState(
-    [zoneFilter, accountFilter, availabilityFilter],
+    [zoneFilter, accountFilter, availabilityFilter, complianceFilter],
     {
       zone: zoneFilter !== "all" ? zoneFilter : undefined,
       account_status: accountFilter !== "all" ? accountFilter : undefined,
       availability: availabilityFilter !== "all" ? availabilityFilter : undefined,
+      compliance_status:
+        complianceFilter !== "all"
+          ? (complianceFilter as DriverComplianceStatus)
+          : undefined,
     }
   );
 
@@ -74,13 +91,40 @@ export function DriversListPage() {
         defaultValue: "all",
         reset: () => setAvailabilityFilter("all"),
       },
+      {
+        value: complianceFilter,
+        defaultValue: "all",
+        reset: () => setComplianceFilter("all"),
+      },
     ],
   });
 
   const { data, isLoading, isError } = useDriversList(table.listParams);
+  const bulkOnline = useBulkDriverAvailability();
+  const bulkOffline = useBulkDriverAvailability();
+  const bulkSuspend = useBulkSuspendDrivers();
+  const bulkActivate = useBulkActivateDrivers();
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
+
+  const selectedIds = Array.from(selected);
+  const selectedRows = rows.filter((d) => selected.has(d.id));
+  const hasSuspendedSelected = selectedRows.some(
+    (d) => d.account_status === "suspended"
+  );
+  const hasApprovedSelected = selectedRows.some(
+    (d) => d.account_status === "approved"
+  );
+  const bulkBusy =
+    bulkOnline.isPending ||
+    bulkOffline.isPending ||
+    bulkSuspend.isPending ||
+    bulkActivate.isPending;
+
+  const clearSelection = () => setSelected(new Set());
+  const bulkPayload = { drivers: rows, ids: selectedIds };
+  const bulkOpts = { onSuccess: () => clearSelection() };
 
   const columns: Column<Driver>[] = [
     {
@@ -127,6 +171,43 @@ export function DriversListPage() {
       exportValue: (d) => (d.rating > 0 ? d.rating : ""),
     },
     {
+      id: "documents",
+      header: "Documents",
+      cell: (d) => {
+        const summary = d.documents_summary;
+        if (!summary) return <span className="text-muted">—</span>;
+        return (
+          <span className="text-sm tabular-nums">
+            {summary.approved_count}/{summary.required_count}
+            {summary.missing_count > 0 ? (
+              <span className="ml-1 text-amber-700">({summary.missing_count} manq.)</span>
+            ) : null}
+          </span>
+        );
+      },
+      exportValue: (d) => {
+        const summary = d.documents_summary;
+        if (!summary) return "";
+        return `${summary.approved_count}/${summary.required_count}`;
+      },
+    },
+    {
+      id: "compliance",
+      header: "Conformité",
+      cell: (d) =>
+        d.compliance_status ? (
+          <span
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getDriverComplianceStyle(d.compliance_status)}`}
+          >
+            {getDriverComplianceLabel(d.compliance_status)}
+          </span>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+      exportValue: (d) =>
+        d.compliance_status ? getDriverComplianceLabel(d.compliance_status) : "",
+    },
+    {
       id: "account",
       header: "Compte",
       cell: (d) => <AccountStatusPill status={d.account_status} />,
@@ -160,24 +241,34 @@ export function DriversListPage() {
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
       >
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <SelectFilter
+            wide
             label="Zone"
             value={zoneFilter}
             onChange={setZoneFilter}
             options={ZONE_OPTIONS}
           />
           <SelectFilter
+            wide
             label="Compte"
             value={accountFilter}
             onChange={setAccountFilter}
             options={ACCOUNT_OPTIONS}
           />
           <SelectFilter
+            wide
             label="Disponibilité"
             value={availabilityFilter}
             onChange={setAvailabilityFilter}
             options={AVAILABILITY_OPTIONS}
+          />
+          <SelectFilter
+            wide
+            label="Conformité"
+            value={complianceFilter}
+            onChange={setComplianceFilter}
+            options={DRIVER_COMPLIANCE_FILTER_OPTIONS}
           />
         </div>
       </TableFiltersBar>
@@ -193,6 +284,7 @@ export function DriversListPage() {
         selectable
         selectedKeys={selected}
         onSelectionChange={setSelected}
+        getRowClassName={getDriverTableRowClassName}
         pagination={false}
         serverPagination={serverPaginationFromMeta(
           meta,
@@ -203,27 +295,46 @@ export function DriversListPage() {
 
       <BulkActionBar
         count={selected.size}
-        onClear={() => setSelected(new Set())}
+        onClear={clearSelection}
         actions={[
-          {
-            label: "Mettre en ligne",
-            onClick: () => {
-              notificationService.success(
-                driverBulkStatusMessage(selected.size, "online")
-              );
-              setSelected(new Set());
-            },
-          },
-          {
-            label: "Hors ligne",
-            variant: "secondary",
-            onClick: () => {
-              notificationService.warning(
-                driverBulkStatusMessage(selected.size, "offline")
-              );
-              setSelected(new Set());
-            },
-          },
+          ...(hasApprovedSelected
+            ? [
+                {
+                  label: "Mettre en ligne",
+                  disabled: bulkBusy,
+                  onClick: () =>
+                    bulkOnline.mutate(
+                      { ...bulkPayload, availability: "online" },
+                      bulkOpts
+                    ),
+                },
+                {
+                  label: "Hors ligne",
+                  variant: "secondary" as const,
+                  disabled: bulkBusy,
+                  onClick: () =>
+                    bulkOffline.mutate(
+                      { ...bulkPayload, availability: "offline" },
+                      bulkOpts
+                    ),
+                },
+                {
+                  label: "Suspendre",
+                  variant: "secondary" as const,
+                  disabled: bulkBusy,
+                  onClick: () => bulkSuspend.mutate(bulkPayload, bulkOpts),
+                },
+              ]
+            : []),
+          ...(hasSuspendedSelected
+            ? [
+                {
+                  label: "Réactiver",
+                  disabled: bulkBusy,
+                  onClick: () => bulkActivate.mutate(bulkPayload, bulkOpts),
+                },
+              ]
+            : []),
         ]}
       />
     </div>

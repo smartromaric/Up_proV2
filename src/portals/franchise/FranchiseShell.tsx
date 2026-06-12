@@ -1,21 +1,24 @@
-import { PortalSidebar } from "@/portals/shared/PortalSidebar";
+import { PortalShellLayout } from "@/portals/shared/PortalShellLayout";
 import { PortalTopbar } from "@/portals/shared/PortalTopbar";
 import { FranchiseChatSoundListener } from "@/features/support/components/FranchiseChatSoundListener";
 import { FRANCHISE_NAV } from "./franchiseNav";
 
 export function FranchiseShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-canvas">
-      <FranchiseChatSoundListener />
-      <PortalSidebar nav={FRANCHISE_NAV} subtitle="Franchise" />
-      <div className="flex min-w-0 flex-1 flex-col">
+    <PortalShellLayout
+      nav={FRANCHISE_NAV}
+      subtitle="Franchise"
+      headerSlot={<FranchiseChatSoundListener />}
+      topbar={(props) => (
         <PortalTopbar
+          {...props}
           scopeLabel="Pays · Côte d'Ivoire"
           badge="Franchise"
           loginPath="/franchise/login"
         />
-        <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
-      </div>
-    </div>
+      )}
+    >
+      {children}
+    </PortalShellLayout>
   );
 }

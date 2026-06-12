@@ -9,11 +9,17 @@ import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
 import { formatFCFA, formatPercent } from "@/shared/lib/format";
 import { useFranchiseDashboard } from "../api/dashboard.queries";
 import { FranchisePendingWithdrawalsKpi } from "../components/FranchisePendingWithdrawalsKpi";
+import { LiveRefreshIndicator } from "@/shared/ui/LiveRefreshIndicator";
 import { PortalDashboardSkeleton } from "@/shared/ui/skeletons";
 
 export function FranchiseDashboardPage() {
+<<<<<<< HEAD
   const { data, isLoading, isError } = useFranchiseDashboard();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+=======
+  const { data, isLoading, isError, isFetching, dataUpdatedAt } =
+    useFranchiseDashboard();
+>>>>>>> 6795ec00f89c1ec8711d7a95d3fdfb0bf0eb5153
 
   if (isLoading) {
     return (
@@ -37,6 +43,7 @@ export function FranchiseDashboardPage() {
 
   return (
     <div className="animate-fade-up">
+<<<<<<< HEAD
       {/* Header sticky */}
       <div className="sticky top-0 z-10 -mx-6 -mt-2 mb-6 border-b border-border bg-canvas/95 px-6 py-4 backdrop-blur md:-mx-8 md:px-8">
         <PageHeader
@@ -47,6 +54,18 @@ export function FranchiseDashboardPage() {
           {data.partners_count} partenaires · {data.drivers_online} chauffeurs en ligne · {data.drivers_total} chauffeurs total
         </p>
       </div>
+=======
+      <PageHeader
+        title="Tableau de bord"
+        breadcrumb={["Franchise", data.territory_name]}
+        actions={
+          <LiveRefreshIndicator
+            dataUpdatedAt={dataUpdatedAt}
+            isFetching={isFetching}
+          />
+        }
+      />
+>>>>>>> 6795ec00f89c1ec8711d7a95d3fdfb0bf0eb5153
 
       <div className="animate-stagger space-y-5">
         <HeroTripsTodayKpi
@@ -54,8 +73,13 @@ export function FranchiseDashboardPage() {
           trendPct={data.trips_today_trend_pct}
         />
 
+<<<<<<< HEAD
         <div className="grid gap-4 sm:grid-cols-4">
           <KpiCard label="Partenaires" value={String(data.partners_count)} variant="navy" />
+=======
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard label="Partenaires" value={String(data.partners_count)} />
+>>>>>>> 6795ec00f89c1ec8711d7a95d3fdfb0bf0eb5153
           <KpiCard
             label="Chauffeurs en ligne"
             value={`${data.drivers_online} / ${data.drivers_total}`}

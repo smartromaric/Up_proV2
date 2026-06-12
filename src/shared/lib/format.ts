@@ -1,4 +1,5 @@
-export function formatFCFA(amount: number): string {
+export function formatFCFA(amount: number | null | undefined): string {
+  if (amount == null || isNaN(amount)) return "—";
   return (
     new Intl.NumberFormat("fr-CI", {
       style: "decimal",
@@ -7,7 +8,8 @@ export function formatFCFA(amount: number): string {
   );
 }
 
-export function formatPercent(value: number, signed = true): string {
+export function formatPercent(value: number | null | undefined, signed = true): string {
+  if (value == null) return "—";
   const prefix = signed && value > 0 ? "+" : "";
   return `${prefix}${value.toFixed(1)} %`;
 }
@@ -26,4 +28,13 @@ export function formatDateTime(
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("fr-CI", {
+    dateStyle: "short",
+  }).format(d);
 }

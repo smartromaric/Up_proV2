@@ -16,3 +16,32 @@
     @apply bg-canvas font-sans text-foreground antialiased;
   }
 }
+
+@layer components {
+  /** Padding principal des pages portail — aligné avec les en-têtes sticky */
+  .page-main {
+    @apply p-4 sm:p-6 md:p-8;
+  }
+
+  /** En-tête sticky des fiches détail (marges négatives = padding page-main) */
+  .page-sticky-header {
+    @apply sticky top-0 z-10 -mx-4 -mt-2 mb-6 border-b border-border px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 md:-mx-8 md:px-8;
+    /* bg-canvas/95 : opacité via variable (non supporté dans @apply) */
+    background-color: color-mix(in srgb, var(--color-canvas) 95%, transparent);
+  }
+
+  /** Grille contenu + sidebar des fiches détail */
+  .detail-page-grid {
+    @apply grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px];
+  }
+
+  /** Onglets horizontaux scrollables sur mobile */
+  .tabs-scroll {
+    @apply -mx-1 flex gap-1 overflow-x-auto border-b border-border px-1;
+    scrollbar-width: none;
+  }
+
+  .tabs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}

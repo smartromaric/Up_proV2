@@ -130,7 +130,18 @@ export function CommissionsListPage() {
 
   return (
     <div className="animate-fade-up">
-      <PageHeader title="Commissions" breadcrumb={["Admin", "Finance"]} />
+      <PageHeader
+        title="Commissions"
+        breadcrumb={["Admin", "Finance"]}
+        actions={
+          <Link
+            href="/admin/finance/commission-rules"
+            className="text-sm text-teal hover:underline"
+          >
+            Règles de commission →
+          </Link>
+        }
+      />
 
       {data?.filter_options && (
         <AdminFranchiseScopeFilter

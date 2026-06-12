@@ -14,7 +14,10 @@ export function DriverTransferStatusBadge({
 }: {
   status: PartnerDriverTransfer["status"];
 }) {
-  const s = DRIVER_TRANSFER_STATUS[status];
+  const s = DRIVER_TRANSFER_STATUS[status] ?? {
+    label: status ?? "—",
+    className: "bg-canvas text-muted",
+  };
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${s.className}`}

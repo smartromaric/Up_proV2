@@ -1,4 +1,5 @@
 import { apiClient } from "@/core/http/apiClient";
+import { LINKS } from "@/core/api/links";
 import type { Paginated } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
@@ -24,16 +25,19 @@ export interface PartnerSupportChatDetail extends PartnerSupportChat {
 }
 
 export const partnerSupportService = {
-  listChats: (params?: ListParams) =>
+  listChats: (partnerId: string | number, params?: ListParams) =>
     apiClient.get<Paginated<PartnerSupportChat>>(
-      `/partner/support/chat${buildListQuery(params)}`
+      `${LINKS.partner.support.chat.list(partnerId)}${buildListQuery(params)}`
     ),
 
-  getChat: (id: string) =>
-    apiClient.get<PartnerSupportChatDetail>(`/partner/support/chat/${id}`),
+  getChat: (partnerId: string | number, chatId: string) =>
+    apiClient.get<PartnerSupportChatDetail>(
+      LINKS.partner.support.chat.getById(partnerId, chatId)
+    ),
 
-  replyChat: (id: string, body: string) =>
-    apiClient.post<PartnerSupportMessage>(`/partner/support/chat/${id}/messages`, {
-      body,
-    }),
+  replyChat: (partnerId: string | number, chatId: string, body: string) =>
+    apiClient.post<PartnerSupportMessage>(
+      LINKS.partner.support.chat.reply(partnerId, chatId),
+      { body }
+    ),
 };
