@@ -92,12 +92,15 @@ interface LiveMapDriversPanelProps {
   adminDriverLinks?: boolean;
   /** Liens franchise vers fiche chauffeur */
   franchiseDriverLinks?: boolean;
+  /** Liens partenaire vers fiche chauffeur */
+  partnerDriverLinks?: boolean;
 }
 
 export function LiveMapDriversPanel({
   data,
   adminDriverLinks = false,
   franchiseDriverLinks = false,
+  partnerDriverLinks = false,
 }: LiveMapDriversPanelProps) {
   const online = data.drivers.filter(
     (d) => d.availability === "online" || d.availability === "on_trip"
@@ -118,7 +121,9 @@ export function LiveMapDriversPanel({
     ? (id: string | number) => adminPaths.driver(id)
     : franchiseDriverLinks
       ? (id: string | number) => `/franchise/drivers/${id}`
-      : undefined;
+      : partnerDriverLinks
+        ? (id: string | number) => `/partner/drivers/${id}`
+        : undefined;
 
   const grouped =
     data.scope === "global" && data.franchise_summary

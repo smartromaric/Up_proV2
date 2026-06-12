@@ -124,17 +124,17 @@ export function PartnerBookingsListPage() {
   ];
 
   if (isError) {
-    return <p className="text-sm text-red-600">Impossible de charger les courses.</p>;
+    return <p className="text-sm text-red-600">Impossible de charger les réservations.</p>;
   }
 
   return (
     <div className="animate-fade-up">
       <PageHeader
-        title="Courses"
-        breadcrumb={["Partenaire", "Courses"]}
+        title="Réservations"
+        breadcrumb={["Partenaire", "Réservations"]}
         actions={
           <Link href="/partner/bookings/new">
-            <Button>Nouvelle course</Button>
+            <Button>Nouvelle réservation</Button>
           </Link>
         }
       />
@@ -143,7 +143,7 @@ export function PartnerBookingsListPage() {
         search={table.search}
         onSearchChange={table.setSearch}
         searchPlaceholder="Réf., client, adresse, chauffeur…"
-        totalLabel={meta ? `${meta.total} courses enregistrées` : undefined}
+        totalLabel={meta ? `${meta.total} réservations enregistrées` : undefined}
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
       >
@@ -168,8 +168,8 @@ export function PartnerBookingsListPage() {
         rowKey={(b) => b.id}
         isLoading={isLoading}
         exportFileName="reservations-partenaire"
-        emptyTitle="Aucune course"
-        emptyDescription="Créez une course manuelle pour votre flotte."
+        emptyTitle="Aucune réservation"
+        emptyDescription="Créez une réservation manuelle pour votre flotte."
         pagination={false}
         serverPagination={serverPaginationFromMeta(
           meta,

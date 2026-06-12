@@ -72,11 +72,11 @@ export function PartnerOrdersListPage() {
       header: "Client",
       cell: (b) => (
         <div>
-          <p className="text-sm">{b.client_name}</p>
+          <p className="text-sm">{b.client_name || "—"}</p>
           {b.client_phone && <p className="text-xs text-muted">{b.client_phone}</p>}
         </div>
       ),
-      exportValue: (b) => (b.client_phone ? `${b.client_name} (${b.client_phone})` : b.client_name),
+      exportValue: (b) => (b.client_phone ? `${b.client_name || "—"} (${b.client_phone})` : (b.client_name || "—")),
     },
     {
       id: "driver",
