@@ -322,6 +322,8 @@ export interface Driver {
   owner_id?: number | string;
   created_at?: string;
   suspended?: boolean;
+  documents_summary?: DriverDocumentsSummary;
+  compliance_status?: DriverComplianceStatus;
 }
 
 export type KycDocumentStatus = "pending" | "approved" | "rejected";

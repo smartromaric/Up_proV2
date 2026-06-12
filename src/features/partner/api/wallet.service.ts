@@ -7,6 +7,7 @@ import type {
   Paginated,
 } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
+import type { DriverRechargeBatchPayload } from "@/features/finance/api/driverRecharge.v1.service";
 
 interface WalletApiResponse {
   success: boolean;
@@ -62,7 +63,7 @@ function mapWalletResponse(response: WalletApiResponse | PartnerWallet): Partner
 }
 
 export interface DriverRechargePayload {
-  driver_id: number;
+  driver_id: string | number;
   amount_fcfa: number;
   note?: string;
 }
@@ -122,5 +123,27 @@ export const partnerWalletService = {
       transfer: PartnerDriverTransfer;
       wallet: PartnerWallet;
       stats: PartnerDriverRechargeStats;
-    }>(LINKS.partner.wallet.driverRecharge(partnerId), payload),
+    }>(LINKS.partner.wallet.driverRecharge(partnerId), {
+      ...payload,
+      driver_id: String(payload.driver_id),
+    }),
+
+  rechargeDrivers: async (
+    partnerId: string | number,
+    batch: DriverRechargeBatchPayload
+  ) => {
+    const ids = batch.driver_ids.map((id) => id.trim()).filter(Boolean);
+    if (!ids.length) {
+      throw new Error("Sélectionnez au moins un chauffeur.");
+    }
+    let last: Awaited<ReturnType<typeof partnerWalletService.rechargeDriver>>;
+    for (const driver_id of ids) {
+      last = await partnerWalletService.rechargeDriver(partnerId, {
+        driver_id,
+        amount_fcfa: batch.amount_fcfa,
+        note: batch.note,
+      });
+    }
+    return last!;
+  },
 };

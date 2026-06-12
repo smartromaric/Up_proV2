@@ -2,10 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScope } from "@/core/auth/useScope";
-import {
-  partnerWalletService,
-  type DriverRechargeBatchPayload,
-} from "./wallet.service";
+import type { DriverRechargeBatchPayload } from "@/features/finance/api/driverRecharge.v1.service";
+import { partnerWalletService } from "./wallet.service";
 import { notificationService } from "@/core/http/notificationService";
 import type { ListParams } from "@/shared/types/listParams";
 
@@ -52,8 +50,8 @@ export function usePartnerDriverRecharge() {
   const qc = useQueryClient();
   const { ownerId } = useScope();
   return useMutation({
-    mutationFn: (payload: DriverRechargePayload) =>
-      partnerWalletService.rechargeDriver(ownerId!, payload),
+    mutationFn: (payload: DriverRechargeBatchPayload) =>
+      partnerWalletService.rechargeDrivers(ownerId!, payload),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ["partner", "wallet"] });
       void qc.invalidateQueries({
