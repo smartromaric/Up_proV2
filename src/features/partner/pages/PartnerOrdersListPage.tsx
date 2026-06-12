@@ -9,11 +9,13 @@ import { FilterChips } from "@/shared/ui/FilterChips";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import { getTripStatusLabel, STATUS_FILTER_OPTIONS } from "@/shared/lib/tripLabels";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
 import type { TripStatus } from "@/shared/types";
 import type { PartnerBooking } from "../api/bookings.service";
 import { usePartnerOrdersList } from "../api/orders.queries";
@@ -21,14 +23,17 @@ import { usePartnerOrdersList } from "../api/orders.queries";
 export function PartnerOrdersListPage() {
   const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
 
-  const table = useServerTableState([statusFilter], {
+  const dateRange = useDateRangeFilter({ defaultPreset: "7d" });
+  const table = useServerTableState([statusFilter, dateRange.dateFrom, dateRange.dateTo], {
     status: statusFilter !== "all" ? statusFilter : undefined,
+    ...dateRange.listParams,
   });
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
     fields: [
       { value: statusFilter, defaultValue: "all", reset: () => setStatusFilter("all") },
+      dateRange.resetField,
     ],
   });
 
@@ -132,6 +137,15 @@ export function PartnerOrdersListPage() {
           options={STATUS_FILTER_OPTIONS}
           value={statusFilter}
           onChange={setStatusFilter}
+        />
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          rangeLabel={dateRange.rangeLabel}
         />
       </TableFiltersBar>
 

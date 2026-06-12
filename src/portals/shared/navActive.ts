@@ -182,6 +182,15 @@ export function isNavItemActive(pathname: string, itemPath: string): boolean {
       /^\/admin\/settings\/dispatchers\/\d+$/.test(pathname)
     );
   }
+  if (itemPath === "/admin/support/tickets") {
+    return (
+      pathname === "/admin/support/tickets" ||
+      pathname.startsWith("/admin/support/disputes")
+    );
+  }
+  if (itemPath === "/admin/support/chat") {
+    return pathname.startsWith("/admin/support/chat");
+  }
 
   if (
     itemPath.endsWith("/pending") ||

@@ -2,6 +2,8 @@
 
 import type { DashboardAdminFranchiseOption } from "@/shared/types";
 import { parseScopeId, type ScopeId } from "@/shared/lib/scopeId";
+import { FilterField } from "@/shared/ui/FilterField";
+import { FILTER_SELECT_CLASS } from "@/shared/ui/filterControlStyles";
 
 interface AdminDashboardFranchiseSelectProps {
   options: DashboardAdminFranchiseOption[];
@@ -17,10 +19,7 @@ export function AdminDashboardFranchiseSelect({
   disabled,
 }: AdminDashboardFranchiseSelectProps) {
   return (
-    <label className="flex min-w-[200px] flex-col gap-1 sm:min-w-[240px]">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
-        Périmètre
-      </span>
+    <FilterField label="Périmètre" className="min-w-[200px] sm:min-w-[260px]">
       <select
         value={value ?? ""}
         disabled={disabled}
@@ -28,7 +27,7 @@ export function AdminDashboardFranchiseSelect({
           const v = e.target.value;
           onChange(v ? parseScopeId(v) : null);
         }}
-        className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground outline-none ring-teal/30 focus:ring-2 disabled:opacity-60"
+        className={`${FILTER_SELECT_CLASS} font-medium`}
       >
         <option value="">Toutes les franchises</option>
         {options.map((f) => (
@@ -37,6 +36,6 @@ export function AdminDashboardFranchiseSelect({
           </option>
         ))}
       </select>
-    </label>
+    </FilterField>
   );
 }

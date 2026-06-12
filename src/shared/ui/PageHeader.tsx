@@ -21,7 +21,7 @@ export function PageHeader({ title, breadcrumb, actions }: PageHeaderProps) {
         </h1>
       </div>
       {actions ? (
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+        <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto sm:justify-end">
           {actions}
         </div>
       ) : null}

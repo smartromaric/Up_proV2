@@ -1,13 +1,19 @@
 import type { Paginated } from "@/shared/types";
 import type { ListParams } from "@/shared/types/listParams";
+import { matchesListDateRange } from "./listDateRange";
 
 /** Pagination / filtres côté client quand l’API v1 ne pagine pas. */
 export function paginateClientList<T>(
   items: T[],
   params?: ListParams,
-  matches?: (item: T) => boolean
+  matches?: (item: T) => boolean,
+  getDate?: (item: T) => string | null | undefined
 ): Paginated<T> {
   let rows = matches ? items.filter(matches) : items;
+
+  if (getDate) {
+    rows = rows.filter((item) => matchesListDateRange(getDate(item), params));
+  }
 
   const q = params?.search?.trim().toLowerCase();
   if (q) {

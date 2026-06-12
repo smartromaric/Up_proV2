@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { isRemoteKycPreviewUrl } from "@/shared/lib/documentPreview";
+
 const ZOOM_LEVELS = [1, 1.25, 1.5, 2] as const;
 
 interface DocumentLightboxProps {
@@ -13,6 +15,29 @@ interface DocumentLightboxProps {
   subtitle?: string;
 }
 
+function viewportFitLimits() {
+  if (typeof window === "undefined") {
+    return { maxW: 672, maxH: 600 };
+  }
+  return {
+    maxW: Math.min(window.innerWidth * 0.92, 672),
+    maxH: Math.min(window.innerHeight * 0.78, window.innerHeight - 112),
+  };
+}
+
+function fitImageSize(
+  naturalWidth: number,
+  naturalHeight: number,
+  scale: number
+): { width: number; height: number } {
+  const { maxW, maxH } = viewportFitLimits();
+  const fit = Math.min(maxW / naturalWidth, maxH / naturalHeight, 1);
+  return {
+    width: naturalWidth * fit * scale,
+    height: naturalHeight * fit * scale,
+  };
+}
+
 export function DocumentLightbox({
   open,
   onClose,
@@ -22,32 +47,56 @@ export function DocumentLightbox({
   subtitle,
 }: DocumentLightboxProps) {
   const [zoomIndex, setZoomIndex] = useState(0);
+  const [naturalSize, setNaturalSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
       setZoomIndex(0);
+      setNaturalSize(null);
       return;
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  useEffect(() => {
+    setNaturalSize(null);
+  }, [src]);
+
+  if (!open || !mounted) return null;
 
   const scale = ZOOM_LEVELS[zoomIndex];
+  const displaySize =
+    naturalSize && !isPdf
+      ? fitImageSize(naturalSize.width, naturalSize.height, scale)
+      : null;
 
   const toolbarBtn =
     "inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-white/25 bg-white/15 text-base font-semibold text-white shadow-sm transition-colors hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-40";
 
-  return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-black/80 backdrop-blur-md">
+  const content = (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-black/85 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/20 bg-zinc-950/90 px-4 py-3 text-white md:px-6">
         <div className="min-w-0">
           <p className="truncate font-medium text-white">{title}</p>
@@ -93,72 +142,91 @@ export function DocumentLightbox({
         </div>
       </div>
 
-      <button
-        type="button"
-        className="flex flex-1 items-center justify-center overflow-auto p-4 md:p-8"
-        aria-label="Fermer l'aperçu"
-        onClick={onClose}
+      <div
+        className="min-h-0 flex-1 overflow-x-auto overflow-y-auto overscroll-contain touch-pan-y"
+        onWheel={(e) => e.stopPropagation()}
       >
-        <div
-          className="max-h-full max-w-full"
-          onClick={(e) => e.stopPropagation()}
-          role="presentation"
-        >
-          {isPdf ? (
-            <div className="flex max-w-lg flex-col items-center gap-4 rounded-card bg-surface p-8 text-center shadow-card">
-              <svg
-                className="h-16 w-16 text-red-500/80"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <p className="text-sm text-muted">Document PDF</p>
-              <a
-                href={src}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium text-teal hover:underline"
-              >
-                Ouvrir dans un nouvel onglet
-              </a>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src}
-                alt={title}
-                referrerPolicy="no-referrer"
-                className="max-h-[calc(100vh-8rem)] rounded-lg shadow-2xl transition-transform duration-200"
-                style={{
-                  transform: `scale(${scale})`,
-                  transformOrigin: "center center",
-                }}
-                draggable={false}
-              />
-              {isRemoteKycPreviewUrl(src) && (
+        <div className="inline-flex min-w-full justify-center p-4 sm:p-8">
+          <div
+            className="inline-block max-w-none"
+            onClick={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            {isPdf ? (
+              <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-4 rounded-card bg-surface p-8 text-center shadow-card">
+                <svg
+                  className="h-16 w-16 text-red-500/80"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <p className="text-sm text-muted">Document PDF</p>
                 <a
                   href={src}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-lg border border-white/25 bg-white/15 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-white/25"
-                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm font-medium text-teal hover:underline"
                 >
-                  Ouvrir le fichier dans un nouvel onglet
+                  Ouvrir dans un nouvel onglet
                 </a>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={title}
+                  referrerPolicy="no-referrer"
+                  className="block max-w-none rounded-lg bg-zinc-900/40 shadow-2xl"
+                  style={
+                    displaySize
+                      ? {
+                          width: displaySize.width,
+                          height: displaySize.height,
+                        }
+                      : {
+                          maxHeight: viewportFitLimits().maxH,
+                          maxWidth: viewportFitLimits().maxW,
+                          width: "auto",
+                          height: "auto",
+                        }
+                  }
+                  draggable={false}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                      setNaturalSize({
+                        width: img.naturalWidth,
+                        height: img.naturalHeight,
+                      });
+                    }
+                  }}
+                />
+                {isRemoteKycPreviewUrl(src) && (
+                  <a
+                    href={src}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-white/25 bg-white/15 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-white/25"
+                  >
+                    Ouvrir le fichier dans un nouvel onglet
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </button>
+      </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

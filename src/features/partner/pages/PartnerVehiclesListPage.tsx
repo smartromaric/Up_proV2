@@ -9,11 +9,12 @@ import { FilterChips } from "@/shared/ui/FilterChips";
 import { VehicleApprovalPill } from "@/shared/ui/VehicleApprovalPill";
 import { Button } from "@/shared/ui/Button";
 import { KpiCard } from "@/shared/ui/KpiCard";
-import {
-  getVehicleApprovalLabel,
-  getVehicleCategoryLabel,
-} from "@/shared/lib/vehicleLabels";
+import { getVehicleApprovalLabel } from "@/shared/lib/vehicleLabels";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
+import { IvorianPlateBadge } from "@/shared/ui/IvorianPlateBadge";
+import { VehicleTypeBadge } from "@/shared/ui/VehicleTypeBadge";
 import {
   serverPaginationFromMeta,
   useServerTableState,
@@ -38,27 +39,34 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
     pendingOnly ? "pending" : "all"
   );
 
-  const table = useServerTableState([statusFilter, pendingOnly], {
-    status: pendingOnly
-      ? "pending"
-      : statusFilter !== "all"
-        ? statusFilter
-        : undefined,
-  });
+  const dateRange = useDateRangeFilter({ defaultPreset: "all" });
+
+  const table = useServerTableState(
+    [statusFilter, pendingOnly, dateRange.dateFrom, dateRange.dateTo],
+    {
+      status: pendingOnly
+        ? "pending"
+        : statusFilter !== "all"
+          ? statusFilter
+          : undefined,
+      ...dateRange.listParams,
+    }
+  );
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
-    ...(!pendingOnly
-      ? {
-          fields: [
+    fields: [
+      ...(!pendingOnly
+        ? [
             {
               value: statusFilter,
-              defaultValue: "all",
+              defaultValue: "all" as const,
               reset: () => setStatusFilter("all"),
             },
-          ],
-        }
-      : {}),
+          ]
+        : []),
+      dateRange.resetField,
+    ],
   });
 
   const { data, isLoading, isError } = usePartnerVehiclesList(table.listParams);
@@ -71,11 +79,8 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
       id: "plate",
       header: "Immatriculation",
       cell: (v) => (
-        <Link
-          href={`/partner/fleet/${v.id}`}
-          className="font-medium text-foreground hover:text-teal"
-        >
-          {v.plate || "—"}
+        <Link href={`/partner/fleet/${v.id}`} className="inline-block hover:opacity-90">
+          {v.plate ? <IvorianPlateBadge plate={v.plate} size="sm" /> : "—"}
         </Link>
       ),
       exportValue: (v) => v.plate ?? "",
@@ -112,16 +117,11 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
       exportValue: (v) => v.color,
     },
     {
-      id: "category",
-      header: "Catégorie",
-      cell: (v) => v.category_code ?? v.category_label ?? "—",
-      exportValue: (v) => v.category_code ?? v.category_label ?? "",
-    },
-    {
       id: "type",
-      header: "Type",
-      cell: (v) => getVehicleCategoryLabel(v.category),
-      exportValue: (v) => getVehicleCategoryLabel(v.category),
+      header: "Type & service",
+      cell: (v) => <VehicleTypeBadge vehicle={v} />,
+      exportValue: (v) =>
+        [v.category_code, v.category_label, v.category].filter(Boolean).join(" · "),
     },
     {
       id: "status",
@@ -171,6 +171,16 @@ export function PartnerVehiclesListPage({ pendingOnly }: PartnerVehiclesListPage
             onChange={setStatusFilter}
           />
         )}
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          showAllPreset
+          rangeLabel={dateRange.rangeLabel}
+        />
       </TableFiltersBar>
 
       <DataTable

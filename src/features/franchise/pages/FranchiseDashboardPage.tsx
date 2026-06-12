@@ -8,10 +8,12 @@ import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
 import { formatFCFA, formatPercent } from "@/shared/lib/format";
 import { useFranchiseDashboard } from "../api/dashboard.queries";
 import { FranchisePendingWithdrawalsKpi } from "../components/FranchisePendingWithdrawalsKpi";
+import { LiveRefreshIndicator } from "@/shared/ui/LiveRefreshIndicator";
 import { PortalDashboardSkeleton } from "@/shared/ui/skeletons";
 
 export function FranchiseDashboardPage() {
-  const { data, isLoading, isError } = useFranchiseDashboard();
+  const { data, isLoading, isError, isFetching, dataUpdatedAt } =
+    useFranchiseDashboard();
 
   if (isLoading) {
     return (
@@ -31,6 +33,12 @@ export function FranchiseDashboardPage() {
       <PageHeader
         title="Tableau de bord"
         breadcrumb={["Franchise", data.territory_name]}
+        actions={
+          <LiveRefreshIndicator
+            dataUpdatedAt={dataUpdatedAt}
+            isFetching={isFetching}
+          />
+        }
       />
 
       <div className="animate-stagger space-y-5">

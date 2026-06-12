@@ -15,11 +15,13 @@ import {
   getTripStatusLabel,
   STATUS_FILTER_OPTIONS,
 } from "@/shared/lib/tripLabels";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
 import type { Trip, TripStatus } from "@/shared/types";
 import { FranchiseLiveMapPartnerFilter } from "../components/FranchiseLiveMapPartnerFilter";
 import type { FranchiseLiveMapFiltersValue } from "../api/liveMap.types";
@@ -41,11 +43,14 @@ export function FranchiseTripsListPage() {
     partnerId: null,
   });
 
+  const dateRange = useDateRangeFilter({ defaultPreset: "7d" });
+
   const table = useServerTableState(
-    [statusFilter, serviceFilter, scope.partnerId],
+    [statusFilter, serviceFilter, scope.partnerId, dateRange.dateFrom, dateRange.dateTo],
     {
       service: serviceFilter !== "all" ? serviceFilter : undefined,
       partner_id: scope.partnerId ?? undefined,
+      ...dateRange.listParams,
     }
   );
 
@@ -59,6 +64,7 @@ export function FranchiseTripsListPage() {
         defaultValue: false,
         reset: () => setScope({ partnerId: null }),
       },
+      dateRange.resetField,
     ],
   });
 
@@ -195,6 +201,15 @@ export function FranchiseTripsListPage() {
           value={serviceFilter}
           onChange={setServiceFilter}
           options={SERVICE_OPTIONS}
+        />
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          rangeLabel={dateRange.rangeLabel}
         />
       </TableFiltersBar>
 

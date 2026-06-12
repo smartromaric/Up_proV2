@@ -234,6 +234,8 @@ export const LINKS = {
       dispatcherById: (id: string) => `${ADMIN_V1_BASE}/dispatchers/${id}`,
       settingsGeneral: `${ADMIN_V1_BASE}/settings/general`,
       supportTickets: "/v1/support/tickets",
+      chatConversations: "/v1/chat/conversations",
+      chatMessages: (id: string) => `/v1/chat/conversations/${id}/messages`,
       safety: {
         sos: `${ADMIN_V1_BASE}/safety/sos`,
         sosDashboard: `${ADMIN_V1_BASE}/safety/sos/dashboard`,

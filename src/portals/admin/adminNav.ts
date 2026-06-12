@@ -181,6 +181,12 @@ export const ADMIN_NAV: NavGroup[] = [
         icon: "support",
         permission: "ops.trips.view",
       },
+      {
+        label: "Chat",
+        path: "/admin/support/chat",
+        icon: "chat",
+        permission: "ops.trips.view",
+      },
     ],
   },
   {

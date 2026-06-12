@@ -4,9 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { FilterChips } from "@/shared/ui/FilterChips";
-import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
-import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { ServicePill } from "@/shared/ui/ServicePill";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
@@ -15,6 +12,7 @@ import {
   getTripStatusLabel,
   STATUS_FILTER_OPTIONS,
 } from "@/shared/lib/tripLabels";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
@@ -22,10 +20,8 @@ import {
 } from "@/shared/hooks/useServerTableState";
 import type { Trip, TripStatus } from "@/shared/types";
 import { useTripsList } from "../api/trips.queries";
-import {
-  TripsScopeFilters,
-  type TripsScopeFiltersValue,
-} from "../components/TripsScopeFilters";
+import { AdminTripsFiltersPanel } from "../components/AdminTripsFiltersPanel";
+import type { TripsScopeFiltersValue } from "../components/TripsScopeFilters";
 
 const SERVICE_OPTIONS = [
   { value: "all" as const, label: "Tous services" },
@@ -43,8 +39,7 @@ export function TripsListPage() {
     franchiseId: null,
     partnerId: null,
   });
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const dateRange = useDateRangeFilter({ defaultPreset: "7d" });
 
   const table = useServerTableState(
     [
@@ -52,20 +47,18 @@ export function TripsListPage() {
       serviceFilter,
       scope.franchiseId,
       scope.partnerId,
-      dateFrom,
-      dateTo,
+      dateRange.dateFrom,
+      dateRange.dateTo,
     ],
     {
       service: serviceFilter !== "all" ? serviceFilter : undefined,
       franchise_id: scope.franchiseId ?? undefined,
       partner_id: scope.partnerId ?? undefined,
-      date_from: dateFrom || undefined,
-      date_to: dateTo || undefined,
+      ...dateRange.listParams,
     }
   );
 
   const scopeActive = scope.franchiseId != null || scope.partnerId != null;
-  const dateFilterActive = Boolean(dateFrom || dateTo);
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
@@ -77,14 +70,7 @@ export function TripsListPage() {
         defaultValue: false,
         reset: () => setScope({ franchiseId: null, partnerId: null }),
       },
-      {
-        value: dateFilterActive,
-        defaultValue: false,
-        reset: () => {
-          setDateFrom("");
-          setDateTo("");
-        },
-      },
+      dateRange.resetField,
     ],
   });
 
@@ -92,7 +78,10 @@ export function TripsListPage() {
 
   const rows = data?.data ?? [];
   const meta = data?.meta;
-  const filterOptions = data?.filter_options;
+  const filterOptions = data?.filter_options ?? {
+    franchises: [],
+    partners: [],
+  };
   const showScopeColumns = !scopeActive;
 
   const columns: Column<Trip>[] = [
@@ -206,43 +195,27 @@ export function TripsListPage() {
     <div className="animate-fade-up">
       <PageHeader title="Courses" breadcrumb={["Admin", "Opérations"]} />
 
-      {filterOptions && (
-        <div className="mb-4">
-          <TripsScopeFilters
-            options={filterOptions}
-            value={scope}
-            onChange={setScope}
-            showDateFilters
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={setDateFrom}
-            onDateToChange={setDateTo}
-          />
-        </div>
-      )}
-
-      <TableFiltersBar
+      <AdminTripsFiltersPanel
+        filterOptions={filterOptions}
+        scope={scope}
+        onScopeChange={setScope}
+        serviceFilter={serviceFilter}
+        onServiceFilterChange={(v) =>
+          setServiceFilter(v as (typeof SERVICE_OPTIONS)[number]["value"])
+        }
+        serviceOptions={SERVICE_OPTIONS}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        statusOptions={STATUS_FILTER_OPTIONS}
+        dateRange={dateRange}
         search={table.search}
         onSearchChange={table.setSearch}
-        searchPlaceholder="Réf., client, chauffeur, adresse…"
         totalLabel={
           meta ? `${meta.total.toLocaleString("fr-CI")} courses` : undefined
         }
         hasActiveFilters={hasActiveFilters}
-        onReset={resetAll}
-      >
-        <FilterChips
-          options={STATUS_FILTER_OPTIONS}
-          value={statusFilter}
-          onChange={setStatusFilter}
-        />
-        <SelectFilter
-          label="Service"
-          value={serviceFilter}
-          onChange={setServiceFilter}
-          options={SERVICE_OPTIONS}
-        />
-      </TableFiltersBar>
+        onResetAll={resetAll}
+      />
 
       <DataTable
         columns={columns}

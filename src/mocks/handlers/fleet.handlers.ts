@@ -25,7 +25,12 @@ import {
   driverAccountStatusOverrides,
   driverAvailabilityOverrides,
 } from "../lib/driverAdminOverrides";
-import { paginatedList, parseListQuery, matchesSearch } from "../lib/listQuery";
+import {
+  matchesDateRange,
+  paginatedList,
+  parseListQuery,
+  matchesSearch,
+} from "../lib/listQuery";
 
 type DriverTripRow = {
   id: string;
@@ -77,15 +82,16 @@ export const fleetHandlers = [
 
   http.get("*/api/v2/admin/fleet/kyc", ({ request }) => {
     const query = parseListQuery(request);
-    const list = kycQueue.data.filter((row) =>
-      matchesSearch(
-        query.search,
-        row.first_name,
-        row.last_name,
-        row.phone,
-        row.zone,
-        row.owner_name
-      )
+    const list = kycQueue.data.filter(
+      (row) =>
+        matchesSearch(
+          query.search,
+          row.first_name,
+          row.last_name,
+          row.phone,
+          row.zone,
+          row.owner_name
+        ) && matchesDateRange(row.submitted_at, query)
     );
     return HttpResponse.json(paginatedList(list, query));
   }),

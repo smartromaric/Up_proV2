@@ -12,12 +12,14 @@ import { AdminNetworkActivityPanel } from "../components/AdminNetworkActivityPan
 import { AdminDashboardAlerts } from "../components/AdminDashboardAlerts";
 import { AdminDashboardFranchiseSelect } from "../components/AdminDashboardFranchiseSelect";
 import { AdminDashboardSkeleton } from "../components/AdminDashboardSkeleton";
+import { LiveRefreshIndicator } from "@/shared/ui/LiveRefreshIndicator";
 import type { AdminDashboardFranchiseFilter } from "../api/dashboard.types";
 
 export function AdminDashboardPage() {
   const [franchiseId, setFranchiseId] =
     useState<AdminDashboardFranchiseFilter>(null);
-  const { data, isLoading, isError, isFetching } = useAdminDashboard(franchiseId);
+  const { data, isLoading, isError, isFetching, dataUpdatedAt } =
+    useAdminDashboard(franchiseId);
 
   const scopeLabel =
     franchiseId === null
@@ -40,14 +42,20 @@ export function AdminDashboardPage() {
         title="Tableau de bord"
         breadcrumb={["Admin", "Opérations", scopeLabel]}
         actions={
-          data.franchise_options.length > 0 ? (
-            <AdminDashboardFranchiseSelect
-              options={data.franchise_options}
-              value={franchiseId}
-              onChange={setFranchiseId}
-              disabled={isFetching}
+          <div className="flex flex-wrap items-end justify-end gap-3">
+            <LiveRefreshIndicator
+              dataUpdatedAt={dataUpdatedAt}
+              isFetching={isFetching}
             />
-          ) : undefined
+            {data.franchise_options.length > 0 ? (
+              <AdminDashboardFranchiseSelect
+                options={data.franchise_options}
+                value={franchiseId}
+                onChange={setFranchiseId}
+                disabled={isFetching}
+              />
+            ) : null}
+          </div>
         }
       />
 

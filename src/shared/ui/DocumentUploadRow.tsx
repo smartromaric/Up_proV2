@@ -89,6 +89,9 @@ export function DocumentUploadRow({
           alt={label}
           isPdf={Boolean(file && isPdf)}
           subtitle={file ? file.name : "Aperçu type de document"}
+          allowPreview={Boolean(file)}
+          onPickFile={() => inputRef.current?.click()}
+          pickLabel={file ? "Cliquer pour remplacer" : "Cliquer pour choisir une image"}
         />
       </div>
     </li>

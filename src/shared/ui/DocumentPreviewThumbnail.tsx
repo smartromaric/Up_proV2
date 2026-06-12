@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DocumentLightbox } from "./DocumentLightbox";
 
 interface DocumentPreviewThumbnailProps {
@@ -10,6 +10,41 @@ interface DocumentPreviewThumbnailProps {
   fallbackSrc?: string;
   subtitle?: string;
   className?: string;
+  /** Si false, le clic ouvre le sélecteur au lieu de la lightbox. */
+  allowPreview?: boolean;
+  /** Déclenché quand il n'y a pas d'image affichable (vide, erreur, ou preview désactivée). */
+  onPickFile?: () => void;
+  pickLabel?: string;
+}
+
+function PickFilePlaceholder({
+  label,
+  className,
+}: {
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex min-h-[5rem] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-canvas p-4 text-center ${className ?? ""}`}
+    >
+      <svg
+        className="h-8 w-8 text-muted/50"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        aria-hidden
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+        />
+      </svg>
+      <span className="text-xs font-medium text-muted">{label}</span>
+    </div>
+  );
 }
 
 export function DocumentPreviewThumbnail({
@@ -19,16 +54,53 @@ export function DocumentPreviewThumbnail({
   fallbackSrc,
   subtitle,
   className = "",
+  allowPreview = true,
+  onPickFile,
+  pickLabel = "Cliquer pour choisir une image",
 }: DocumentPreviewThumbnailProps) {
   const [open, setOpen] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [activeSrc, setActiveSrc] = useState(src);
+
+  useEffect(() => {
+    setActiveSrc(src);
+    setLoadFailed(false);
+  }, [src]);
+
+  const canOpenLightbox =
+    allowPreview && !loadFailed && Boolean(activeSrc?.trim()) && !isPdf;
+  const shouldPickOnClick =
+    Boolean(onPickFile) && (!allowPreview || loadFailed || !activeSrc?.trim());
+  const showPickPlaceholder =
+    shouldPickOnClick || (loadFailed && !canOpenLightbox);
+
+  const handleClick = () => {
+    if (shouldPickOnClick) {
+      onPickFile?.();
+      return;
+    }
+    if (canOpenLightbox) {
+      setOpen(true);
+    }
+  };
+
+  const placeholderLabel = loadFailed && !onPickFile
+    ? "Image indisponible"
+    : pickLabel;
+
+  const ariaLabel = shouldPickOnClick
+    ? `Choisir un fichier : ${alt}`
+    : loadFailed
+      ? alt
+      : `Agrandir : ${alt}`;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleClick}
         className={`group relative w-full overflow-hidden rounded-lg border border-border bg-canvas transition-all hover:border-teal/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal/40 ${className}`}
-        aria-label={`Agrandir : ${alt}`}
+        aria-label={ariaLabel}
       >
         {isPdf ? (
           <div className="flex min-h-[7rem] flex-col items-center justify-center gap-2 p-4">
@@ -48,35 +120,47 @@ export function DocumentPreviewThumbnail({
             </svg>
             <span className="text-xs text-muted">PDF · Cliquer pour ouvrir</span>
           </div>
+        ) : showPickPlaceholder ? (
+          <PickFilePlaceholder label={placeholderLabel} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={src}
+            src={activeSrc}
             alt={alt}
             referrerPolicy="no-referrer"
             className="h-28 w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.02] md:h-32"
             onError={(e) => {
-              if (!fallbackSrc) return;
               const img = e.currentTarget;
-              if (img.dataset.fallbackApplied === "1") return;
-              img.dataset.fallbackApplied = "1";
-              img.src = fallbackSrc;
+              if (
+                fallbackSrc &&
+                img.dataset.fallbackApplied !== "1" &&
+                activeSrc !== fallbackSrc
+              ) {
+                img.dataset.fallbackApplied = "1";
+                setActiveSrc(fallbackSrc);
+                return;
+              }
+              setLoadFailed(true);
             }}
           />
         )}
-        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/70 to-transparent px-3 py-2 text-left text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-          Cliquer pour agrandir
-        </span>
+        {!showPickPlaceholder && canOpenLightbox && (
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/70 to-transparent px-3 py-2 text-left text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+            Cliquer pour agrandir
+          </span>
+        )}
       </button>
 
-      <DocumentLightbox
-        open={open}
-        onClose={() => setOpen(false)}
-        title={alt}
-        src={src}
-        isPdf={isPdf}
-        subtitle={subtitle}
-      />
+      {canOpenLightbox && (
+        <DocumentLightbox
+          open={open}
+          onClose={() => setOpen(false)}
+          title={alt}
+          src={activeSrc}
+          isPdf={isPdf}
+          subtitle={subtitle}
+        />
+      )}
     </>
   );
 }
