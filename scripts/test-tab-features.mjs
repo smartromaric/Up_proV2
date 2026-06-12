@@ -150,8 +150,8 @@ const TAB_ENDPOINTS = {
         { method: "GET", path: "/v1/franchises/{id}/drivers?page=1&limit=10", name: "Liste chauffeurs franchise", sampleId: true },
         { method: "GET", path: "/v1/franchises/{id}/drivers/{driverId}", name: "Détail chauffeur franchise", sampleId: true },
         { method: "GET", path: "/v1/franchise/drivers/moderation?page=1&limit=10", name: "Modération KYC" },
-        { method: "POST", path: "/v1/admin/drivers/{driverId}/approve", name: "Approuver KYC chauffeur", sampleId: true },
-        { method: "POST", path: "/v1/admin/drivers/{driverId}/reject", name: "Rejeter KYC chauffeur", sampleId: true },
+        { method: "POST", path: "/v1/admin/drivers/{driverId}/approve", name: "Approuver KYC chauffeur", sampleId: true, body: { note: "test" } },
+        { method: "POST", path: "/v1/admin/drivers/{driverId}/reject", name: "Rejeter KYC chauffeur", sampleId: true, body: { reason: "test" } },
         { method: "GET", path: "/v1/franchise/clients?page=1&limit=10", name: "Clients franchise" },
         { method: "GET", path: "/v1/admin/kyc/documents?subject_id={driverId}&subject_type=DRIVER", name: "Documents KYC chauffeur", sampleId: true },
       ]

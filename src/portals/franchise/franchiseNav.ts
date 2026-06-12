@@ -23,20 +23,8 @@ export const FRANCHISE_NAV: NavGroup[] = [
         permission: "ops.trips.view",
       },
       {
-        label: "Console dispatch",
-        path: "/franchise/dispatch",
-        icon: "dispatch",
-        permission: "ops.dispatch.view",
-      },
-      {
         label: "Carte territoire",
         path: "/franchise/territory",
-        icon: "territory",
-        permission: "ops.dashboard.view",
-      },
-      {
-        label: "Extension territoire",
-        path: "/franchise/territory/extension",
         icon: "territory",
         permission: "ops.dashboard.view",
       },

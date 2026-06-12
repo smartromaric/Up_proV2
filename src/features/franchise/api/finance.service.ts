@@ -10,10 +10,24 @@ import type {
 } from "@/shared/types";
 import { buildListQuery, type ListParams } from "@/shared/types/listParams";
 
+export interface FranchiseWithdrawal {
+  id: string;
+  amount_xof: number;
+  status: "pending" | "approved" | "paid" | "rejected" | string;
+  destination_type: string | null;
+  destination_identifier: string | null;
+  partner_id: string | null;
+  payout_method: string | null;
+  created_at: string;
+  approved_at: string | null;
+  paid_at: string | null;
+}
+
 export interface FranchiseFinance {
   balance_fcfa: number;
   commission_month_fcfa: number;
   payouts_pending_fcfa: number;
+  payouts_pending_count: number;
   available_fcfa: number;
   transactions: {
     id: string;
@@ -22,6 +36,7 @@ export interface FranchiseFinance {
     direction: "credit" | "debit";
     created_at: string;
   }[];
+  withdrawals: FranchiseWithdrawal[];
 }
 
 export interface FranchiseDriverRechargePayload {
@@ -41,18 +56,43 @@ export interface FranchisePartnerRechargePayload {
 function mapV1Finance(raw: Record<string, any>): FranchiseFinance {
   const wallet = raw.wallet ?? {};
   const summary = raw.summary ?? {};
+  const withdrawals: FranchiseWithdrawal[] = (raw.withdrawals ?? []).map((w: any) => ({
+    id: w.id,
+    amount_xof: w.amount_xof ?? 0,
+    status: w.status ?? "pending",
+    destination_type: w.destination_type ?? null,
+    destination_identifier: w.destination_identifier ?? null,
+    partner_id: w.metadata?.partnerId ?? null,
+    payout_method: w.metadata?.payoutMethod ?? null,
+    created_at: w.created_at ?? new Date().toISOString(),
+    approved_at: w.approved_at ?? null,
+    paid_at: w.paid_at ?? null,
+  }));
   return {
-    balance_fcfa: summary.wallet_balance_xof ?? wallet.balance_cached_xof ?? 0,
-    available_fcfa: summary.available_xof ?? wallet.available_xof ?? 0,
-    commission_month_fcfa: summary.commissions_month_xof ?? summary.commission_month_xof ?? 0,
-    payouts_pending_fcfa: summary.pending_withdrawal_xof ?? wallet.pending_withdrawal_xof ?? 0,
-    transactions: (wallet.recent_movements ?? raw.transactions ?? []).map((m: any) => ({
+    balance_fcfa:
+      raw.balance_fcfa ?? summary.wallet_balance_xof ?? wallet.balance_cached_xof ?? 0,
+    available_fcfa:
+      raw.available_fcfa ?? summary.available_xof ?? wallet.available_xof ?? 0,
+    commission_month_fcfa:
+      raw.commission_month_fcfa ??
+      summary.commissions_xof ??
+      summary.commissions_month_xof ??
+      0,
+    payouts_pending_fcfa:
+      raw.payouts_pending_fcfa ??
+      summary.pending_withdrawals_xof ??
+      summary.pending_withdrawal_xof ??
+      wallet.pending_withdrawal_xof ??
+      0,
+    payouts_pending_count: summary.pending_withdrawals_count ?? withdrawals.filter((w) => w.status === "pending").length,
+    transactions: (wallet.recent_movements ?? raw.recent_movements ?? raw.transactions ?? []).map((m: any) => ({
       id: m.id ?? m.entry_id ?? String(Math.random()),
       label: m.description ?? m.label ?? "Mouvement",
       amount_fcfa: m.amount_xof ?? m.amount_fcfa ?? 0,
       direction: m.direction === "credit" ? "credit" : "debit",
       created_at: m.created_at ?? m.posted_at ?? new Date().toISOString(),
     })),
+    withdrawals,
   };
 }
 

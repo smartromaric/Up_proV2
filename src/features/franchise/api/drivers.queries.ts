@@ -89,3 +89,66 @@ export function useRejectFranchiseDocument(driverId: string) {
     },
   });
 }
+
+export function useCreateFranchiseDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof franchiseDriversService.create>[0]) =>
+      franchiseDriversService.create(payload),
+    onSuccess: () => {
+      invalidateFranchiseDriverQueries(qc);
+      notificationService.success("Chauffeur créé");
+    },
+    onError: () => notificationService.error("Création impossible"),
+  });
+}
+
+export function useSuspendFranchiseDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      franchiseDriversService.suspend(id, reason),
+    onSuccess: () => {
+      invalidateFranchiseDriverQueries(qc);
+      notificationService.success("Chauffeur suspendu");
+    },
+    onError: () => notificationService.error("Suspension impossible"),
+  });
+}
+
+export function useUnsuspendFranchiseDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => franchiseDriversService.unsuspend(id),
+    onSuccess: () => {
+      invalidateFranchiseDriverQueries(qc);
+      notificationService.success("Chauffeur réactivé");
+    },
+    onError: () => notificationService.error("Réactivation impossible"),
+  });
+}
+
+export function useUpdateFranchiseDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof franchiseDriversService.update>[1] }) =>
+      franchiseDriversService.update(id, payload),
+    onSuccess: () => {
+      invalidateFranchiseDriverQueries(qc);
+      notificationService.success("Chauffeur mis à jour");
+    },
+    onError: () => notificationService.error("Mise à jour impossible"),
+  });
+}
+
+export function useDeleteFranchiseDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => franchiseDriversService.delete(id),
+    onSuccess: () => {
+      invalidateFranchiseDriverQueries(qc);
+      notificationService.success("Chauffeur supprimé");
+    },
+    onError: () => notificationService.error("Suppression impossible"),
+  });
+}

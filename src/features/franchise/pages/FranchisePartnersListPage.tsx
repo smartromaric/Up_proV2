@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+// useState kept for statusFilter
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
+import { Button } from "@/shared/ui/Button";
 import { formatFCFA } from "@/shared/lib/format";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
@@ -108,6 +110,11 @@ export function FranchisePartnersListPage() {
         <PageHeader
           title="Partenaires"
           breadcrumb={["Franchise", "Réseau"]}
+          actions={
+            <Link href="/franchise/partners/new">
+              <Button type="button">+ Nouveau partenaire</Button>
+            </Link>
+          }
         />
         {meta && (
           <p className="mt-1 text-sm text-muted">
@@ -148,6 +155,7 @@ export function FranchisePartnersListPage() {
           table.setPageSize
         )}
       />
+
     </div>
   );
 }
