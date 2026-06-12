@@ -10,22 +10,22 @@ export function LiveMapStatsBar({ stats, className = "" }: LiveMapStatsBarProps)
   const items = [
     {
       label: "En ligne",
-      value: stats.drivers_online.toLocaleString("fr-CI"),
+      value: (stats.drivers_online ?? 0).toLocaleString("fr-CI"),
       hint: "réseau",
     },
     {
       label: "En course",
-      value: stats.drivers_on_trip.toLocaleString("fr-CI"),
+      value: (stats.drivers_on_trip ?? 0).toLocaleString("fr-CI"),
       hint: "chauffeurs assignés",
     },
     {
       label: "Courses actives",
-      value: stats.active_trips.toLocaleString("fr-CI"),
+      value: (stats.active_trips ?? 0).toLocaleString("fr-CI"),
       hint: "rides + livraisons",
     },
     {
       label: "Attente moy.",
-      value: `${stats.avg_wait_min} min`,
+      value: `${stats.avg_wait_min ?? 0} min`,
       hint: "matching",
     },
   ];

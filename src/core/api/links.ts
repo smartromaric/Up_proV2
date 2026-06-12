@@ -570,7 +570,10 @@ export const LINKS = {
 
     freight: {
       list: (id: string | number) => `/v1/partners/${id}/freight-offers`,
+      create: (id: string | number) => `/v1/partners/${id}/freight-offers`,
       update: (id: string | number, offerId: string | number) =>
+        `/v1/partners/${id}/freight-offers/${offerId}`,
+      delete: (id: string | number, offerId: string | number) =>
         `/v1/partners/${id}/freight-offers/${offerId}`,
     },
 
@@ -597,10 +600,10 @@ export const LINKS = {
       },
     },
 
-    orders: {
-      list: (id: string | number) => `/v1/partners/${id}/orders`,
-      getById: (id: string | number, orderId: string | number) =>
-        `/v1/partners/${id}/orders/${orderId}`,
+    trips: {
+      list: (id: string | number) => `/v1/partners/${id}/trips`,
+      getById: (id: string | number, tripId: string | number) =>
+        `/v1/partners/${id}/trips/${tripId}`,
     },
 
     shifts: {

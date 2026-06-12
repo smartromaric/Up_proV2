@@ -6,8 +6,9 @@ import {
 import { formatFCFA } from "@/shared/lib/format";
 import type { LiveMapActiveTrip, LiveMapDriver, LiveMapOrderMarker } from "@/shared/types";
 
-function escapeHtml(text: string): string {
-  return text
+function escapeHtml(text: string | undefined | null): string {
+  const safe = text ?? "";
+  return safe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
