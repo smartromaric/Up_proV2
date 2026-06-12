@@ -5,8 +5,9 @@ import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { VehicleApprovalPill } from "@/shared/ui/VehicleApprovalPill";
 import { KycDocumentCard } from "@/shared/ui/KycDocumentCard";
-import { getVehicleCategoryLabel } from "@/shared/lib/vehicleLabels";
 import { formatDateTime } from "@/shared/lib/format";
+import { IvorianPlateBadge } from "@/shared/ui/IvorianPlateBadge";
+import { VehicleTypeBadge } from "@/shared/ui/VehicleTypeBadge";
 import {
   usePartnerVehicleDetail,
   useUploadVehicleRegistration,
@@ -72,14 +73,20 @@ export function PartnerVehicleDetailPage({ vehicleId }: PartnerVehicleDetailPage
           <div className="rounded-card border border-border bg-surface p-5 shadow-card text-sm">
             <h3 className="font-semibold">Informations</h3>
             <dl className="mt-3 space-y-2 text-muted">
-              <div className="flex justify-between gap-2">
+              <div className="flex flex-col gap-2">
                 <dt>Plaque</dt>
-                <dd className="text-foreground">{vehicle.plate || "—"}</dd>
+                <dd>
+                  {vehicle.plate ? (
+                    <IvorianPlateBadge plate={vehicle.plate} size="md" />
+                  ) : (
+                    "—"
+                  )}
+                </dd>
               </div>
-              <div className="flex justify-between gap-2">
-                <dt>Catégorie</dt>
-                <dd className="text-foreground">
-                  {getVehicleCategoryLabel(vehicle.category)}
+              <div className="flex flex-col gap-2">
+                <dt>Type & service</dt>
+                <dd>
+                  <VehicleTypeBadge vehicle={vehicle} />
                 </dd>
               </div>
               <div className="flex justify-between gap-2">

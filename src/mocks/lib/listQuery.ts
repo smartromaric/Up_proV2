@@ -2,6 +2,8 @@ import { paginate, type PaginateParams } from "./paginate";
 
 export interface ListQuery extends PaginateParams {
   search: string | null;
+  date_from: string | null;
+  date_to: string | null;
   status: string | null;
   zone: string | null;
   zone_id: number | null;
@@ -21,6 +23,9 @@ export function parseListQuery(request: Request): ListQuery {
     page: Number(url.searchParams.get("page") ?? "1"),
     per_page: Number(url.searchParams.get("per_page") ?? "25"),
     search: url.searchParams.get("search"),
+    date_from:
+      url.searchParams.get("date_from") ?? url.searchParams.get("dateFrom"),
+    date_to: url.searchParams.get("date_to") ?? url.searchParams.get("dateTo"),
     status: url.searchParams.get("status"),
     zone: url.searchParams.get("zone"),
     zone_id: zoneIdRaw ? Number(zoneIdRaw) : null,
@@ -49,6 +54,35 @@ export function matchesSearch(
   return parts.some((p) => (p ?? "").toLowerCase().includes(q));
 }
 
-export function paginatedList<T>(items: T[], query: ListQuery) {
-  return paginate(items, { page: query.page, per_page: query.per_page });
+export function matchesDateRange(
+  iso: string | null | undefined,
+  query: Pick<ListQuery, "date_from" | "date_to">
+): boolean {
+  const from = query.date_from?.trim();
+  const to = query.date_to?.trim();
+  if (!from && !to) return true;
+  if (!iso?.trim()) return false;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return false;
+  if (from) {
+    const start = new Date(`${from}T00:00:00`);
+    if (date < start) return false;
+  }
+  if (to) {
+    const end = new Date(`${to}T23:59:59.999`);
+    if (date > end) return false;
+  }
+  return true;
+}
+
+export function paginatedList<T>(
+  items: T[],
+  query: ListQuery,
+  getDate?: (item: T) => string | null | undefined
+) {
+  let rows = items;
+  if (getDate) {
+    rows = rows.filter((item) => matchesDateRange(getDate(item), query));
+  }
+  return paginate(rows, { page: query.page, per_page: query.per_page });
 }

@@ -8,11 +8,13 @@ import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { FilterChips } from "@/shared/ui/FilterChips";
 import { formatFCFA } from "@/shared/lib/format";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
 import type { FranchisePartnerCommission } from "../api/commissions.service";
 import { useFranchiseCommissionsList } from "../api/commissions.queries";
 import { FranchiseLiveMapPartnerFilter } from "../components/FranchiseLiveMapPartnerFilter";
@@ -31,10 +33,16 @@ export function FranchiseCommissionsListPage() {
     partnerId: null,
   });
 
-  const table = useServerTableState([statusFilter, scope.partnerId], {
-    status: statusFilter !== "all" ? statusFilter : undefined,
-    partner_id: scope.partnerId ?? undefined,
-  });
+  const dateRange = useDateRangeFilter({ defaultPreset: "7d" });
+
+  const table = useServerTableState(
+    [statusFilter, scope.partnerId, dateRange.dateFrom, dateRange.dateTo],
+    {
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      partner_id: scope.partnerId ?? undefined,
+      ...dateRange.listParams,
+    }
+  );
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
@@ -45,6 +53,7 @@ export function FranchiseCommissionsListPage() {
         defaultValue: false,
         reset: () => setScope({ partnerId: null }),
       },
+      dateRange.resetField,
     ],
   });
 
@@ -193,6 +202,15 @@ export function FranchiseCommissionsListPage() {
           options={STATUS_FILTERS}
           value={statusFilter}
           onChange={setStatusFilter}
+        />
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          rangeLabel={dateRange.rangeLabel}
         />
       </TableFiltersBar>
 

@@ -3,20 +3,26 @@
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
   useServerTableState,
 } from "@/shared/hooks/useServerTableState";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
 import { usePartnerLedger } from "../api/wallet.queries";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import type { LedgerEntry } from "../api/wallet.service";
 
 export function PartnerLedgerPage() {
-  const table = useServerTableState([]);
+  const dateRange = useDateRangeFilter({ defaultPreset: "7d" });
+  const table = useServerTableState([dateRange.dateFrom, dateRange.dateTo], {
+    ...dateRange.listParams,
+  });
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
+    fields: [dateRange.resetField],
   });
 
   const { data, isLoading, isError } = usePartnerLedger(table.listParams);
@@ -75,7 +81,21 @@ export function PartnerLedgerPage() {
         totalLabel={meta ? `${meta.total} transaction${meta.total > 1 ? "s" : ""}` : undefined}
         hasActiveFilters={hasActiveFilters}
         onReset={resetAll}
+<<<<<<< HEAD
       />
+=======
+      >
+        <DateRangeFilter
+          preset={dateRange.preset}
+          onPresetChange={dateRange.setPreset}
+          customFrom={dateRange.customFrom}
+          customTo={dateRange.customTo}
+          onCustomFromChange={dateRange.setCustomFrom}
+          onCustomToChange={dateRange.setCustomTo}
+          rangeLabel={dateRange.rangeLabel}
+        />
+      </TableFiltersBar>
+>>>>>>> main
 
       <DataTable
         columns={columns}

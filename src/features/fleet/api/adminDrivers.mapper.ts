@@ -123,8 +123,6 @@ export function mapAdminDriverItemToListDriver(
     owner_id: item.partner_id ? String(item.partner_id) : undefined,
     created_at: item.created_at,
     suspended: resolveSuspended(item),
-    documents_summary: mapDocumentsSummary(item.documentsSummary),
-    compliance_status: mapComplianceStatus(item.complianceStatus),
   };
 }
 

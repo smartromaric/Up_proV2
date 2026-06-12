@@ -1,3 +1,6 @@
+import { FilterField } from "./FilterField";
+import { FILTER_SELECT_CLASS } from "./filterControlStyles";
+
 interface SelectFilterOption<T extends string> {
   value: T;
   label: string;
@@ -26,14 +29,11 @@ export function SelectFilter<T extends string>({
     : "w-full min-w-0 sm:min-w-[140px]";
 
   return (
-    <label className={`flex w-full min-w-0 flex-col gap-1 sm:w-auto ${className}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-        {label}
-      </span>
+    <FilterField label={label} className={`${selectWidth} ${className}`}>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className={`${selectWidth} max-w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none ring-teal/30 focus:ring-2`}
+        className={FILTER_SELECT_CLASS}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -41,6 +41,6 @@ export function SelectFilter<T extends string>({
           </option>
         ))}
       </select>
-    </label>
+    </FilterField>
   );
 }

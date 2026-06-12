@@ -43,7 +43,14 @@ function SideUpload({
   return (
     <div className="flex flex-1 flex-col gap-2 rounded-lg border border-dashed border-border bg-canvas/50 p-3">
       <p className="text-xs font-medium text-muted">{sideLabel}</p>
-      <DocumentPreviewThumbnail src={thumbSrc} alt={sideLabel} className="h-20 w-full" />
+      <DocumentPreviewThumbnail
+        src={thumbSrc}
+        alt={sideLabel}
+        className="h-20 w-full"
+        allowPreview={Boolean(file)}
+        onPickFile={() => inputRef.current?.click()}
+        pickLabel={file ? "Cliquer pour remplacer" : "Cliquer pour choisir une image"}
+      />
       {file && (
         <p className="truncate text-xs text-teal-dark">{file.name}</p>
       )}

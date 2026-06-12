@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
-import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { Button } from "@/shared/ui/Button";
+import { DateRangeFilter } from "@/shared/ui/DateRangeFilter";
+import { FilterField } from "@/shared/ui/FilterField";
+import { SearchInput } from "@/shared/ui/SearchInput";
+import {
+  TableFiltersPanel,
+  TableFiltersSection,
+} from "@/shared/ui/TableFiltersPanel";
 import { formatDateTime } from "@/shared/lib/format";
+import { useDateRangeFilter } from "@/shared/hooks/useDateRangeFilter";
 import { useListFiltersReset } from "@/shared/hooks/useListFiltersReset";
 import {
   serverPaginationFromMeta,
@@ -28,10 +35,16 @@ function WaitingBadge({ hours }: { hours: number }) {
 }
 
 export function KycQueuePage() {
-  const table = useServerTableState();
+  const dateRange = useDateRangeFilter({ defaultPreset: "all" });
+
+  const table = useServerTableState(
+    [dateRange.dateFrom, dateRange.dateTo],
+    { ...dateRange.listParams }
+  );
 
   const { hasActiveFilters, resetAll } = useListFiltersReset({
     search: { value: table.search, set: table.setSearch },
+    fields: [dateRange.resetField],
   });
 
   const { data, isLoading, isError } = useKycQueue(table.listParams);
@@ -136,14 +149,53 @@ export function KycQueuePage() {
         }
       />
 
-      <TableFiltersBar
-        search={table.search}
-        onSearchChange={table.setSearch}
-        searchPlaceholder="Nom, téléphone, zone, partenaire…"
-        totalLabel={meta ? `${meta.total} dossiers en attente` : undefined}
-        hasActiveFilters={hasActiveFilters}
-        onReset={resetAll}
-      />
+      <TableFiltersPanel>
+        <TableFiltersSection title="Période (date de soumission)">
+          <DateRangeFilter
+            hideLabel
+            showAllPreset
+            preset={dateRange.preset}
+            onPresetChange={dateRange.setPreset}
+            customFrom={dateRange.customFrom}
+            customTo={dateRange.customTo}
+            onCustomFromChange={dateRange.setCustomFrom}
+            onCustomToChange={dateRange.setCustomTo}
+            rangeLabel={dateRange.rangeLabel}
+            className="w-full"
+          />
+        </TableFiltersSection>
+
+        <TableFiltersSection
+          actions={
+            hasActiveFilters ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="!h-auto !px-0 !py-0 !text-xs text-teal hover:text-teal-dark"
+                onClick={resetAll}
+              >
+                Réinitialiser
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <FilterField label="Recherche" className="min-w-0 flex-1 sm:min-w-[280px]">
+              <SearchInput
+                value={table.search}
+                onChange={table.setSearch}
+                placeholder="Nom, téléphone, zone, partenaire…"
+                className="max-w-none"
+              />
+            </FilterField>
+            {meta && (
+              <p className="flex min-h-[42px] items-center text-sm text-muted tabular-nums">
+                {meta.total} dossier{meta.total > 1 ? "s" : ""} en attente
+              </p>
+            )}
+          </div>
+        </TableFiltersSection>
+      </TableFiltersPanel>
 
       <DataTable
         columns={columns}

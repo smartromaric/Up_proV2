@@ -7,10 +7,12 @@ import { KpiCard } from "@/shared/ui/KpiCard";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { formatFCFA } from "@/shared/lib/format";
 import { usePartnerDashboard } from "../api/dashboard.queries";
+import { LiveRefreshIndicator } from "@/shared/ui/LiveRefreshIndicator";
 import { PortalDashboardSkeleton } from "@/shared/ui/skeletons";
 
 export function PartnerDashboardPage() {
-  const { data, isLoading, isError } = usePartnerDashboard();
+  const { data, isLoading, isError, isFetching, dataUpdatedAt } =
+    usePartnerDashboard();
 
   if (isLoading) {
     return (
@@ -30,6 +32,12 @@ export function PartnerDashboardPage() {
       <PageHeader
         title="Tableau de bord"
         breadcrumb={["Partenaire", data.fleet_name]}
+        actions={
+          <LiveRefreshIndicator
+            dataUpdatedAt={dataUpdatedAt}
+            isFetching={isFetching}
+          />
+        }
       />
 
       <div className="animate-stagger space-y-5">

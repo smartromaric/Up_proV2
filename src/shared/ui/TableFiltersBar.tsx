@@ -57,7 +57,9 @@ export function TableFiltersBar({
           />
         </div>
         {totalLabel && (
-          <span className="text-sm text-muted tabular-nums sm:pb-2">{totalLabel}</span>
+          <span className="flex min-h-[42px] items-center text-sm text-muted tabular-nums">
+            {totalLabel}
+          </span>
         )}
       </div>
     </div>

@@ -34,14 +34,14 @@ function mapOrdersResponse(response: BookingsApiResponse | Paginated<PartnerBook
 export const partnerOrdersService = {
   list: async (partnerId: string | number, params?: ListParams) => {
     const response = await apiClient.get<BookingsApiResponse>(
-      `${LINKS.partner.orders.list(partnerId)}${buildListQuery(params)}`
+      `${LINKS.partner.trips.list(partnerId)}${buildListQuery(params)}`
     );
     return mapOrdersResponse(response);
   },
 
   getById: async (partnerId: string | number, id: string) => {
     const response = await apiClient.get<{ order?: ApiBookingItem }>(
-      LINKS.partner.orders.getById(partnerId, id)
+      LINKS.partner.trips.getById(partnerId, id)
     );
     if (response.order) {
       return mapApiBookingItemToPartnerBooking(response.order);

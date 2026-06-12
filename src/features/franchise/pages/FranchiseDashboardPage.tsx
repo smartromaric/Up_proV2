@@ -9,10 +9,12 @@ import { EntityStatusPill } from "@/shared/ui/EntityStatusPill";
 import { formatFCFA, formatPercent } from "@/shared/lib/format";
 import { useFranchiseDashboard } from "../api/dashboard.queries";
 import { FranchisePendingWithdrawalsKpi } from "../components/FranchisePendingWithdrawalsKpi";
+import { LiveRefreshIndicator } from "@/shared/ui/LiveRefreshIndicator";
 import { PortalDashboardSkeleton } from "@/shared/ui/skeletons";
 
 export function FranchiseDashboardPage() {
-  const { data, isLoading, isError } = useFranchiseDashboard();
+  const { data, isLoading, isError, isFetching, dataUpdatedAt } =
+    useFranchiseDashboard();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   if (isLoading) {
@@ -42,6 +44,12 @@ export function FranchiseDashboardPage() {
         <PageHeader
           title="Tableau de bord"
           breadcrumb={["Franchise", data.territory_name]}
+          actions={
+            <LiveRefreshIndicator
+              dataUpdatedAt={dataUpdatedAt}
+              isFetching={isFetching}
+            />
+          }
         />
         <p className="mt-1 text-sm text-muted">
           {data.partners_count} partenaires · {data.drivers_online} chauffeurs en ligne · {data.drivers_total} chauffeurs total

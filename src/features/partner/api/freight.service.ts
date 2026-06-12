@@ -52,6 +52,25 @@ export interface FreightOffer {
   client_phone?: string;
 }
 
+export interface CreateFreightOfferPayload {
+  origin_label: string;
+  origin_lat: number;
+  origin_lng: number;
+  destination_label: string;
+  destination_lat: number;
+  destination_lng: number;
+  distance_km: number;
+  weight_kg?: number;
+  volume_m3?: number;
+  price_fcfa: number;
+  goods_type: string;
+  pickup_date?: string;
+  client_name: string;
+  client_phone?: string;
+  notes?: string;
+}
+
+
 export interface UpdateFreightOfferPayload {
   status: "accepted" | "rejected";
   rejection_reason?: string;
@@ -65,9 +84,16 @@ export const partnerFreightService = {
     return mapFreightResponse(response);
   },
 
+  create: (partnerId: string | number, data: CreateFreightOfferPayload) =>
+    apiClient.post<FreightOffer>(LINKS.partner.freight.create(partnerId), data),
+
+
   update: (partnerId: string | number, offerId: string, data: UpdateFreightOfferPayload) =>
     apiClient.patch<FreightOffer>(
       LINKS.partner.freight.update(partnerId, offerId),
       data
     ),
+
+  delete: (partnerId: string | number, offerId: string) =>
+    apiClient.delete<void>(LINKS.partner.freight.delete(partnerId, offerId)),
 };

@@ -1,3 +1,5 @@
+import { FILTER_CHIP_CLASS } from "./filterControlStyles";
+
 interface FilterChipsProps<T extends string> {
   options: { value: T; label: string }[];
   value: T;
@@ -18,10 +20,10 @@ export function FilterChips<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+            className={`${FILTER_CHIP_CLASS} ${
               active
-                ? "bg-teal text-white"
-                : "bg-surface text-muted border border-border hover:bg-surface-hover hover:text-foreground"
+                ? "border border-teal bg-teal text-white"
+                : "border border-border bg-surface text-muted hover:bg-surface-hover hover:text-foreground"
             }`}
           >
             {opt.label}

@@ -1,6 +1,10 @@
 import { apiClient } from "@/core/http/apiClient";
 import { LINKS } from "@/core/api/links";
 import type { LiveMapData, LiveMapDriver, Paginated, TripStatus } from "@/shared/types";
+import {
+  mapApiPartnerLiveMapToData,
+  type ApiPartnerLiveMapResponse,
+} from "./partnerLiveMap.mapper";
 
 export interface PartnerDriverTripRow {
   id: string;
@@ -47,6 +51,10 @@ export const partnerDriverDetailService = {
 };
 
 export const partnerLiveMapService = {
-  get: (partnerId: string | number) =>
-    apiClient.get<LiveMapData>(LINKS.partner.ops.map(partnerId)),
+  get: async (partnerId: string | number): Promise<LiveMapData> => {
+    const response = await apiClient.get<ApiPartnerLiveMapResponse>(
+      LINKS.partner.ops.map(partnerId)
+    );
+    return mapApiPartnerLiveMapToData(response);
+  },
 };
