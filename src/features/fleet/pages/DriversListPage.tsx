@@ -8,6 +8,7 @@ import { BulkActionBar } from "@/shared/ui/BulkActionBar";
 import { TableFiltersBar } from "@/shared/ui/TableFiltersBar";
 import { SelectFilter } from "@/shared/ui/SelectFilter";
 import { AccountStatusPill, AvailabilityPill } from "@/shared/ui/DriverPills";
+import { useInitialUrlFilter } from "@/shared/hooks/useInitialUrlFilter";
 import {
   getDriverAccountStatusLabel,
   getDriverAvailabilityLabel,
@@ -67,6 +68,19 @@ export function DriversListPage() {
     (typeof DRIVER_COMPLIANCE_FILTER_OPTIONS)[number]["value"]
   >("all");
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
+
+  useInitialUrlFilter(
+    "account_status",
+    ACCOUNT_OPTIONS.map((o) => o.value),
+    setAccountFilter,
+    "all"
+  );
+  useInitialUrlFilter(
+    "availability",
+    AVAILABILITY_OPTIONS.map((o) => o.value),
+    setAvailabilityFilter,
+    "all"
+  );
 
   const table = useServerTableState(
     [zoneFilter, accountFilter, availabilityFilter, complianceFilter],

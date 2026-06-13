@@ -44,6 +44,10 @@ import {
   type WizardDocumentsState,
 } from "./DocumentsStep";
 import { ExtractionStep } from "./ExtractionStep";
+import {
+  clearOnboardingBundle,
+  loadOnboardingBundle,
+} from "@/features/assistant/lib/onboardingFileStore";
 
 const PARTNER_CATEGORIES: { value: VehicleCategory; label: string }[] = [
   { value: "taxi", label: "Taxi" },
@@ -93,6 +97,8 @@ interface FleetPairCreateWizardBaseProps {
   isSubmitting?: boolean;
   extractionWarnings?: string[];
   onExtractionWarnings?: (warnings: string[]) => void;
+  /** Bootstrap depuis l'assistant (IndexedDB + query ?onboarding=) */
+  assistantOnboardingId?: string;
 }
 
 interface AdminWizardProps extends FleetPairCreateWizardBaseProps {
@@ -322,6 +328,31 @@ export function FleetPairCreateWizard(props: FleetPairCreateWizardProps) {
     },
     [adminModels, brand, color, model, props]
   );
+
+  useEffect(() => {
+    const onboardingId = props.assistantOnboardingId?.trim();
+    if (!onboardingId) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      const bundle = await loadOnboardingBundle(onboardingId);
+      if (cancelled || !bundle) return;
+
+      setCreationMode("ai");
+      setDocuments(bundle.documents);
+      applyExtraction(bundle.merged);
+      if (bundle.partnerId && props.variant === "admin") {
+        setPartnerId(bundle.partnerId);
+      }
+      setStepId("review");
+      await clearOnboardingBundle(onboardingId);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.assistantOnboardingId, props.variant, applyExtraction]);
 
   const driverUploads = useMemo(
     () =>

@@ -6,6 +6,7 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { DataTable, type Column } from "@/shared/ui/DataTable";
 import { StatusPill } from "@/shared/ui/StatusPill";
 import { ServicePill } from "@/shared/ui/ServicePill";
+import { useInitialUrlFilter } from "@/shared/hooks/useInitialUrlFilter";
 import { formatFCFA, formatDateTime } from "@/shared/lib/format";
 import {
   getServiceLabel,
@@ -40,6 +41,13 @@ export function TripsListPage() {
     partnerId: null,
   });
   const dateRange = useDateRangeFilter({ defaultPreset: "7d" });
+
+  useInitialUrlFilter(
+    "status",
+    STATUS_FILTER_OPTIONS.map((o) => o.value),
+    setStatusFilter,
+    "all"
+  );
 
   const table = useServerTableState(
     [
