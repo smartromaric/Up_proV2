@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { notificationService } from "@/core/http/notificationService";
 import { usePartnersList } from "@/features/network/api/partners.queries";
@@ -24,11 +24,15 @@ interface VehicleCreatePageProps {
 
 export function VehicleCreatePage({ lockedPartnerId }: VehicleCreatePageProps = {}) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const assistantOnboardingId = searchParams.get("onboarding") ?? undefined;
+  const queryPartnerId = searchParams.get("partnerId") ?? undefined;
+  const effectiveLockedPartnerId = lockedPartnerId ?? queryPartnerId;
   const create = useCreateAdminVehicle();
   const legacy = useLegacyAdminApi();
-  const adminLocked = Boolean(lockedPartnerId);
+  const adminLocked = Boolean(effectiveLockedPartnerId);
   const { data: lockedPartner, isLoading: partnerDetailLoading } = usePartnerDetail(
-    lockedPartnerId ?? ""
+    effectiveLockedPartnerId ?? ""
   );
 
   const { data: partners } = usePartnersList({ per_page: 100 });
@@ -36,8 +40,8 @@ export function VehicleCreatePage({ lockedPartnerId }: VehicleCreatePageProps = 
   const { data: brands, isLoading: brandsLoading } = useVehicleBrandsCatalog();
   const { data: colors, isLoading: colorsLoading } = useVehicleColorsCatalog();
 
-  const backHref = adminLocked && lockedPartnerId
-    ? `/admin/network/partners/${lockedPartnerId}?tab=drivers`
+  const backHref = adminLocked && effectiveLockedPartnerId
+    ? `/admin/network/partners/${effectiveLockedPartnerId}?tab=drivers`
     : "/admin/fleet/vehicles";
   const backLabel = adminLocked ? "← Retour au partenaire" : "← Retour à la liste";
 
@@ -63,8 +67,8 @@ export function VehicleCreatePage({ lockedPartnerId }: VehicleCreatePageProps = 
             "Binôme créé — pensez à ajouter la carte grise pour la validation"
           );
         }
-        if (adminLocked && lockedPartnerId) {
-          router.push(`/admin/network/partners/${lockedPartnerId}?tab=drivers`);
+        if (adminLocked && effectiveLockedPartnerId) {
+          router.push(`/admin/network/partners/${effectiveLockedPartnerId}?tab=drivers`);
         } else {
           router.push("/admin/fleet/vehicles");
         }
@@ -91,7 +95,8 @@ export function VehicleCreatePage({ lockedPartnerId }: VehicleCreatePageProps = 
 
       <FleetPairCreateWizard
         variant="admin"
-        lockedPartnerId={lockedPartnerId}
+        lockedPartnerId={effectiveLockedPartnerId}
+        assistantOnboardingId={assistantOnboardingId}
         backHref={backHref}
         legacyPhone={legacy}
         partners={partners?.data ?? []}
